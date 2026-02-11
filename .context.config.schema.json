@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "anthropic",
+        "openai",
+        "google",
+        "ollama"
+      ],
+      "description": "LLM provider"
+    },
+    "model": {
+      "description": "Model ID override",
+      "type": "string"
+    },
+    "api_key_env": {
+      "description": "Env var name for API key",
+      "type": "string"
+    },
+    "ignore": {
+      "description": "Additional directories to ignore",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "max_depth": {
+      "description": "Max directory depth for scanning",
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "provider"
+  ],
+  "additionalProperties": false
+}

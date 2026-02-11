@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991,
+      "description": "Schema version"
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "fingerprint": {
+      "type": "string",
+      "description": "Short hash of directory contents"
+    },
+    "scope": {
+      "type": "string",
+      "description": "Relative path from project root"
+    },
+    "summary": {
+      "type": "string",
+      "description": "1-3 sentence description of this directory"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Filename relative to this directory"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "One-line description of what this file does"
+          }
+        },
+        "required": [
+          "name",
+          "purpose"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Files in this directory"
+    },
+    "maintenance": {
+      "type": "string",
+      "description": "Self-describing update instruction for LLMs"
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "API endpoint, function signature, or CLI command"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this interface does"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "what": {
+            "type": "string",
+            "description": "The decision that was made"
+          },
+          "why": {
+            "type": "string",
+            "description": "Why this decision was made"
+          },
+          "tradeoff": {
+            "description": "Known tradeoffs of this decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "what",
+          "why"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "properties": {
+        "internal": {
+          "description": "Internal module dependencies",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "external": {
+          "description": "External package dependencies",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "current_state": {
+      "type": "object",
+      "properties": {
+        "working": {
+          "description": "Things that are working",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "broken": {
+          "description": "Things that are broken",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "in_progress": {
+          "description": "Things in progress",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "subdirectories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Subdirectory name (with trailing /)"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line summary of what this subdirectory contains"
+          }
+        },
+        "required": [
+          "name",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "testing": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "todos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "config": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name"
+        },
+        "description": {
+          "type": "string",
+          "description": "One-line project description"
+        },
+        "language": {
+          "type": "string",
+          "description": "Primary language"
+        },
+        "framework": {
+          "description": "Primary framework",
+          "type": "string"
+        },
+        "package_manager": {
+          "description": "Package manager used",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "language"
+      ],
+      "additionalProperties": false
+    },
+    "structure": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path from project root"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line summary"
+          }
+        },
+        "required": [
+          "path",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "last_updated",
+    "fingerprint",
+    "scope",
+    "summary",
+    "files",
+    "maintenance"
+  ],
+  "additionalProperties": false
+}
