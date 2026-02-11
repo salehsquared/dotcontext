@@ -1,10 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join, extname } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
-import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
+import type { ContextFile, FileEntry, SubdirectoryEntry, Evidence } from "../core/schema.js";
 import { SCHEMA_VERSION, DEFAULT_MAINTENANCE } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { detectExportsAST } from "./ast.js";
+import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
 
 /**
  * Generate a .context.yaml using static analysis only (no LLM).
@@ -13,12 +14,16 @@ import { detectExportsAST } from "./ast.js";
 export async function generateStaticContext(
   scanResult: ScanResult,
   childContexts: Map<string, ContextFile>,
+  options?: { evidence?: boolean },
 ): Promise<ContextFile> {
   const files: FileEntry[] = [];
 
   for (const filename of scanResult.files) {
     const purpose = await detectFilePurpose(join(scanResult.path, filename));
-    files.push({ name: filename, purpose });
+    const entry: FileEntry = { name: filename, purpose };
+    const testFile = detectTestFile(filename, scanResult);
+    if (testFile) entry.test_file = testFile;
+    files.push(entry);
   }
 
   const subdirectories: SubdirectoryEntry[] = [];
@@ -55,6 +60,15 @@ export async function generateStaticContext(
     context.interfaces = interfaces;
   }
 
+  // Detect dependencies
+  const externalDeps = await detectExternalDeps(scanResult.path);
+  const internalDeps = await detectInternalDeps(scanResult);
+  if (externalDeps.length > 0 || internalDeps.length > 0) {
+    context.dependencies = {};
+    if (externalDeps.length > 0) context.dependencies.external = externalDeps;
+    if (internalDeps.length > 0) context.dependencies.internal = internalDeps;
+  }
+
   // Root-level: always add project metadata and structure
   if (isRoot) {
     context.project = (await detectProjectMeta(scanResult.path)) ?? {
@@ -68,6 +82,25 @@ export async function generateStaticContext(
         ?? `Contains ${child.files.length} source files`,
     }));
   }
+
+  // Collect evidence (root only, opt-in)
+  if (isRoot && options?.evidence) {
+    const evidence = await collectBasicEvidence(scanResult.path);
+    if (evidence) context.evidence = evidence;
+  }
+
+  // Populate derived_fields
+  const derivedFields: string[] = [
+    "version", "last_updated", "fingerprint", "scope", "files",
+  ];
+  if (context.interfaces) derivedFields.push("interfaces");
+  if (context.dependencies?.external) derivedFields.push("dependencies.external");
+  if (context.dependencies?.internal) derivedFields.push("dependencies.internal");
+  if (context.subdirectories) derivedFields.push("subdirectories");
+  if (context.project) derivedFields.push("project");
+  if (context.structure) derivedFields.push("structure");
+  if (context.evidence) derivedFields.push("evidence");
+  context.derived_fields = derivedFields;
 
   return context;
 }
@@ -164,7 +197,7 @@ async function detectFilePurpose(filePath: string): Promise<string> {
   return extPurposes[ext] ?? "Source file";
 }
 
-async function detectExportsWithFallback(content: string, ext: string): Promise<string[]> {
+export async function detectExportsWithFallback(content: string, ext: string): Promise<string[]> {
   const astResult = await detectExportsAST(content, ext);
   if (astResult !== null) return astResult;
   return detectExportsFromContent(content, ext);
@@ -293,4 +326,125 @@ function detectFramework(pkg: Record<string, unknown>): string | undefined {
   if (deps["@angular/core"]) return "angular";
 
   return undefined;
+}
+
+/**
+ * Heuristic: detect the test file for a given source file.
+ * Checks colocated patterns (foo.test.ts, foo.spec.ts) in same directory.
+ * NOT included in derived_fields — this is a best-effort guess.
+ */
+function detectTestFile(filename: string, scanResult: ScanResult): string | undefined {
+  // Skip test files themselves
+  if (/\.(test|spec)\.\w+$/.test(filename)) return undefined;
+
+  const ext = extname(filename);
+  const base = filename.slice(0, -ext.length);
+
+  // Check same directory for colocated tests
+  for (const suffix of [".test", ".spec"]) {
+    const candidate = `${base}${suffix}${ext}`;
+    if (scanResult.files.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Check sibling tests/ or __tests__/ directories
+  for (const child of scanResult.children) {
+    const childDirName = child.relativePath.split("/").pop();
+    if (childDirName === "tests" || childDirName === "__tests__") {
+      for (const suffix of [".test", ".spec"]) {
+        const candidate = `${base}${suffix}${ext}`;
+        if (child.files.includes(candidate)) {
+          return `${childDirName}/${candidate}`;
+        }
+      }
+      // Also check without suffix (tests/foo.ts for foo.ts)
+      if (child.files.includes(filename)) {
+        return `${childDirName}/${filename}`;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Collect evidence from existing test/typecheck artifacts.
+ * Never runs commands — only reads files that already exist.
+ * Returns null if no artifacts found.
+ */
+async function collectBasicEvidence(rootPath: string): Promise<Evidence | null> {
+  const evidence: Evidence = {
+    collected_at: new Date().toISOString(),
+  };
+  let hasEvidence = false;
+
+  // Check for test result artifacts
+  const testArtifactPaths = [
+    "test-results.json",
+    ".vitest-results.json",
+  ];
+
+  for (const artifactPath of testArtifactPaths) {
+    try {
+      const raw = await readFile(join(rootPath, artifactPath), "utf-8");
+      const data = JSON.parse(raw) as Record<string, unknown>;
+
+      // Vitest/Jest JSON format: { success, numTotalTests, numFailedTests, testResults }
+      if (typeof data.success === "boolean") {
+        evidence.test_status = data.success ? "passing" : "failing";
+        if (typeof data.numTotalTests === "number") {
+          evidence.test_count = data.numTotalTests;
+        }
+        if (!data.success && Array.isArray(data.testResults)) {
+          const failing: string[] = [];
+          for (const suite of data.testResults as Array<Record<string, unknown>>) {
+            if (suite.status === "failed" && typeof suite.name === "string") {
+              failing.push(suite.name);
+            }
+          }
+          if (failing.length > 0) evidence.failing_tests = failing;
+        }
+        hasEvidence = true;
+        break;
+      }
+
+      // Alternative format: { numPassedTests, numFailedTests }
+      if (typeof data.numPassedTests === "number" && typeof data.numFailedTests === "number") {
+        const failed = data.numFailedTests as number;
+        evidence.test_status = failed === 0 ? "passing" : "failing";
+        evidence.test_count = (data.numPassedTests as number) + failed;
+        hasEvidence = true;
+        break;
+      }
+    } catch {
+      // Artifact doesn't exist or is malformed
+    }
+  }
+
+  // Check for JUnit XML
+  if (!hasEvidence) {
+    for (const xmlPath of ["junit.xml", "test-results.xml"]) {
+      try {
+        const content = await readFile(join(rootPath, xmlPath), "utf-8");
+        const testsMatch = content.match(/tests="(\d+)"/);
+        const failuresMatch = content.match(/failures="(\d+)"/);
+        const errorsMatch = content.match(/errors="(\d+)"/);
+
+        if (testsMatch) {
+          const total = parseInt(testsMatch[1], 10);
+          const failures = parseInt(failuresMatch?.[1] ?? "0", 10);
+          const errors = parseInt(errorsMatch?.[1] ?? "0", 10);
+          evidence.test_count = total;
+          evidence.test_status = (failures + errors) === 0 ? "passing" : "failing";
+          hasEvidence = true;
+          break;
+        }
+      } catch {
+        // Artifact doesn't exist
+      }
+    }
+  }
+
+  return hasEvidence ? evidence : null;
 }

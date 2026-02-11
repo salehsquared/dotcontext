@@ -7,6 +7,7 @@ import type { ContextFile } from "../core/schema.js";
 import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, contextSchema } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts.js";
+import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
 
 /**
  * Generate a .context.yaml using an LLM provider.
@@ -16,6 +17,7 @@ export async function generateLLMContext(
   provider: LLMProvider,
   scanResult: ScanResult,
   childContexts: Map<string, ContextFile>,
+  options?: { evidence?: boolean },
 ): Promise<ContextFile> {
   // Read file contents
   const fileContents = new Map<string, string>();
@@ -29,7 +31,8 @@ export async function generateLLMContext(
   }
 
   const isRoot = scanResult.relativePath === ".";
-  const userPrompt = buildUserPrompt(scanResult, fileContents, childContexts, isRoot);
+  const preDetectedDeps = await detectExternalDeps(scanResult.path);
+  const userPrompt = buildUserPrompt(scanResult, fileContents, childContexts, isRoot, preDetectedDeps);
 
   // Call LLM
   const rawResponse = await provider.generate(SYSTEM_PROMPT, userPrompt);
@@ -89,6 +92,26 @@ export async function generateLLMContext(
       }));
     }
   }
+
+  // Overlay machine-derived dependencies (more reliable than LLM guessing)
+  const internalDeps = await detectInternalDeps(scanResult);
+
+  if (preDetectedDeps.length > 0) {
+    context.dependencies = context.dependencies ?? {};
+    context.dependencies.external = preDetectedDeps;
+  }
+  if (internalDeps.length > 0) {
+    context.dependencies = context.dependencies ?? {};
+    context.dependencies.internal = internalDeps;
+  }
+
+  // Build derived_fields (only fields that came from static analysis, not LLM)
+  const derivedFields = ["version", "last_updated", "fingerprint", "scope"];
+  if (preDetectedDeps.length > 0) derivedFields.push("dependencies.external");
+  if (internalDeps.length > 0) derivedFields.push("dependencies.internal");
+  if (context.subdirectories) derivedFields.push("subdirectories");
+  if (context.project) derivedFields.push("project");
+  context.derived_fields = derivedFields;
 
   // Validate against schema — if it fails, fall back to a minimal valid context
   const result = contextSchema.safeParse(context);

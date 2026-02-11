@@ -95,4 +95,39 @@ describe("buildUserPrompt", () => {
     const bIdx = prompt.indexOf("### b.ts");
     expect(aIdx).toBeLessThan(bIdx);
   });
+
+  it("includes external deps when provided", () => {
+    const scan = makeScanResult("/project", { files: ["index.ts"] });
+    const deps = ["express ^4.18.0", "zod ^3.24.0"];
+    const prompt = buildUserPrompt(scan, new Map(), new Map(), false, deps);
+    expect(prompt).toContain("External dependencies (detected from manifest)");
+    expect(prompt).toContain("express ^4.18.0");
+    expect(prompt).toContain("zod ^3.24.0");
+  });
+
+  it("omits external deps section when none provided", () => {
+    const scan = makeScanResult("/project", { files: ["index.ts"] });
+    const prompt = buildUserPrompt(scan, new Map(), new Map(), false);
+    expect(prompt).not.toContain("External dependencies");
+  });
+
+  it("omits external deps section for empty array", () => {
+    const scan = makeScanResult("/project", { files: ["index.ts"] });
+    const prompt = buildUserPrompt(scan, new Map(), new Map(), false, []);
+    expect(prompt).not.toContain("External dependencies");
+  });
+});
+
+describe("SYSTEM_PROMPT derived fields guidance", () => {
+  it("tells LLM not to generate machine-derived fields", () => {
+    expect(SYSTEM_PROMPT).toContain("dependencies.external");
+    expect(SYSTEM_PROMPT).toContain("derived_fields");
+    expect(SYSTEM_PROMPT).toContain("Do NOT generate them");
+  });
+
+  it("tells LLM to focus on narrative fields", () => {
+    expect(SYSTEM_PROMPT).toContain("summary");
+    expect(SYSTEM_PROMPT).toContain("decisions");
+    expect(SYSTEM_PROMPT).toContain("constraints");
+  });
 });

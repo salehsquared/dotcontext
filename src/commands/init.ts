@@ -20,7 +20,7 @@ function ask(question: string): Promise<string> {
   });
 }
 
-export async function initCommand(options: { noLlm?: boolean; path?: string }): Promise<void> {
+export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
   console.log(heading("\nWelcome to context.\n"));
@@ -101,10 +101,11 @@ export async function initCommand(options: { noLlm?: boolean; path?: string }): 
     try {
       let context: ContextFile;
 
+      const genOptions = { evidence: options.evidence };
       if (provider) {
-        context = await generateLLMContext(provider, dir, childContexts);
+        context = await generateLLMContext(provider, dir, childContexts, genOptions);
       } else {
-        context = await generateStaticContext(dir, childContexts);
+        context = await generateStaticContext(dir, childContexts, genOptions);
       }
 
       await writeContext(dir.path, context);

@@ -11,13 +11,17 @@ Rules:
 - Only include decisions/constraints/current_state if you can identify them from the code.
 - Do NOT include secrets, API keys, passwords, or PII.
 - Output ONLY valid YAML — no markdown fences, no explanatory text.
-- Follow the exact field structure shown in the user prompt.`;
+- Follow the exact field structure shown in the user prompt.
+- The following fields are machine-derived and will be overlaid automatically. Do NOT generate them:
+  dependencies.external, derived_fields, evidence, subdirectories, version, last_updated, fingerprint, scope, maintenance
+- Focus your analysis on narrative fields: summary, files[].purpose, interfaces[].description, decisions, constraints, current_state`;
 
 export function buildUserPrompt(
   scanResult: ScanResult,
   fileContents: Map<string, string>,
   childContexts: Map<string, ContextFile>,
   isRoot: boolean,
+  externalDeps?: string[],
 ): string {
   let prompt = `Analyze the following directory and generate a .context.yaml for it.
 
@@ -46,10 +50,18 @@ Directory: ${scanResult.relativePath}
     }
   }
 
+  // Add pre-detected external dependencies as context
+  if (externalDeps && externalDeps.length > 0) {
+    prompt += `\n--- External dependencies (detected from manifest) ---\n`;
+    for (const dep of externalDeps) {
+      prompt += `- ${dep}\n`;
+    }
+  }
+
   // Specify output format
   prompt += `
 --- Output format ---
-Generate YAML with these fields:
+Generate YAML with these fields (dependencies.external, subdirectories, and other machine-derived fields are handled automatically — do NOT include them):
 
 summary: |
   <1-3 sentence description of what this directory does>
@@ -69,12 +81,6 @@ decisions:  # only if you can identify non-obvious architectural choices
 
 constraints:  # only if there are hard rules
   - "<constraint>"
-
-dependencies:
-  internal:
-    - "<module path> — <what it's used for>"
-  external:
-    - "<package name>"
 
 current_state:  # only if things are clearly in progress or broken
   working:

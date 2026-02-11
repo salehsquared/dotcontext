@@ -64,6 +64,78 @@ describe("contextSchema", () => {
         expect(result.data.decisions).toBeUndefined();
       }
     });
+
+    it("accepts derived_fields as string array", () => {
+      const data = makeValidContext({
+        derived_fields: ["version", "fingerprint", "files", "dependencies.external"],
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.derived_fields).toEqual([
+          "version", "fingerprint", "files", "dependencies.external",
+        ]);
+      }
+    });
+
+    it("accepts evidence with full data", () => {
+      const data = makeValidContext({
+        evidence: {
+          collected_at: "2026-02-11T10:00:00Z",
+          test_status: "passing",
+          test_count: 42,
+          typecheck: "clean",
+        },
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.evidence?.test_status).toBe("passing");
+        expect(result.data.evidence?.test_count).toBe(42);
+      }
+    });
+
+    it("accepts evidence with partial data", () => {
+      const data = makeValidContext({
+        evidence: {
+          collected_at: "2026-02-11T10:00:00Z",
+          test_status: "failing",
+          failing_tests: ["scanner.test.ts > handles empty dirs"],
+        },
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.evidence?.test_status).toBe("failing");
+        expect(result.data.evidence?.failing_tests).toHaveLength(1);
+        expect(result.data.evidence?.typecheck).toBeUndefined();
+      }
+    });
+
+    it("accepts files with test_file field", () => {
+      const data = makeValidContext({
+        files: [
+          { name: "index.ts", purpose: "Entry point", test_file: "index.test.ts" },
+          { name: "utils.ts", purpose: "Utilities" },
+        ],
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.files[0].test_file).toBe("index.test.ts");
+        expect(result.data.files[1].test_file).toBeUndefined();
+      }
+    });
+
+    it("validates backward compatibility — existing contexts without new fields", () => {
+      const legacy = makeValidContext();
+      const result = contextSchema.safeParse(legacy);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.derived_fields).toBeUndefined();
+        expect(result.data.evidence).toBeUndefined();
+      }
+    });
   });
 
   describe("required field validation", () => {

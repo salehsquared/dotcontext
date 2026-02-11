@@ -52,9 +52,10 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .command("init")
     .description("Scan project and generate all .context.yaml files")
     .option("--llm", "Use LLM provider for richer context generation")
+    .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.initCommand({ noLlm: !opts.llm, path: opts.path });
+      await handlers.initCommand({ noLlm: !opts.llm, path: opts.path, evidence: opts.evidence });
     });
 
   program
@@ -71,6 +72,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--all", "Regenerate all .context.yaml files")
     .option("--force", "Overwrite without confirmation")
     .option("--no-llm", "Use static analysis only")
+    .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
     .option("-p, --path <path>", "Project root path")
     .action(async (target, opts) => {
       await handlers.regenCommand(target, {
@@ -78,6 +80,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         force: opts.force,
         noLlm: opts.llm === false,
         path: opts.path,
+        evidence: opts.evidence,
       });
     });
 
@@ -92,9 +95,10 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
   program
     .command("validate")
     .description("Check all .context.yaml files for syntax and schema errors")
+    .option("--strict", "Cross-reference declared fields against source code")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.validateCommand({ path: opts.path });
+      await handlers.validateCommand({ path: opts.path, strict: opts.strict });
     });
 
   program

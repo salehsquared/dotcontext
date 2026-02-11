@@ -11,7 +11,7 @@ import type { ContextFile } from "../core/schema.js";
 
 export async function regenCommand(
   targetPath: string | undefined,
-  options: { all?: boolean; force?: boolean; noLlm?: boolean; path?: string },
+  options: { all?: boolean; force?: boolean; noLlm?: boolean; path?: string; evidence?: boolean },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
@@ -60,10 +60,11 @@ export async function regenCommand(
 
     try {
       let context: ContextFile;
+      const genOptions = { evidence: options.evidence };
       if (provider) {
-        context = await generateLLMContext(provider, dir, childContexts);
+        context = await generateLLMContext(provider, dir, childContexts, genOptions);
       } else {
-        context = await generateStaticContext(dir, childContexts);
+        context = await generateStaticContext(dir, childContexts, genOptions);
       }
 
       await writeContext(dir.path, context);

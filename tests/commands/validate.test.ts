@@ -105,4 +105,124 @@ describe("validateCommand", () => {
     const output = logs.join("\n");
     expect(output).toContain("summary");
   });
+
+  describe("--strict mode", () => {
+    it("detects phantom files (listed but not on disk)", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [
+          { name: "index.ts", purpose: "Entry point" },
+          { name: "missing.ts", purpose: "Does not exist" },
+        ],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).toContain("phantom file: missing.ts");
+    });
+
+    it("detects unlisted files (on disk but not in context)", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      await createFile(tmpDir, "extra.ts", "export const y = 2;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).toContain("unlisted file: extra.ts");
+    });
+
+    it("detects phantom interfaces (declared but not found in exports)", async () => {
+      await createFile(tmpDir, "index.ts", "export function realFunc() {}");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        interfaces: [
+          { name: "realFunc", description: "Exists" },
+          { name: "ghostFunc", description: "Does not exist" },
+        ],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).toContain("phantom interface: ghostFunc");
+      expect(output).not.toContain("phantom interface: realFunc");
+    });
+
+    it("passes cleanly when everything matches", async () => {
+      await createFile(tmpDir, "index.ts", "export function hello() {}");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        interfaces: [{ name: "hello", description: "Greeting" }],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).not.toContain("phantom");
+      expect(output).not.toContain("unlisted");
+      expect(output).not.toContain("strict:");
+    });
+
+    it("does not run cross-referencing without --strict", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      await createFile(tmpDir, "extra.ts", "export const y = 2;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+      }));
+
+      await validateCommand({ path: tmpDir });
+
+      const output = logs.join("\n");
+      expect(output).not.toContain("unlisted");
+      expect(output).not.toContain("strict");
+    });
+
+    it("does not cause exit(1) for strict findings only", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      await createFile(tmpDir, "extra.ts", "export const y = 2;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      // Should NOT exit — strict findings are informational
+      expect(exitCode).toBeUndefined();
+    });
+
+    it("prints strict summary line when findings exist", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      await createFile(tmpDir, "extra.ts", "code");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [
+          { name: "index.ts", purpose: "Entry point" },
+          { name: "gone.ts", purpose: "Missing" },
+        ],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      // Should have summary with warning and info counts
+      expect(output).toMatch(/strict: \d+ warning/);
+    });
+  });
 });

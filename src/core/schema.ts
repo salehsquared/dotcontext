@@ -5,6 +5,7 @@ import { z } from "zod";
 const fileEntrySchema = z.object({
   name: z.string().describe("Filename relative to this directory"),
   purpose: z.string().describe("One-line description of what this file does"),
+  test_file: z.string().optional().describe("Associated test file (heuristic, may be wrong for non-colocated test layouts)"),
 });
 
 const interfaceEntrySchema = z.object({
@@ -49,6 +50,16 @@ const structureEntrySchema = z.object({
   summary: z.string().describe("One-line summary"),
 });
 
+// --- Evidence schema ---
+
+const evidenceSchema = z.object({
+  collected_at: z.string().describe("ISO 8601 timestamp of evidence collection"),
+  test_status: z.enum(["passing", "failing", "unknown"]).optional(),
+  test_count: z.number().int().optional(),
+  failing_tests: z.array(z.string()).optional(),
+  typecheck: z.enum(["clean", "errors", "unknown"]).optional(),
+});
+
 // --- Main .context.yaml schema (directory-level) ---
 
 export const contextSchema = z.object({
@@ -78,6 +89,12 @@ export const contextSchema = z.object({
   // Root-only fields (optional, only present in root .context.yaml)
   project: projectSchema.optional(),
   structure: z.array(structureEntrySchema).optional(),
+
+  // Provenance and evidence
+  derived_fields: z.array(z.string()).optional()
+    .describe("Field paths that were machine-derived (high confidence)"),
+  evidence: evidenceSchema.optional()
+    .describe("Machine-collected code health evidence"),
 });
 
 // --- Config file schema (.context.config.yaml) ---
@@ -100,6 +117,7 @@ export type DecisionEntry = z.infer<typeof decisionEntrySchema>;
 export type SubdirectoryEntry = z.infer<typeof subdirectoryEntrySchema>;
 export type ProjectMeta = z.infer<typeof projectSchema>;
 export type StructureEntry = z.infer<typeof structureEntrySchema>;
+export type Evidence = z.infer<typeof evidenceSchema>;
 
 // --- Constants ---
 
