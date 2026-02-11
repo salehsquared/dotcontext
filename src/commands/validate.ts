@@ -46,7 +46,12 @@ async function crossReference(dir: ScanResult, context: ContextFile): Promise<St
     }
 
     for (const iface of context.interfaces) {
-      if (!actualExports.has(iface.name)) {
+      // Extract identifier: pure name or function signature "verifyToken(...)".
+      // Skip names like "POST /login" where identifier is followed by space+path.
+      const identMatch = iface.name.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s*\(|$)/);
+      if (!identMatch) continue; // Skip non-identifier names (endpoints, CLI commands, etc.)
+      const identName = identMatch[1];
+      if (!actualExports.has(identName)) {
         findings.push({ severity: "warning", message: `phantom interface: ${iface.name} (declared but not found in code)` });
       }
     }

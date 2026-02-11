@@ -39,7 +39,7 @@ describe("rehashCommand", () => {
     const updatedContext = await readContext(tmpDir);
     const expectedFingerprint = await computeFingerprint(tmpDir);
     expect(updatedContext?.fingerprint).toBe(expectedFingerprint);
-    expect(updatedContext?.last_updated).not.toBe("2020-01-01T00:00:00.000Z");
+    expect(updatedContext?.last_updated).toBe("2020-01-01T00:00:00.000Z");
     expect(logs.join("\n")).toContain("Updated fingerprints for 1 directories.");
   });
 

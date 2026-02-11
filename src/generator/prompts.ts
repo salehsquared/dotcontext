@@ -1,3 +1,4 @@
+import { relative, basename } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile } from "../core/schema.js";
 
@@ -41,12 +42,22 @@ Directory: ${scanResult.relativePath}
     }
   }
 
-  // Add child context summaries
+  // Add child context summaries (immediate children only)
   if (childContexts.size > 0) {
-    prompt += `\n--- Subdirectory summaries ---\n`;
-    for (const [path, ctx] of childContexts) {
-      const dirName = path.split("/").pop();
-      prompt += `- ${dirName}/: ${ctx.summary}\n`;
+    const immediateChildren: Array<[string, ContextFile]> = [];
+    for (const [childPath, ctx] of childContexts) {
+      const rel = relative(scanResult.path, childPath);
+      // Immediate child: no separators, not empty, not escaping upward
+      if (!rel || rel.startsWith("..") || rel.includes("/") || rel.includes("\\")) continue;
+      immediateChildren.push([childPath, ctx]);
+    }
+
+    if (immediateChildren.length > 0) {
+      prompt += `\n--- Subdirectory summaries ---\n`;
+      for (const [childPath, ctx] of immediateChildren) {
+        const dirName = basename(childPath);
+        prompt += `- ${dirName}/: ${ctx.summary}\n`;
+      }
     }
   }
 

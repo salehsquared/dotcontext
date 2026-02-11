@@ -52,6 +52,14 @@ describe("configCommand", () => {
     expect(config?.ignore).toEqual(["dist", "build"]);
   });
 
+  it("deduplicates ignore values", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic", ignore: ["dist", "node_modules"] });
+    await configCommand({ path: tmpDir, ignore: ["dist", "build"] });
+
+    const config = await readConfig(tmpDir);
+    expect(config?.ignore).toEqual(["dist", "node_modules", "build"]);
+  });
+
   it("rejects invalid provider", async () => {
     await configCommand({ path: tmpDir, provider: "invalid-provider" });
 

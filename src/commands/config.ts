@@ -58,7 +58,7 @@ export async function configCommand(
   }
 
   if (options.ignore) {
-    updated.ignore = [...(updated.ignore ?? []), ...options.ignore];
+    updated.ignore = [...new Set([...(updated.ignore ?? []), ...options.ignore])];
   }
 
   if (options.apiKeyEnv) {

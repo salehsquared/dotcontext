@@ -57,6 +57,22 @@ describe("buildUserPrompt", () => {
     expect(prompt).toContain("Core logic modules");
   });
 
+  it("filters childContexts to immediate children only", () => {
+    const scan = makeScanResult("/project/src", { relativePath: "src", files: [] });
+    const immediateChild = makeValidContext({ summary: "Immediate child context" });
+    const grandchild = makeValidContext({ summary: "Grandchild context" });
+    const sibling = makeValidContext({ summary: "Sibling context" });
+    const childContexts = new Map<string, ContextFile>([
+      ["/project/src/core", immediateChild],       // immediate child — should appear
+      ["/project/src/core/deep", grandchild],       // grandchild — should NOT appear
+      ["/project/other", sibling],                   // sibling — should NOT appear
+    ]);
+    const prompt = buildUserPrompt(scan, new Map(), childContexts, false);
+    expect(prompt).toContain("Immediate child context");
+    expect(prompt).not.toContain("Grandchild context");
+    expect(prompt).not.toContain("Sibling context");
+  });
+
   it("root prompt includes project fields section", () => {
     const scan = makeScanResult("/project", { relativePath: ".", files: [] });
     const prompt = buildUserPrompt(scan, new Map(), new Map(), true);

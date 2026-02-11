@@ -25,7 +25,6 @@ export async function rehashCommand(options: { path?: string }): Promise<void> {
     }
 
     context.fingerprint = newFingerprint;
-    context.last_updated = new Date().toISOString();
     await writeContext(dir.path, context);
     updated++;
   }

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { parse } from "yaml";
 import type { LLMProvider } from "../providers/index.js";
 import type { ScanResult } from "../core/scanner.js";
@@ -8,6 +8,7 @@ import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, contextSchema } from "../core/sche
 import { computeFingerprint } from "../core/fingerprint.js";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
+import { collectBasicEvidence } from "./evidence.js";
 
 /**
  * Generate a .context.yaml using an LLM provider.
@@ -69,7 +70,7 @@ export async function generateLLMContext(
   // Add subdirectories from scan (more reliable than LLM guessing)
   if (scanResult.children.length > 0) {
     context.subdirectories = scanResult.children.map((child) => ({
-      name: child.relativePath.split("/").pop()! + "/",
+      name: basename(child.relativePath) + "/",
       summary: childContexts.get(child.path)?.summary
         ?? `Contains ${child.files.length} source files`,
     }));
@@ -79,7 +80,7 @@ export async function generateLLMContext(
   if (scanResult.relativePath === ".") {
     if (!context.project) {
       context.project = {
-        name: scanResult.path.split("/").pop() ?? "unknown",
+        name: basename(scanResult.path) || "unknown",
         description: "Project root",
         language: "unknown",
       };
@@ -105,19 +106,26 @@ export async function generateLLMContext(
     context.dependencies.internal = internalDeps;
   }
 
+  // Collect evidence (root only, opt-in)
+  if (isRoot && options?.evidence) {
+    const evidence = await collectBasicEvidence(scanResult.path);
+    if (evidence) context.evidence = evidence;
+  }
+
   // Build derived_fields (only fields that came from static analysis, not LLM)
   const derivedFields = ["version", "last_updated", "fingerprint", "scope"];
   if (preDetectedDeps.length > 0) derivedFields.push("dependencies.external");
   if (internalDeps.length > 0) derivedFields.push("dependencies.internal");
   if (context.subdirectories) derivedFields.push("subdirectories");
   if (context.project) derivedFields.push("project");
+  if (context.evidence) derivedFields.push("evidence");
   context.derived_fields = derivedFields;
 
   // Validate against schema — if it fails, fall back to a minimal valid context
   const result = contextSchema.safeParse(context);
   if (!result.success) {
     console.warn(`Warning: LLM output for ${scanResult.relativePath} failed validation, using minimal context`);
-    return {
+    const fallback: ContextFile = {
       version: SCHEMA_VERSION,
       last_updated: new Date().toISOString(),
       fingerprint,
@@ -126,6 +134,21 @@ export async function generateLLMContext(
       files: scanResult.files.map((f) => ({ name: f, purpose: "Source file" })),
       maintenance: DEFAULT_MAINTENANCE,
     };
+    if (scanResult.relativePath === ".") {
+      fallback.project = {
+        name: basename(scanResult.path) || "unknown",
+        description: "Project root",
+        language: "unknown",
+      };
+      if (scanResult.children.length > 0) {
+        fallback.structure = scanResult.children.map((child) => ({
+          path: child.relativePath,
+          summary: childContexts.get(child.path)?.summary
+            ?? `Contains ${child.files.length} source files`,
+        }));
+      }
+    }
+    return fallback;
   }
 
   return result.data;

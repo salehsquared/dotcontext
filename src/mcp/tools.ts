@@ -1,4 +1,4 @@
-import { resolve, join } from "node:path";
+import { resolve, join, relative, isAbsolute } from "node:path";
 import { stat } from "node:fs/promises";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -28,7 +28,9 @@ const METADATA_FIELDS = ["version", "scope", "fingerprint", "last_updated"] as c
 function resolveAndValidate(root: string, scope: string): string | null {
   const rootResolved = resolve(root);
   const target = scope === "." ? rootResolved : resolve(rootResolved, scope);
-  if (target !== rootResolved && !target.startsWith(rootResolved + "/")) return null;
+  if (target === rootResolved) return target;
+  const rel = relative(rootResolved, target);
+  if (rel.startsWith("..") || isAbsolute(rel)) return null;
   return target;
 }
 

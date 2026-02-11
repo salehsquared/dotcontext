@@ -14,21 +14,33 @@ export async function detectExternalDeps(dirPath: string): Promise<string[]> {
     const pkg = JSON.parse(raw) as Record<string, unknown>;
     const deps: string[] = [];
 
-    const prodDeps = pkg.dependencies as Record<string, string> | undefined;
+    const prodDeps = pkg.dependencies as Record<string, unknown> | undefined;
     if (prodDeps && typeof prodDeps === "object") {
       for (const [name, version] of Object.entries(prodDeps)) {
-        deps.push(`${name} ${version}`);
+        if (typeof version === "string") {
+          deps.push(`${name} ${version}`);
+        } else if (version && typeof version === "object" && "version" in version) {
+          deps.push(`${name} ${(version as Record<string, unknown>).version}`);
+        } else {
+          deps.push(name);
+        }
       }
     }
 
-    const devDeps = pkg.devDependencies as Record<string, string> | undefined;
+    const devDeps = pkg.devDependencies as Record<string, unknown> | undefined;
     if (devDeps && typeof devDeps === "object") {
       for (const [name, version] of Object.entries(devDeps)) {
-        deps.push(`${name} ${version} (dev)`);
+        if (typeof version === "string") {
+          deps.push(`${name} ${version} (dev)`);
+        } else if (version && typeof version === "object" && "version" in version) {
+          deps.push(`${name} ${(version as Record<string, unknown>).version} (dev)`);
+        } else {
+          deps.push(`${name} (dev)`);
+        }
       }
     }
 
-    return deps.slice(0, 30);
+    if (deps.length > 0) return deps.slice(0, 30);
   } catch { /* no package.json */ }
 
   // Try requirements.txt
@@ -46,7 +58,7 @@ export async function detectExternalDeps(dirPath: string): Promise<string[]> {
         deps.push(version ? `${name} ${version}` : name);
       }
     }
-    return deps.slice(0, 30);
+    if (deps.length > 0) return deps.slice(0, 30);
   } catch { /* no requirements.txt */ }
 
   // Try Cargo.toml
@@ -71,7 +83,7 @@ export async function detectExternalDeps(dirPath: string): Promise<string[]> {
         }
       }
     }
-    return deps.slice(0, 30);
+    if (deps.length > 0) return deps.slice(0, 30);
   } catch { /* no Cargo.toml */ }
 
   // Try go.mod
@@ -97,7 +109,7 @@ export async function detectExternalDeps(dirPath: string): Promise<string[]> {
         deps.push(`${match[1]} ${match[2]}`);
       }
     }
-    return deps.slice(0, 30);
+    if (deps.length > 0) return deps.slice(0, 30);
   } catch { /* no go.mod */ }
 
   return [];

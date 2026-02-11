@@ -1,11 +1,12 @@
-import { readFile, stat } from "node:fs/promises";
-import { join, extname } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join, extname, basename } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
-import type { ContextFile, FileEntry, SubdirectoryEntry, Evidence } from "../core/schema.js";
+import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
 import { SCHEMA_VERSION, DEFAULT_MAINTENANCE } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { detectExportsAST } from "./ast.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
+import { collectBasicEvidence } from "./evidence.js";
 
 /**
  * Generate a .context.yaml using static analysis only (no LLM).
@@ -30,7 +31,7 @@ export async function generateStaticContext(
   for (const child of scanResult.children) {
     const childCtx = childContexts.get(child.path);
     subdirectories.push({
-      name: child.relativePath.split("/").pop()! + "/",
+      name: basename(child.relativePath) + "/",
       summary: childCtx?.summary ?? `Contains ${child.files.length} source files`,
     });
   }
@@ -72,7 +73,7 @@ export async function generateStaticContext(
   // Root-level: always add project metadata and structure
   if (isRoot) {
     context.project = (await detectProjectMeta(scanResult.path)) ?? {
-      name: scanResult.path.split("/").pop() ?? "unknown",
+      name: basename(scanResult.path) || "unknown",
       description: "Project root",
       language: "unknown",
     };
@@ -122,7 +123,7 @@ function buildSummary(scanResult: ScanResult, isRoot: boolean): string {
 
 async function detectFilePurpose(filePath: string): Promise<string> {
   const ext = extname(filePath).toLowerCase();
-  const filename = filePath.split("/").pop()!;
+  const filename = basename(filePath);
 
   // Known config files
   const knownPurposes: Record<string, string> = {
@@ -350,7 +351,7 @@ function detectTestFile(filename: string, scanResult: ScanResult): string | unde
 
   // Check sibling tests/ or __tests__/ directories
   for (const child of scanResult.children) {
-    const childDirName = child.relativePath.split("/").pop();
+    const childDirName = basename(child.relativePath);
     if (childDirName === "tests" || childDirName === "__tests__") {
       for (const suffix of [".test", ".spec"]) {
         const candidate = `${base}${suffix}${ext}`;
@@ -368,83 +369,5 @@ function detectTestFile(filename: string, scanResult: ScanResult): string | unde
   return undefined;
 }
 
-/**
- * Collect evidence from existing test/typecheck artifacts.
- * Never runs commands — only reads files that already exist.
- * Returns null if no artifacts found.
- */
-async function collectBasicEvidence(rootPath: string): Promise<Evidence | null> {
-  const evidence: Evidence = {
-    collected_at: new Date().toISOString(),
-  };
-  let hasEvidence = false;
-
-  // Check for test result artifacts
-  const testArtifactPaths = [
-    "test-results.json",
-    ".vitest-results.json",
-  ];
-
-  for (const artifactPath of testArtifactPaths) {
-    try {
-      const raw = await readFile(join(rootPath, artifactPath), "utf-8");
-      const data = JSON.parse(raw) as Record<string, unknown>;
-
-      // Vitest/Jest JSON format: { success, numTotalTests, numFailedTests, testResults }
-      if (typeof data.success === "boolean") {
-        evidence.test_status = data.success ? "passing" : "failing";
-        if (typeof data.numTotalTests === "number") {
-          evidence.test_count = data.numTotalTests;
-        }
-        if (!data.success && Array.isArray(data.testResults)) {
-          const failing: string[] = [];
-          for (const suite of data.testResults as Array<Record<string, unknown>>) {
-            if (suite.status === "failed" && typeof suite.name === "string") {
-              failing.push(suite.name);
-            }
-          }
-          if (failing.length > 0) evidence.failing_tests = failing;
-        }
-        hasEvidence = true;
-        break;
-      }
-
-      // Alternative format: { numPassedTests, numFailedTests }
-      if (typeof data.numPassedTests === "number" && typeof data.numFailedTests === "number") {
-        const failed = data.numFailedTests as number;
-        evidence.test_status = failed === 0 ? "passing" : "failing";
-        evidence.test_count = (data.numPassedTests as number) + failed;
-        hasEvidence = true;
-        break;
-      }
-    } catch {
-      // Artifact doesn't exist or is malformed
-    }
-  }
-
-  // Check for JUnit XML
-  if (!hasEvidence) {
-    for (const xmlPath of ["junit.xml", "test-results.xml"]) {
-      try {
-        const content = await readFile(join(rootPath, xmlPath), "utf-8");
-        const testsMatch = content.match(/tests="(\d+)"/);
-        const failuresMatch = content.match(/failures="(\d+)"/);
-        const errorsMatch = content.match(/errors="(\d+)"/);
-
-        if (testsMatch) {
-          const total = parseInt(testsMatch[1], 10);
-          const failures = parseInt(failuresMatch?.[1] ?? "0", 10);
-          const errors = parseInt(errorsMatch?.[1] ?? "0", 10);
-          evidence.test_count = total;
-          evidence.test_status = (failures + errors) === 0 ? "passing" : "failing";
-          hasEvidence = true;
-          break;
-        }
-      } catch {
-        // Artifact doesn't exist
-      }
-    }
-  }
-
-  return hasEvidence ? evidence : null;
-}
+// Re-export for consumers that imported from static.ts
+export { collectBasicEvidence } from "./evidence.js";

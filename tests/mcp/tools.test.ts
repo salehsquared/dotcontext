@@ -122,6 +122,12 @@ describe("handleQueryContext", () => {
     expect(result.found).toBe(false);
     expect(result.error).toContain("path traversal");
   });
+
+  it("rejects backslash path traversal", async () => {
+    const result = await handleQueryContext({ scope: "..\\..\\etc" }, tmpDir);
+    expect(result.found).toBe(false);
+    expect(result.error).toContain("path traversal");
+  });
 });
 
 // --- handleCheckFreshness ---

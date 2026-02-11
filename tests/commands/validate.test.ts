@@ -158,6 +158,42 @@ describe("validateCommand", () => {
       expect(output).not.toContain("phantom interface: realFunc");
     });
 
+    it("skips endpoint-style interface names (not code identifiers)", async () => {
+      await createFile(tmpDir, "index.ts", "export function handler() {}");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        interfaces: [
+          { name: "POST /login", description: "Login endpoint" },
+          { name: "GET /users", description: "List users" },
+        ],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).not.toContain("phantom interface: POST /login");
+      expect(output).not.toContain("phantom interface: GET /users");
+    });
+
+    it("extracts leading identifier from signature-style interface names", async () => {
+      await createFile(tmpDir, "index.ts", "export function verifyToken() {}");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        interfaces: [
+          { name: "verifyToken(token): User", description: "Token verification" },
+        ],
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).not.toContain("phantom interface: verifyToken");
+    });
+
     it("passes cleanly when everything matches", async () => {
       await createFile(tmpDir, "index.ts", "export function hello() {}");
       const fp = await computeFingerprint(tmpDir);

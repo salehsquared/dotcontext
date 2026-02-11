@@ -103,6 +103,41 @@ describe("detectExternalDeps", () => {
     expect(deps).toHaveLength(2);
   });
 
+  it("falls through empty package.json to requirements.txt", async () => {
+    await createFile(tmpDir, "package.json", JSON.stringify({}));
+    await createFile(tmpDir, "requirements.txt", "flask>=2.0\nrequests==2.31.0\n");
+
+    const deps = await detectExternalDeps(tmpDir);
+    expect(deps).toContain("flask >=2.0");
+    expect(deps).toContain("requests ==2.31.0");
+  });
+
+  it("handles object-valued dependency specs with version property", async () => {
+    await createFile(tmpDir, "package.json", JSON.stringify({
+      dependencies: {
+        "normal-pkg": "^1.0.0",
+        "complex-pkg": { version: "^2.0.0", optional: true },
+      },
+    }));
+
+    const deps = await detectExternalDeps(tmpDir);
+    expect(deps).toContain("normal-pkg ^1.0.0");
+    expect(deps).toContain("complex-pkg ^2.0.0");
+    expect(deps.join(" ")).not.toContain("[object Object]");
+  });
+
+  it("handles object-valued dependency specs without version property", async () => {
+    await createFile(tmpDir, "package.json", JSON.stringify({
+      dependencies: {
+        "local-pkg": { path: "../local-pkg" },
+      },
+    }));
+
+    const deps = await detectExternalDeps(tmpDir);
+    expect(deps).toContain("local-pkg");
+    expect(deps.join(" ")).not.toContain("[object Object]");
+  });
+
   it("package.json takes priority over requirements.txt", async () => {
     await createFile(tmpDir, "package.json", JSON.stringify({
       dependencies: { express: "^4.0.0" },
