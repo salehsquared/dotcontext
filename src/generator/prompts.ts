@@ -1,0 +1,108 @@
+import type { ScanResult } from "../core/scanner.js";
+import type { ContextFile } from "../core/schema.js";
+
+export const SYSTEM_PROMPT = `You are a technical documentation generator. Your job is to analyze source code files and produce structured YAML documentation for a .context.yaml file.
+
+Rules:
+- Be factual and precise. Describe what the code DOES, not what it might do.
+- Keep summaries to 1-3 sentences.
+- File purposes should be one concise line.
+- Interface descriptions should be clear and actionable.
+- Only include decisions/constraints/current_state if you can identify them from the code.
+- Do NOT include secrets, API keys, passwords, or PII.
+- Output ONLY valid YAML — no markdown fences, no explanatory text.
+- Follow the exact field structure shown in the user prompt.`;
+
+export function buildUserPrompt(
+  scanResult: ScanResult,
+  fileContents: Map<string, string>,
+  childContexts: Map<string, ContextFile>,
+  isRoot: boolean,
+): string {
+  let prompt = `Analyze the following directory and generate a .context.yaml for it.
+
+Directory: ${scanResult.relativePath}
+`;
+
+  // Add file contents
+  prompt += `\n--- Files in this directory ---\n`;
+  for (const filename of scanResult.files) {
+    const content = fileContents.get(filename);
+    if (content) {
+      // Truncate very large files
+      const truncated = content.length > 8000
+        ? content.substring(0, 8000) + "\n... (truncated)"
+        : content;
+      prompt += `\n### ${filename}\n\`\`\`\n${truncated}\n\`\`\`\n`;
+    }
+  }
+
+  // Add child context summaries
+  if (childContexts.size > 0) {
+    prompt += `\n--- Subdirectory summaries ---\n`;
+    for (const [path, ctx] of childContexts) {
+      const dirName = path.split("/").pop();
+      prompt += `- ${dirName}/: ${ctx.summary}\n`;
+    }
+  }
+
+  // Specify output format
+  prompt += `
+--- Output format ---
+Generate YAML with these fields:
+
+summary: |
+  <1-3 sentence description of what this directory does>
+
+files:
+  - name: "<filename>"
+    purpose: "<one-line purpose>"
+
+interfaces:  # only if there are public APIs, functions, endpoints
+  - name: "<function/endpoint name>"
+    description: "<what it does>"
+
+decisions:  # only if you can identify non-obvious architectural choices
+  - what: "<decision>"
+    why: "<reasoning>"
+    tradeoff: "<known tradeoff>"
+
+constraints:  # only if there are hard rules
+  - "<constraint>"
+
+dependencies:
+  internal:
+    - "<module path> — <what it's used for>"
+  external:
+    - "<package name>"
+
+current_state:  # only if things are clearly in progress or broken
+  working:
+    - "<what works>"
+  broken:
+    - "<what's broken>"
+  in_progress:
+    - "<what's being worked on>"
+`;
+
+  if (isRoot) {
+    prompt += `
+This is the PROJECT ROOT. Also include:
+
+project:
+  name: "<project name>"
+  description: "<one-line description>"
+  language: "<primary language>"
+  framework: "<primary framework if any>"
+  package_manager: "<package manager>"
+
+structure:
+  - path: "<subdir path>"
+    summary: "<one-line summary>"
+`;
+  }
+
+  prompt += `\nOmit any optional sections that don't apply. Output ONLY the YAML, nothing else.`;
+
+  return prompt;
+}
