@@ -4,12 +4,14 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { contextSchema, CONTEXT_FILENAME } from "../core/schema.js";
-import { successMsg, errorMsg } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg } from "../utils/display.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 
 export async function validateCommand(options: { path?: string }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
-  const scanResult = await scanProject(rootPath);
+  const scanOptions = await loadScanOptions(rootPath);
+  const scanResult = await scanProject(rootPath, scanOptions);
   const dirs = flattenBottomUp(scanResult);
 
   let valid = 0;
@@ -26,6 +28,9 @@ export async function validateCommand(options: { path?: string }): Promise<void>
       const result = contextSchema.safeParse(parsed);
 
       if (result.success) {
+        if (dir.relativePath === "." && (!result.data.project || !result.data.structure)) {
+          console.log(warnMsg(`${label}: root .context.yaml should include 'project' and 'structure' fields`));
+        }
         console.log(successMsg(`${label}`));
         valid++;
       } else {

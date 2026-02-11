@@ -6,6 +6,7 @@ import { generateStaticContext } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider, type ProviderName } from "../providers/index.js";
 import { saveConfig, resolveApiKey } from "../utils/config.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 import { successMsg, errorMsg, progressBar, heading } from "../utils/display.js";
 import type { ContextFile, ConfigFile } from "../core/schema.js";
 
@@ -71,7 +72,8 @@ export async function initCommand(options: { noLlm?: boolean; path?: string }): 
 
   // Scan project
   console.log("\nScanning project structure...");
-  const scanResult = await scanProject(rootPath);
+  const scanOptions = await loadScanOptions(rootPath);
+  const scanResult = await scanProject(rootPath, scanOptions);
   const dirs = flattenBottomUp(scanResult);
 
   console.log(`Found ${dirs.length} directories with source code.\n`);

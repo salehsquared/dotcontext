@@ -4,6 +4,7 @@ import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
 import { SCHEMA_VERSION, DEFAULT_MAINTENANCE } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
+import { detectExportsAST } from "./ast.js";
 
 /**
  * Generate a .context.yaml using static analysis only (no LLM).
@@ -54,19 +55,18 @@ export async function generateStaticContext(
     context.interfaces = interfaces;
   }
 
-  // Root-level: add project metadata and structure
+  // Root-level: always add project metadata and structure
   if (isRoot) {
-    const projectMeta = await detectProjectMeta(scanResult.path);
-    if (projectMeta) {
-      context.project = projectMeta;
-    }
-    if (scanResult.children.length > 0) {
-      context.structure = scanResult.children.map((child) => ({
-        path: child.relativePath,
-        summary: childContexts.get(child.path)?.summary
-          ?? `Contains ${child.files.length} source files`,
-      }));
-    }
+    context.project = (await detectProjectMeta(scanResult.path)) ?? {
+      name: scanResult.path.split("/").pop() ?? "unknown",
+      description: "Project root",
+      language: "unknown",
+    };
+    context.structure = scanResult.children.map((child) => ({
+      path: child.relativePath,
+      summary: childContexts.get(child.path)?.summary
+        ?? `Contains ${child.files.length} source files`,
+    }));
   }
 
   return context;
@@ -122,8 +122,8 @@ async function detectFilePurpose(filePath: string): Promise<string> {
         return docMatch[1].trim().replace(/\*\/|"""|'''/, "").trim();
       }
 
-      // Detect primary exports
-      const exports = detectExportsFromContent(content, ext);
+      // Detect primary exports (tree-sitter with regex fallback)
+      const exports = await detectExportsWithFallback(content, ext);
       if (exports.length > 0) {
         return `Exports: ${exports.slice(0, 3).join(", ")}${exports.length > 3 ? ` (+${exports.length - 3} more)` : ""}`;
       }
@@ -162,6 +162,12 @@ async function detectFilePurpose(filePath: string): Promise<string> {
   }
 
   return extPurposes[ext] ?? "Source file";
+}
+
+async function detectExportsWithFallback(content: string, ext: string): Promise<string[]> {
+  const astResult = await detectExportsAST(content, ext);
+  if (astResult !== null) return astResult;
+  return detectExportsFromContent(content, ext);
 }
 
 function detectExportsFromContent(content: string, ext: string): string[] {
@@ -204,7 +210,7 @@ async function detectInterfaces(scanResult: ScanResult): Promise<Array<{ name: s
 
     try {
       const content = await readFile(join(scanResult.path, filename), "utf-8");
-      const exports = detectExportsFromContent(content, ext);
+      const exports = await detectExportsWithFallback(content, ext);
 
       for (const exp of exports.slice(0, 5)) {
         interfaces.push({

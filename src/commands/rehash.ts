@@ -2,11 +2,13 @@ import { resolve } from "node:path";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext, writeContext } from "../core/writer.js";
 import { computeFingerprint } from "../core/fingerprint.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 
 export async function rehashCommand(options: { path?: string }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
-  const scanResult = await scanProject(rootPath);
+  const scanOptions = await loadScanOptions(rootPath);
+  const scanResult = await scanProject(rootPath, scanOptions);
   const dirs = flattenBottomUp(scanResult);
 
   let updated = 0;

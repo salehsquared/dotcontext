@@ -5,6 +5,7 @@ import { generateStaticContext } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 import { successMsg, errorMsg, progressBar } from "../utils/display.js";
 import type { ContextFile } from "../core/schema.js";
 
@@ -14,7 +15,8 @@ export async function regenCommand(
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
-  const scanResult = await scanProject(rootPath);
+  const scanOptions = await loadScanOptions(rootPath);
+  const scanResult = await scanProject(rootPath, scanOptions);
   const allDirs = flattenBottomUp(scanResult);
 
   // Determine which directories to regenerate

@@ -8,6 +8,7 @@ import { checkFreshness, computeFingerprint } from "../core/fingerprint.js";
 import { CONTEXT_FILENAME } from "../core/schema.js";
 import type { ContextFile } from "../core/schema.js";
 import type { FreshnessState } from "../core/fingerprint.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 
 // Fields an LLM can request via the filter parameter
 const FILTERABLE_FIELDS = [
@@ -27,7 +28,7 @@ const METADATA_FIELDS = ["version", "scope", "fingerprint", "last_updated"] as c
 function resolveAndValidate(root: string, scope: string): string | null {
   const rootResolved = resolve(root);
   const target = scope === "." ? rootResolved : resolve(rootResolved, scope);
-  if (!target.startsWith(rootResolved)) return null;
+  if (target !== rootResolved && !target.startsWith(rootResolved + "/")) return null;
   return target;
 }
 
@@ -182,7 +183,8 @@ export async function handleListContexts(
   const rootPath = resolve(input.path ?? defaultRoot);
 
   try {
-    const scanResult = await scanProject(rootPath);
+    const scanOptions = await loadScanOptions(rootPath);
+    const scanResult = await scanProject(rootPath, scanOptions);
     const dirs = flattenBottomUp(scanResult);
 
     const entries: ContextEntry[] = [];

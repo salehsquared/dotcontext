@@ -4,13 +4,20 @@ import { heading, errorMsg, successMsg } from "../utils/display.js";
 import type { ProviderName } from "../providers/index.js";
 
 export async function configCommand(
-  options: { path?: string; provider?: string; model?: string },
+  options: {
+    path?: string;
+    provider?: string;
+    model?: string;
+    maxDepth?: string;
+    ignore?: string[];
+    apiKeyEnv?: string;
+  },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
   const existing = await loadConfig(rootPath);
 
   // If no flags, show current config
-  if (!options.provider && !options.model) {
+  if (!options.provider && !options.model && !options.maxDepth && !options.ignore && !options.apiKeyEnv) {
     if (!existing) {
       console.log(errorMsg("No .context.config.yaml found. Run `context init` first."));
       return;
@@ -39,6 +46,23 @@ export async function configCommand(
 
   if (options.model) {
     updated.model = options.model;
+  }
+
+  if (options.maxDepth) {
+    const depth = parseInt(options.maxDepth, 10);
+    if (isNaN(depth) || depth < 1) {
+      console.log(errorMsg("max_depth must be a positive integer"));
+      return;
+    }
+    updated.max_depth = depth;
+  }
+
+  if (options.ignore) {
+    updated.ignore = [...(updated.ignore ?? []), ...options.ignore];
+  }
+
+  if (options.apiKeyEnv) {
+    updated.api_key_env = options.apiKeyEnv;
   }
 
   await saveConfig(rootPath, updated);

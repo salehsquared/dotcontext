@@ -3,11 +3,13 @@ import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
 import { freshnessIcon, heading } from "../utils/display.js";
+import { loadScanOptions } from "../utils/scan-options.js";
 
 export async function statusCommand(options: { path?: string }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
-  const scanResult = await scanProject(rootPath);
+  const scanOptions = await loadScanOptions(rootPath);
+  const scanResult = await scanProject(rootPath, scanOptions);
   const dirs = flattenBottomUp(scanResult);
 
   let tracked = 0;

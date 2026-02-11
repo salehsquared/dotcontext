@@ -72,6 +72,24 @@ export async function generateLLMContext(
     }));
   }
 
+  // Root-level: ensure project and structure always present
+  if (scanResult.relativePath === ".") {
+    if (!context.project) {
+      context.project = {
+        name: scanResult.path.split("/").pop() ?? "unknown",
+        description: "Project root",
+        language: "unknown",
+      };
+    }
+    if (!context.structure) {
+      context.structure = scanResult.children.map((child) => ({
+        path: child.relativePath,
+        summary: childContexts.get(child.path)?.summary
+          ?? `Contains ${child.files.length} source files`,
+      }));
+    }
+  }
+
   // Validate against schema — if it fails, fall back to a minimal valid context
   const result = contextSchema.safeParse(context);
   if (!result.success) {

@@ -10,6 +10,7 @@ import { validateCommand } from "./commands/validate.js";
 import { showCommand } from "./commands/show.js";
 import { configCommand } from "./commands/config.js";
 import { ignoreCommand } from "./commands/ignore.js";
+import { watchCommand } from "./commands/watch.js";
 import { startMcpServer } from "./mcp/server.js";
 
 const program = new Command();
@@ -22,10 +23,10 @@ program
 program
   .command("init")
   .description("Scan project and generate all .context.yaml files")
-  .option("--no-llm", "Use static analysis only (no API key needed)")
+  .option("--llm", "Use LLM provider for richer context generation")
   .option("-p, --path <path>", "Project root path")
   .action(async (opts) => {
-    await initCommand({ noLlm: opts.llm === false, path: opts.path });
+    await initCommand({ noLlm: !opts.llm, path: opts.path });
   });
 
 program
@@ -80,9 +81,19 @@ program
   .description("View or edit provider settings")
   .option("--provider <provider>", "Set LLM provider (anthropic, openai, google, ollama)")
   .option("--model <model>", "Set model ID")
+  .option("--max-depth <depth>", "Set maximum scan depth")
+  .option("--ignore <dirs...>", "Add directories to ignore list")
+  .option("--api-key-env <var>", "Set environment variable name for API key")
   .option("-p, --path <path>", "Project root path")
   .action(async (opts) => {
-    await configCommand({ path: opts.path, provider: opts.provider, model: opts.model });
+    await configCommand({
+      path: opts.path,
+      provider: opts.provider,
+      model: opts.model,
+      maxDepth: opts.maxDepth,
+      ignore: opts.ignore,
+      apiKeyEnv: opts.apiKeyEnv,
+    });
   });
 
 program
@@ -91,6 +102,15 @@ program
   .option("-p, --path <path>", "Project root path")
   .action(async (target, opts) => {
     await ignoreCommand(target, { path: opts.path });
+  });
+
+program
+  .command("watch")
+  .description("Watch for file changes and report staleness in real-time")
+  .option("-p, --path <path>", "Project root path")
+  .option("--interval <ms>", "Debounce interval in milliseconds", "500")
+  .action(async (opts) => {
+    await watchCommand({ path: opts.path, interval: opts.interval });
   });
 
 program

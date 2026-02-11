@@ -16,8 +16,8 @@ Every LLM coding tool (Claude Code, Cursor, Copilot, Windsurf, Aider) suffers fr
 # Install
 npm install -g dotcontext
 
-# Generate context files (no API key needed)
-context init --no-llm
+# Generate context files (no API key needed, static analysis by default)
+context init
 
 # Check freshness
 context status
@@ -49,16 +49,18 @@ Requires Node.js >= 18. No accounts, no login, no cloud service.
 | `context show <path>` | Pretty-print a `.context.yaml` file |
 | `context config` | View/edit provider settings |
 | `context ignore <path>` | Add a directory to `.contextignore` |
+| `context watch` | Watch for file changes and report staleness in real-time |
 | `context serve` | Start MCP server for LLM tool integration |
 
 ### Key flags
 
 ```bash
-context init --no-llm          # Static analysis only (no API key needed)
-context init                   # Interactive: choose provider, enter API key
+context init                   # Static analysis only (default, no API key needed)
+context init --llm             # Use LLM provider for richer context generation
 context regen src/core         # Regenerate a specific directory
 context regen --all            # Regenerate everything
 context regen --all --no-llm   # Regenerate everything without LLM
+context watch                  # Watch for file changes, report staleness live
 context serve --path /my/project  # Start MCP server for a specific project
 ```
 
