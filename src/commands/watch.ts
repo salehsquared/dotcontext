@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { resolve, posix } from "node:path";
 import { watch as chokidarWatch } from "chokidar";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext } from "../core/writer.js";
@@ -13,6 +13,33 @@ interface DirState {
   state: FreshnessState;
 }
 
+function normalizePathForMatch(input: string): string {
+  const normalized = input.replace(/\\/g, "/").replace(/\/+$/, "");
+  return normalized || "/";
+}
+
+export function findTrackedDirForFile(
+  filePath: string,
+  rootPath: string,
+  trackedDirPaths: Iterable<string>,
+): string | undefined {
+  const rootNormalized = normalizePathForMatch(rootPath);
+  const trackedNormalized = new Set(
+    Array.from(trackedDirPaths, (path) => normalizePathForMatch(path)),
+  );
+
+  let candidate = normalizePathForMatch(posix.dirname(filePath.replace(/\\/g, "/")));
+
+  while (candidate.length >= rootNormalized.length) {
+    if (trackedNormalized.has(candidate)) return candidate;
+    const parent = normalizePathForMatch(posix.dirname(candidate));
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+
+  return undefined;
+}
+
 /**
  * Watch for file changes and report staleness in real-time.
  * Read-only: never writes to disk.
@@ -21,7 +48,8 @@ export async function watchCommand(
   options: { path?: string; interval?: string },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
-  const debounceMs = parseInt(options.interval ?? "500", 10);
+  const parsedInterval = Number.parseInt(options.interval ?? "500", 10);
+  const debounceMs = Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : 500;
 
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
@@ -62,28 +90,14 @@ export async function watchCommand(
     `\n  ${freshCount} fresh, ${staleCount} stale, ${missingCount} missing\n`,
   );
 
-  // Build a map from directory path to ScanResult for quick lookup
+  // Build a map from normalized directory path to ScanResult for quick lookup
   const dirByPath = new Map<string, ScanResult>();
   for (const dir of dirs) {
-    dirByPath.set(dir.path, dir);
+    dirByPath.set(normalizePathForMatch(dir.path), dir);
   }
 
   // Track debounce timers per directory
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
-
-  // Find which tracked directory a changed file belongs to
-  function findParentDir(filePath: string): ScanResult | undefined {
-    // Walk up from file to find the closest tracked directory
-    let candidate = filePath.substring(0, filePath.lastIndexOf("/"));
-    while (candidate.length >= rootPath.length) {
-      const dir = dirByPath.get(candidate);
-      if (dir) return dir;
-      const parent = candidate.substring(0, candidate.lastIndexOf("/"));
-      if (parent === candidate) break;
-      candidate = parent;
-    }
-    return undefined;
-  }
 
   async function recheckDir(dir: ScanResult): Promise<void> {
     const context = await readContext(dir.path);
@@ -120,7 +134,8 @@ export async function watchCommand(
   });
 
   watcher.on("all", (_event, filePath) => {
-    const dir = findParentDir(filePath);
+    const parentPath = findTrackedDirForFile(filePath, rootPath, dirByPath.keys());
+    const dir = parentPath ? dirByPath.get(parentPath) : undefined;
     if (!dir) return;
 
     // Debounce per directory

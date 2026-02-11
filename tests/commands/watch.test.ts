@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeContext } from "../../src/core/writer.js";
 import { computeFingerprint, checkFreshness } from "../../src/core/fingerprint.js";
 import { createTmpDir, cleanupTmpDir, createFile, makeValidContext } from "../helpers.js";
+import { findTrackedDirForFile } from "../../src/commands/watch.js";
 
 let tmpDir: string;
 
@@ -45,5 +46,21 @@ describe("watch building blocks", () => {
   it("handles empty directory gracefully", async () => {
     const { state } = await checkFreshness(tmpDir, undefined);
     expect(state).toBe("missing");
+  });
+
+  it("finds nearest tracked directory for POSIX paths", () => {
+    const tracked = ["/repo", "/repo/src", "/repo/src/core"];
+    const match = findTrackedDirForFile("/repo/src/core/index.ts", "/repo", tracked);
+    expect(match).toBe("/repo/src/core");
+  });
+
+  it("finds nearest tracked directory for Windows-style paths", () => {
+    const tracked = ["C:\\repo", "C:\\repo\\src", "C:\\repo\\src\\core"];
+    const match = findTrackedDirForFile(
+      "C:\\repo\\src\\core\\index.ts",
+      "C:\\repo",
+      tracked,
+    );
+    expect(match).toBe("C:/repo/src/core");
   });
 });

@@ -22,7 +22,7 @@ export async function regenCommand(
   // Determine which directories to regenerate
   let dirs = allDirs;
   if (!options.all && targetPath) {
-    const resolvedTarget = resolve(targetPath).replace(/\/$/, "");
+    const resolvedTarget = resolve(rootPath, targetPath).replace(/\/$/, "");
     dirs = allDirs.filter((d) => d.path === resolvedTarget || d.path.startsWith(resolvedTarget + "/"));
 
     if (dirs.length === 0) {
