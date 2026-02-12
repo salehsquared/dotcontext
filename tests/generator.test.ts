@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { generateStaticContext } from "../src/generator/static.js";
 import { generateLLMContext } from "../src/generator/llm.js";
@@ -322,5 +322,158 @@ constraints:
     expect(result.interfaces).toHaveLength(1);
     expect(result.decisions).toHaveLength(1);
     expect(result.constraints).toHaveLength(1);
+  });
+
+  it("populates evidence when evidence option is true at root", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    await writeFile(
+      join(tmpDir, "test-results.json"),
+      JSON.stringify({ success: true, numTotalTests: 42 }),
+    );
+    const provider = createMockProvider("summary: Root project\nfiles:\n  - name: a.ts\n    purpose: Code");
+    const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["a.ts"] });
+
+    const result = await generateLLMContext(provider, scan, new Map(), { evidence: true });
+
+    expect(result.evidence).toBeDefined();
+    expect(result.evidence!.test_status).toBe("passing");
+    expect(result.evidence!.test_count).toBe(42);
+    expect(result.derived_fields).toContain("evidence");
+  });
+
+  it("omits evidence when evidence option is false", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    await writeFile(
+      join(tmpDir, "test-results.json"),
+      JSON.stringify({ success: true, numTotalTests: 10 }),
+    );
+    const provider = createMockProvider("summary: Test\nfiles:\n  - name: a.ts\n    purpose: Code");
+    const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["a.ts"] });
+
+    const result = await generateLLMContext(provider, scan, new Map());
+
+    expect(result.evidence).toBeUndefined();
+  });
+
+  it("omits evidence for non-root even when option is true", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    await writeFile(
+      join(tmpDir, "test-results.json"),
+      JSON.stringify({ success: true, numTotalTests: 10 }),
+    );
+    const provider = createMockProvider("summary: Sub dir\nfiles:\n  - name: a.ts\n    purpose: Code");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["a.ts"] });
+
+    const result = await generateLLMContext(provider, scan, new Map(), { evidence: true });
+
+    expect(result.evidence).toBeUndefined();
+  });
+
+  it("fallback at root includes project and structure", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    const childPath = join(tmpDir, "core");
+    await mkdir(childPath);
+
+    // Return invalid files structure to trigger fallback
+    const provider = createMockProvider("summary: Root project\nfiles:\n  - bad_field: oops");
+    const childScan = makeScanResult(childPath, { relativePath: "core", files: ["b.ts"] });
+    const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["a.ts"], children: [childScan] });
+
+    const childCtx = makeValidContext({ summary: "Core modules" });
+    const childContexts = new Map<string, ContextFile>([[childPath, childCtx]]);
+
+    const result = await generateLLMContext(provider, scan, childContexts);
+
+    // Fallback should still be valid
+    expect(contextSchema.safeParse(result).success).toBe(true);
+    // Root fallback must include project and structure
+    expect(result.project).toBeDefined();
+    expect(result.project!.name).toBeTruthy();
+    expect(result.structure).toBeDefined();
+    expect(result.structure!.length).toBeGreaterThan(0);
+    expect(result.structure![0].summary).toBe("Core modules");
+  });
+
+  it("fallback at non-root omits project and structure", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    // Return invalid files structure to trigger fallback
+    const provider = createMockProvider("summary: Sub dir\nfiles:\n  - bad_field: oops");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["a.ts"] });
+
+    const result = await generateLLMContext(provider, scan, new Map());
+
+    expect(contextSchema.safeParse(result).success).toBe(true);
+    expect(result.project).toBeUndefined();
+    expect(result.structure).toBeUndefined();
+  });
+});
+
+// --- Static generator golden-shape test ---
+
+describe("generateStaticContext golden shape", () => {
+  it("produces stable field set for a typical directory", async () => {
+    await createFile(tmpDir, "index.ts", "export function main() {}");
+    await createFile(tmpDir, "utils.ts", "export const helper = 1;");
+    await createFile(tmpDir, "package.json", JSON.stringify({ name: "test-project", description: "A test" }));
+
+    const childPath = join(tmpDir, "lib");
+    await mkdir(childPath);
+    const childScan = makeScanResult(childPath, { relativePath: "lib", files: ["mod.ts"] });
+
+    const scan = makeScanResult(tmpDir, {
+      relativePath: ".",
+      files: ["index.ts", "utils.ts", "package.json"],
+      children: [childScan],
+    });
+
+    const result = await generateStaticContext(scan, new Map());
+
+    // Required fields always present
+    expect(result).toHaveProperty("version");
+    expect(result).toHaveProperty("last_updated");
+    expect(result).toHaveProperty("fingerprint");
+    expect(result).toHaveProperty("scope");
+    expect(result).toHaveProperty("summary");
+    expect(result).toHaveProperty("files");
+    expect(result).toHaveProperty("maintenance");
+    expect(result).toHaveProperty("derived_fields");
+
+    // Root-level fields present at root
+    expect(result).toHaveProperty("project");
+    expect(result).toHaveProperty("structure");
+    expect(result).toHaveProperty("subdirectories");
+
+    // Files match input
+    const fileNames = result.files.map((f) => f.name).sort();
+    expect(fileNames).toEqual(["index.ts", "package.json", "utils.ts"]);
+
+    // Every file has a purpose
+    for (const f of result.files) {
+      expect(typeof f.purpose).toBe("string");
+      expect(f.purpose.length).toBeGreaterThan(0);
+    }
+
+    // derived_fields declares what was machine-generated
+    expect(result.derived_fields).toContain("version");
+    expect(result.derived_fields).toContain("files");
+    expect(result.derived_fields).toContain("project");
+
+    // Schema validation passes
+    expect(contextSchema.safeParse(result).success).toBe(true);
+  });
+
+  it("non-root shape omits project and structure", async () => {
+    await createFile(tmpDir, "mod.ts", "export const x = 1;");
+    const scan = makeScanResult(tmpDir, { relativePath: "src/lib", files: ["mod.ts"] });
+
+    const result = await generateStaticContext(scan, new Map());
+
+    expect(result).toHaveProperty("version");
+    expect(result).toHaveProperty("summary");
+    expect(result).toHaveProperty("files");
+    expect(result).not.toHaveProperty("project");
+    expect(result).not.toHaveProperty("structure");
+
+    expect(contextSchema.safeParse(result).success).toBe(true);
   });
 });

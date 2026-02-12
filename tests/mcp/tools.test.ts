@@ -103,6 +103,22 @@ describe("handleQueryContext", () => {
     expect(result.context!.summary).toBe("Schema definitions");
   });
 
+  it("accepts backslash-separated scopes (Windows-style)", async () => {
+    const subDir = join(tmpDir, "src", "core");
+    await mkdir(subDir, { recursive: true });
+    await createFile(subDir, "schema.ts", "export const x = 1;");
+    const fp = await computeFingerprint(subDir);
+    await writeContext(subDir, makeValidContext({
+      scope: "src/core",
+      fingerprint: fp,
+      summary: "Schema definitions",
+    }));
+
+    const result = await handleQueryContext({ scope: "src\\core" }, tmpDir);
+    expect(result.found).toBe(true);
+    expect(result.context!.summary).toBe("Schema definitions");
+  });
+
   it("ignores invalid filter values", async () => {
     await createFile(tmpDir, "index.ts", "code");
     const fp = await computeFingerprint(tmpDir);
@@ -176,6 +192,22 @@ describe("handleCheckFreshness", () => {
 
     const result = await handleCheckFreshness({ scope: "." }, tmpDir);
     expect(result.last_updated).toBe("2026-01-15T10:00:00.000Z");
+  });
+
+  it("accepts backslash-separated scopes for freshness checks", async () => {
+    const subDir = join(tmpDir, "src", "core");
+    await mkdir(subDir, { recursive: true });
+    await createFile(subDir, "schema.ts", "export const x = 1;");
+    const fp = await computeFingerprint(subDir);
+    await writeContext(subDir, makeValidContext({
+      scope: "src/core",
+      fingerprint: fp,
+      summary: "Schema definitions",
+    }));
+
+    const result = await handleCheckFreshness({ scope: "src\\core" }, tmpDir);
+    expect(result.state).toBe("fresh");
+    expect(result.fingerprint?.stored).toBe(fp);
   });
 });
 

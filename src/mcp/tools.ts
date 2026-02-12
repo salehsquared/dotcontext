@@ -27,7 +27,8 @@ const METADATA_FIELDS = ["version", "scope", "fingerprint", "last_updated"] as c
  */
 function resolveAndValidate(root: string, scope: string): string | null {
   const rootResolved = resolve(root);
-  const target = scope === "." ? rootResolved : resolve(rootResolved, scope);
+  const normalizedScope = scope.replace(/\\/g, "/");
+  const target = normalizedScope === "." ? rootResolved : resolve(rootResolved, normalizedScope);
   if (target === rootResolved) return target;
   const rel = relative(rootResolved, target);
   if (rel.startsWith("..") || isAbsolute(rel)) return null;

@@ -76,6 +76,22 @@ describe("configCommand", () => {
     expect(logs.join("\n")).toContain("max_depth must be a positive integer");
   });
 
+  it("rejects max_depth of 0", async () => {
+    await configCommand({ path: tmpDir, provider: "openai", maxDepth: "0" });
+
+    const config = await readConfig(tmpDir);
+    expect(config).toBeNull();
+    expect(logs.join("\n")).toContain("max_depth must be a positive integer");
+  });
+
+  it("rejects negative max_depth", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic", maxDepth: "-3" });
+
+    const config = await readConfig(tmpDir);
+    expect(config).toBeNull();
+    expect(logs.join("\n")).toContain("max_depth must be a positive integer");
+  });
+
   it("prints existing configuration when no update flags are passed", async () => {
     await configCommand({ path: tmpDir, provider: "google", model: "gemini-2.0-flash" });
     logs = [];

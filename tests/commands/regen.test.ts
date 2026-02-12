@@ -5,7 +5,7 @@ import { parse } from "yaml";
 import { initCommand } from "../../src/commands/init.js";
 import { regenCommand } from "../../src/commands/regen.js";
 import { CONTEXT_FILENAME } from "../../src/core/schema.js";
-import { createTmpDir, cleanupTmpDir } from "../helpers.js";
+import { createTmpDir, cleanupTmpDir, createNestedFile } from "../helpers.js";
 
 let tmpDir: string;
 let logs: string[];
@@ -76,5 +76,46 @@ describe("regenCommand", () => {
     await regenCommand(undefined, { path: tmpDir, noLlm: true, all: true });
 
     expect(logs.join("\n")).toContain("2 files regenerated");
+  });
+
+  it("reports error for path outside project root", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    logs = [];
+    await regenCommand("../outside", { path: tmpDir, noLlm: true });
+
+    expect(logs.join("\n")).toContain("No matching directory found");
+  });
+
+  it("reports error for absolute path outside project root", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    logs = [];
+    await regenCommand("/tmp/totally-elsewhere", { path: tmpDir, noLlm: true });
+
+    expect(logs.join("\n")).toContain("No matching directory found");
+  });
+
+  it("resolves nested relative targets against project root", async () => {
+    await copyFixture("simple-project");
+    await createNestedFile(tmpDir, "src/core/deep.ts", "export const deep = true;");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const before = parse(
+      await readFile(join(tmpDir, "src", "core", CONTEXT_FILENAME), "utf-8"),
+    ) as { last_updated: string };
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await regenCommand("src/core", { path: tmpDir, noLlm: true });
+
+    const after = parse(
+      await readFile(join(tmpDir, "src", "core", CONTEXT_FILENAME), "utf-8"),
+    ) as { last_updated: string };
+
+    expect(after.last_updated).not.toBe(before.last_updated);
+    expect(logs.join("\n")).toContain("src/core/.context.yaml updated");
+    expect(logs.join("\n")).not.toContain("No matching directory found");
   });
 });

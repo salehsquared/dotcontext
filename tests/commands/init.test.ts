@@ -4,6 +4,7 @@ import { cp, readFile, stat } from "node:fs/promises";
 import { parse } from "yaml";
 import { initCommand } from "../../src/commands/init.js";
 import { contextSchema, CONTEXT_FILENAME } from "../../src/core/schema.js";
+import { saveConfig } from "../../src/utils/config.js";
 import { createTmpDir, cleanupTmpDir } from "../helpers.js";
 
 let tmpDir: string;
@@ -100,5 +101,38 @@ describe("initCommand (--no-llm)", () => {
 
     const output = logs.join("\n");
     expect(output).toMatch(/Done\. \d+ \.context\.yaml files created/);
+  });
+});
+
+describe("initCommand respects scan-options from config", () => {
+  it("ignore config excludes directories from scanning", async () => {
+    await copyFixture("simple-project");
+    await saveConfig(tmpDir, { provider: "anthropic", ignore: ["src"] });
+
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    // Root should have context
+    const rootStat = await stat(join(tmpDir, CONTEXT_FILENAME));
+    expect(rootStat.isFile()).toBe(true);
+
+    // src/ should NOT have context because it's ignored
+    await expect(stat(join(tmpDir, "src", CONTEXT_FILENAME))).rejects.toThrow();
+  });
+
+  it("max_depth config limits scanning depth", async () => {
+    await copyFixture("monorepo");
+    // max_depth: 1 means root (depth 0) + one level of children (depth 1).
+    // monorepo's deeper dirs (packages/api/src, packages/shared/src) should be excluded.
+    await saveConfig(tmpDir, { provider: "anthropic", max_depth: 1 });
+
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    // Deep directories should NOT get context files
+    await expect(
+      stat(join(tmpDir, "packages", "api", "src", CONTEXT_FILENAME)),
+    ).rejects.toThrow();
+    await expect(
+      stat(join(tmpDir, "packages", "shared", "src", CONTEXT_FILENAME)),
+    ).rejects.toThrow();
   });
 });

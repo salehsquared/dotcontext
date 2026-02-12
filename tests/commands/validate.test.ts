@@ -260,5 +260,61 @@ describe("validateCommand", () => {
       // Should have summary with warning and info counts
       expect(output).toMatch(/strict: \d+ warning/);
     });
+
+    it("flags declared internal deps not found in imports", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        dependencies: {
+          internal: ["../utils", "../nonexistent"],
+        },
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).toContain("declared internal dep not found in imports: ../utils");
+      expect(output).toContain("declared internal dep not found in imports: ../nonexistent");
+    });
+
+    it("flags undeclared internal deps found in imports", async () => {
+      // Cross-check only runs when declared internal deps has length > 0.
+      // Declare one dep that matches, leave ../utils undeclared.
+      await createFile(tmpDir, "index.ts", 'import { helper } from "../utils";\nimport { foo } from "../lib";\nexport const x = 1;');
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        dependencies: {
+          internal: ["../lib"],
+        },
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).toContain("undeclared internal dep found in imports: ../utils");
+      expect(output).not.toContain("undeclared internal dep found in imports: ../lib");
+    });
+
+    it("passes cleanly when declared deps match actual imports", async () => {
+      await createFile(tmpDir, "index.ts", 'import { helper } from "../utils";\nexport const x = 1;');
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeValidContext({
+        fingerprint: fp,
+        files: [{ name: "index.ts", purpose: "Entry point" }],
+        dependencies: {
+          internal: ["../utils"],
+        },
+      }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      expect(output).not.toContain("declared internal dep not found");
+      expect(output).not.toContain("undeclared internal dep found");
+    });
   });
 });
