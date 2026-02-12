@@ -1,11 +1,10 @@
 version: 1
-last_updated: 2026-02-12T18:06:52.242Z
-fingerprint: de21c6be
+last_updated: 2026-02-12T22:23:51.485Z
+fingerprint: 0d727c99
 scope: src/core
 summary: >
-  The `src/core` directory provides functionalities for computing fingerprints of project directories, managing agent
-  markdown files, and scanning project structures to identify directories needing context management. It serves as a
-  vital component for maintaining project integrity and facilitating updates.
+  This directory contains core functionality for computing directory fingerprints, scanning project structures, and
+  managing .context.yaml files. It ensures organized and efficient tracking of project files and their states.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +13,43 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using SHA-256 for fingerprint computation
-    why: To ensure a reliable and collision-resistant hash for directory content changes.
-    tradeoff: Increased computation time due to the algorithm's complexity compared to simpler hash functions.
+  - what: The fingerprinting process is non-recursive and only considers files directly in the directory.
+    why: This design choice simplifies fingerprint calculations and prevents excessive computation on nested directories.
+    tradeoff: Potentially misses changes in files deeply nested within subdirectories.
 constraints:
-  - The .context.yaml file must not be included in the fingerprint computation.
-  - Only source code files and meaningful files count towards fingerprint computation.
+  - Do not include .context.yaml itself or common non-source directories when computing fingerprints.
+  - Files and directories that match certain ignore patterns will be excluded from scans.
+exports:
+  - "async function computeFingerprint(dirPath: string, ignorePatterns: string[] = []): Promise<string>"
+  - type FreshnessState
+  - "async function checkFreshness( dirPath: string, storedFingerprint: string | undefined, ignorePatterns: string[] =
+    [], ): Promise<"
+  - AGENTS_FILENAME
+  - "async function readAgentsMd(rootPath: string): Promise<string | null>"
+  - "async function writeAgentsMd(rootPath: string, content: string): Promise<void>"
+  - 'async function updateAgentsMd( rootPath: string, entries: AgentsEntry[], projectName: string, ): Promise<"created"
+    | "appended" | "replaced" | "skipped">'
+  - interface ScanResult
+  - interface ScanOptions
+  - "async function scanProject( rootPath: string, options: ScanOptions ="
+  - "function groupByDepth(root: ScanResult): ScanResult[][]"
+  - "function flattenBottomUp(result: ScanResult): ScanResult[]"
+  - contextSchema
+  - configSchema
+  - type ContextFile
+  - type ConfigFile
+  - type FileEntry
+  - type InterfaceEntry
+  - type DecisionEntry
+  - type SubdirectoryEntry
+  - type ProjectMeta
+  - type StructureEntry
+  - type Evidence
+  - CONTEXT_FILENAME
+  - CONFIG_FILENAME
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports

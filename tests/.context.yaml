@@ -1,11 +1,12 @@
 version: 1
-last_updated: 2026-02-12T18:07:26.224Z
-fingerprint: ce633ea2
+last_updated: 2026-02-12T22:24:10.428Z
+fingerprint: 9b7f0d40
 scope: tests
 summary: >
-  This directory contains unit tests for the project's functionalities, ensuring that various components work correctly
-  through automated testing. It includes tests for detecting exports and dependencies, environmental configurations, and
-  other core functionalities.
+  The tests directory contains various unit tests to validate the functionality and behavior of the application,
+  including components such as command handlers, core functionality, dependency detection, environmental variable
+  management, and code generation. It ensures the integrity and reliability of the system through comprehensive testing
+  across different modules.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,46 +15,56 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use Vitest for testing framework
-    why: Vitest provides a fast and efficient testing experience with modern features.
-    tradeoff: Could limit compatibility with other libraries or environments not optimized for Vitest.
+  - what: Use Vitest as the testing framework
+    why: It provides a fast test runner with built-in support for TypeScript and a simple syntax.
+    tradeoff: May require developers to familiarize themselves with a new framework if they are accustomed to alternatives
+      like Jest.
 constraints:
-  - Tests must not include secrets, API keys, or any sensitive information.
-  - Expectations in tests should handle potential nulls or errors gracefully.
+  - All test files must adhere to proper naming conventions ending with '.test.ts'.
+  - Tests must not depend on external states or require configuration that is not set up within the test files.
 subdirectories:
   - name: commands/
     summary: >
-      The tests/commands directory contains unit tests for various command functionalities including configuration
-      management, initialization, and validation within the context of a software project. It ensures the integrity and
-      correctness of command behaviors through automated testing using Vitest.
+      This directory contains various test files for validating the functionality of command handlers. Each test file
+      verifies specific commands related to configuration, status, initialization, watching, and more within the
+      application.
   - name: core/
     summary: >
-      The tests/core directory contains tests for the core functionality of the markdown writer module. It verifies the
-      reading, writing, and updating of AGENTS.md files in various scenarios to ensure data integrity and expected
-      behavior.
+      The tests/core directory contains unit tests for the markdown-writer functionalities, ensuring that the management
+      of AGENTS.md files behaves as expected. It validates reading, writing, and updating operations related to markdown
+      files in a structured manner.
   - name: fixtures/
     summary: >
-      The tests/fixtures directory provides sample configurations and mock data for testing various project setups,
-      including monorepos, simple projects, and context-specific scenarios. It facilitates structured and reusable test
-      data management to support unit testing and integration testing processes.
+      The tests/fixtures directory contains structured test fixtures to support unit testing across various projects. It
+      includes a monorepo structure, a simple project demonstration, and specific test sources to organize and isolate
+      test data from application code.
   - name: generator/
     summary: >
-      The tests/generator directory contains unit tests for the markdown generation functionality related to agents. It
-      ensures that various markdown generation utilities work correctly by validating their output against expected
-      results.
+      The tests/generator directory contains unit tests for validating the functionality of Markdown generation and
+      manipulation specific to agent entries in the project. It ensures that generated content adheres to defined
+      markers and formats correctly.
   - name: mcp/
     summary: >
-      This directory contains unit tests for the MCP (Model Context Protocol) server and its associated tools. It
-      validates functionality such as server startup, handling of context queries, freshness checks, and tool
-      registration.
+      This directory contains tests for the MCP (Model Context Protocol) components, including server initialization and
+      tool functionality. It ensures that the behavior of the MCP server and associated tools meet the expected outcomes
+      defined in the specifications.
   - name: utils/
     summary: >
-      This directory contains unit tests for utility functions, specifically for testing asynchronous operations with
-      concurrency control. It ensures the correctness and reliability of the utility methods used within the
-      application.
+      This directory contains utility tests that validate the behavior of helper functions, such as concurrency
+      management and token estimation from file sizes. These tests ensure correctness and performance of utility methods
+      used throughout the codebase.
+exports:
+  - "async function createTmpDir(): Promise<string>"
+  - "async function cleanupTmpDir(dir: string): Promise<void>"
+  - 'async function createFile(dirPath: string, name: string, content = ""): Promise<void>'
+  - 'async function createNestedFile(basePath: string, relativePath: string, content = ""): Promise<void>'
+  - "function makeValidContext(overrides?: Partial<ContextFile>): ContextFile"
+  - "function makeLeanContext(overrides?: Partial<ContextFile>): ContextFile"
+  - "function makeScanResult(path: string, overrides?: Partial<ScanResult>): ScanResult"
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports
   - subdirectories

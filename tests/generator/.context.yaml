@@ -1,10 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:07:04.512Z
-fingerprint: 47645ed1
+last_updated: 2026-02-12T22:23:50.543Z
+fingerprint: 78f64214
 scope: tests/generator
 summary: >
-  The tests/generator directory contains unit tests for the markdown generation functionality related to agents. It
-  ensures that various markdown generation utilities work correctly by validating their output against expected results.
+  The tests/generator directory contains unit tests for validating the functionality of Markdown generation and
+  manipulation specific to agent entries in the project. It ensures that generated content adheres to defined markers
+  and formats correctly.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,13 +14,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The test suite uses Vitest for running tests.
-    why: Vitest provides a fast and efficient framework for unit testing, leveraging modern JavaScript features.
-    tradeoff: Choosing a specific testing framework may limit ease of integration with other tools or libraries.
+  - what: Using Vitest for testing framework
+    why: Vitest is designed for speed and efficiency, particularly for projects using Vite, providing a streamlined
+      experience.
+    tradeoff: Potential learning curve for developers unfamiliar with Vitest compared to more established frameworks.
 constraints:
-  - All tests must ensure that the generated markdown adheres to specified formatting rules and includes necessary
-    sections.
-  - Tests should cover various edge cases, including malformed content and special character handling.
+  - Tests must cover all functions in the markdown.js module, ensuring complete validation of Markdown generation logic.
 derived_fields:
   - version
   - last_updated

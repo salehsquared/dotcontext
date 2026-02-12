@@ -1,10 +1,10 @@
 version: 1
-last_updated: 2026-02-12T18:06:13.394Z
+last_updated: 2026-02-12T22:23:39.290Z
 fingerprint: e3b0c442
 scope: tests/fixtures/monorepo/packages
 summary: >
-  This directory contains packages for a monorepo, including shared TypeScript definitions and an API server. It
-  facilitates consistent type usage across packages and manages the core functionality for handling API requests.
+  This directory contains fixtures used for testing within a monorepo structure. It includes specific packages like the
+  API server and shared TypeScript types, facilitating organized testing across the services.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,21 +13,21 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Shared types are defined in a separate package.
-    why: To ensure consistency and reusability across different packages in the monorepo.
-    tradeoff: Increased complexity in managing the shared package but improved maintainability and type safety.
+  - what: Shared TypeScript types should be centralized in the shared/ directory.
+    why: This promotes type consistency and reduces duplication across various packages in the monorepo.
+    tradeoff: Requires all packages to depend on the shared types, which may introduce overhead if not managed properly.
 constraints:
-  - All packages must adhere to the shared TypeScript definitions to avoid type mismatches.
+  - Each package must adhere to the defined TypeScript types in the shared/ directory to prevent type discrepancies.
 subdirectories:
   - name: api/
     summary: >
-      This directory contains the API server for the monorepo, managing the HTTP server functionality for API
-      operations. It serves as the main entry point for routing and handling API requests.
+      This directory contains the API package for a monorepo, implementing the API server responsible for handling
+      incoming requests. It plays a central role in the service architecture by coordinating interactions between
+      services.
   - name: shared/
     summary: >
-      This directory contains shared TypeScript type definitions for the monorepo's packages, facilitating a consistent
-      interface for configuration management. It specifically defines the `Config` interface that can be utilized across
-      different packages.
+      This directory contains shared TypeScript types used across various packages in a monorepo setup, centralizing
+      type definitions to promote consistency and reduce duplication.
 derived_fields:
   - version
   - last_updated

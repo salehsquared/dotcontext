@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:07:10.080Z
-fingerprint: c6add862
+last_updated: 2026-02-12T22:23:54.739Z
+fingerprint: ce48f9ee
 scope: tests/commands
 summary: >
-  The tests/commands directory contains unit tests for various command functionalities including configuration
-  management, initialization, and validation within the context of a software project. It ensures the integrity and
-  correctness of command behaviors through automated testing using Vitest.
+  This directory contains various test files for validating the functionality of command handlers. Each test file
+  verifies specific commands related to configuration, status, initialization, watching, and more within the
+  application.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,12 +14,11 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using temporary directories for tests
-    why: To isolate tests and prevent side effects from shared state.
-    tradeoff: Increased complexity in test setup and teardown.
+  - what: Utilizing Vitest for testing framework
+    why: Vitest provides a fast and efficient testing experience, which complements the development workflow.
+    tradeoff: Some developers may prefer other testing frameworks, potentially leading to a learning curve.
 constraints:
-  - Tests must clean up after themselves to avoid polluting the filesystem.
-  - Input data used in tests must be valid and conform to expected formats.
+  - Tests should cover all commands to ensure proper functionality and regression prevention.
 derived_fields:
   - version
   - last_updated

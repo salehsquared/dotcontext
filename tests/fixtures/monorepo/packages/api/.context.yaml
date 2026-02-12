@@ -1,10 +1,10 @@
 version: 1
-last_updated: 2026-02-12T18:06:05.336Z
+last_updated: 2026-02-12T22:23:34.576Z
 fingerprint: 7f8b642c
 scope: tests/fixtures/monorepo/packages/api
 summary: >
-  This directory contains the API server for the monorepo, managing the HTTP server functionality for API operations. It
-  serves as the main entry point for routing and handling API requests.
+  This directory contains the API package for a monorepo, implementing the API server responsible for handling incoming
+  requests. It plays a central role in the service architecture by coordinating interactions between services.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,16 +13,16 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The API server is designed to start on a specified port.
-    why: This allows flexibility in deployment and testing configurations.
-    tradeoff: Potential port conflicts may arise if not managed properly.
+  - what: Using a monorepo structure
+    why: To facilitate shared dependencies and streamlined management across multiple packages.
+    tradeoff: Increased complexity in build and deployment processes.
 constraints:
-  - The API server must be configured to only listen on allowed network interfaces as defined in deployment guidelines.
+  - The API server must adhere to specific protocol standards to ensure compatibility within the service architecture.
 subdirectories:
   - name: src/
     summary: >
-      This directory contains the source code for the API server, which defines the functionality to start an HTTP
-      server on a specified port. It serves as the entry point for API-related operations in the monorepo.
+      This directory contains the implementation of the API server, which is responsible for starting the application
+      and handling incoming requests. It serves as a central component in the service architecture of the monorepo.
 derived_fields:
   - version
   - last_updated

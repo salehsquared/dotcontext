@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:07:07.600Z
-fingerprint: 3e67e345
+last_updated: 2026-02-12T22:23:53.422Z
+fingerprint: 8fac80ee
 scope: src/generator
 summary: >
-  The `src/generator` directory is responsible for generating context YAML files from source code through both static
-  analysis and LLM-based methods. It includes functionality to detect exports, dependencies, and other project details
-  to create comprehensive context files.
+  The `src/generator` directory contains code for parsing source files to detect exports and dependencies, generating
+  context documentation, and collecting evidence from existing artifacts. It leverages AST parsing and static analysis
+  to build structured YAML outputs for project documentation.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,15 +14,45 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Utilizes WebAssembly-based tree-sitter parsers for analyzing source files.
-    why: To enable robust syntax parsing and export detection for multiple programming languages.
-    tradeoff: Increased complexity and dependency on WASM files and their availability in the project.
+  - what: Use of tree-sitter for AST parsing.
+    why: Provides a reliable way to analyze various programming languages and extract specific data patterns.
+    tradeoff: Increases complexity by introducing a dependency on the web-tree-sitter library.
 constraints:
-  - Requires tree-sitter WASM files to be present in the grammars directory to function correctly.
-  - Only supports relative imports for internal dependency detection.
-  - Collect evidence for test results only if invoked from the project root.
+  - "Only supports specific file extensions: .ts, .tsx, .js, .jsx, .py, .go, .rs."
+  - Tree-sitter must be successfully loaded for AST parsing to function.
+  - Files must not exceed 8000 characters when read for context generation.
+exports:
+  - "async function detectExportsAST( content: string, ext: string, ): Promise<string[] | null>"
+  - "async function detectExportSignaturesAST( content: string, ext: string, ): Promise<"
+  - "async function isTreeSitterAvailable(): Promise<boolean>"
+  - "async function detectExternalDeps(dirPath: string): Promise<string[]>"
+  - "async function detectInternalDeps(scanResult: ScanResult): Promise<string[]>"
+  - "async function collectBasicEvidence(rootPath: string): Promise<Evidence | null>"
+  - "async function generateLLMContext( provider: LLMProvider, scanResult: ScanResult, childContexts: Map<string,
+    ContextFile>, options?:"
+  - AGENTS_SECTION_START
+  - AGENTS_SECTION_END
+  - interface AgentsEntry
+  - "function escapeSummary(text: string): string"
+  - "function generateAgentsSection(entries: AgentsEntry[]): string"
+  - "function generateAgentsMd( projectName: string, entries: AgentsEntry[], ): string"
+  - 'function detectAgentsAction( existingContent: string | null, newSection: string, ): "create" | "append" | "replace"
+    | "skip"'
+  - 'function applyAgentsSection( existingContent: string, newSection: string, action: "append" | "replace", ): string'
+  - SYSTEM_PROMPT
+  - LEAN_SYSTEM_PROMPT
+  - 'function buildUserPrompt( scanResult: ScanResult, fileContents: Map<string, string>, childContexts: Map<string,
+    ContextFile>, isRoot: boolean, externalDeps?: string[], mode: "lean" | "full" = "lean", ): string'
+  - type SummarySource
+  - interface StaticContextResult
+  - "async function generateStaticContext( scanResult: ScanResult, childContexts: Map<string, ContextFile>, options?:"
+  - "async function buildSmartSummary( scanResult: ScanResult, isRoot: boolean, projectDescription?: string, ): Promise<"
+  - "function extractOneSignature(content: string, name: string, ext: string): string"
+  - "async function detectExportsWithFallback(content: string, ext: string): Promise<string[]>"
+  - collectBasicEvidence
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports

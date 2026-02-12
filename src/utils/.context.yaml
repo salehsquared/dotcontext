@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:06:56.017Z
-fingerprint: fb2b555e
+last_updated: 2026-02-12T22:23:48.273Z
+fingerprint: 06269d4d
 scope: src/utils
 summary: >
-  The src/utils directory contains utility functions for handling configuration, environment variables, display
-  messages, and concurrency. It provides essential helpers to manage application settings and present user messages
-  effectively.
+  The src/utils directory provides utility functions to manage configuration settings, environment variables, and
+  display messages. It includes methods for loading and saving configurations, handling environment variables, and
+  processing data in parallel with bounded concurrency.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,13 +14,38 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using async functions for file operations.
-    why: To ensure non-blocking I/O operations for better performance.
-    tradeoff: Increased complexity in error handling due to async nature.
+  - what: The decision to use a work-stealing pattern in the poolMap function.
+    why: To optimize parallel processing and ensure that workers can take on new tasks immediately when they finish their
+      current work, improving efficiency.
+    tradeoff: Increased complexity in the implementation when compared to simpler concurrency models.
 constraints:
-  - "Environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/."
+  - "Environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/u."
+  - The .env.local file must be present in the root path for loading environment variables.
+exports:
+  - "async function loadConfig(rootPath: string): Promise<ConfigFile | null>"
+  - "async function saveConfig(rootPath: string, config: ConfigFile): Promise<void>"
+  - "function resolveApiKey(config: ConfigFile): string | undefined"
+  - "function getDefaultApiKeyEnv(provider: string): string"
+  - "function freshnessIcon(state: FreshnessState): string"
+  - "function successMsg(msg: string): string"
+  - "function warnMsg(msg: string): string"
+  - "function errorMsg(msg: string): string"
+  - "function heading(msg: string): string"
+  - "function dim(msg: string): string"
+  - "function progressBar(current: number, total: number): string"
+  - "async function loadEnvForCli(argv: string[]): Promise<void>"
+  - "function resolvePathFromArgv(argv: string[]): string | undefined"
+  - "async function loadEnvLocal(rootPath: string): Promise<void>"
+  - "function parseEnvLine(line: string):"
+  - "async function addToIgnore(rootPath: string, pathToIgnore: string): Promise<void>"
+  - "async function poolMap<T, R>( items: T[], fn: (item: T) => Promise<R>, concurrency: number, ): Promise<R[]>"
+  - "async function loadScanOptions(rootPath: string): Promise<ScanOptions>"
+  - DEFAULT_MIN_TOKENS
+  - "async function estimateDirectoryTokens(dir: ScanResult): Promise<number>"
+  - "async function filterByMinTokens( dirs: ScanResult[], minTokens?: number, ): Promise<"
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports

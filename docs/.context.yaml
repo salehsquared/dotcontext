@@ -1,11 +1,12 @@
 version: 1
-last_updated: 2026-02-12T18:07:18.458Z
-fingerprint: 46b2bea9
+last_updated: 2026-02-12T22:24:10.153Z
+fingerprint: e13ad0c8
 scope: docs
 summary: >
-  The docs directory contains comprehensive documentation for using and configuring dotcontext, including CI/CD
-  integration, integration with various tools, and limitations. It serves as a guide for developers to effectively
-  implement context validation and management in their projects.
+  The `docs` directory provides comprehensive information and guidance on using the dotcontext tool, including CI/CD
+  integration, usage patterns, limitations, and quickstart instructions for generating and validating context files. It
+  serves as a resource for both new users and developers seeking to understand the architecture and operational
+  constraints of the tool.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,12 +15,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use YAML for .context.yaml files
-    why: YAML is human-readable and widely supported by various tools and libraries.
-    tradeoff: Requires validation schemas to ensure correctness.
+  - what: CI/CD integration should prioritize context validation on pull requests.
+    why: To maintain context quality and prevent schema violations before code changes are merged.
+    tradeoff: Requires developers to ensure context files are consistently updated, potentially increasing PR complexity.
 constraints:
-  - Do not include secrets, API keys, passwords, or PII in any context files.
-  - All `.context.yaml` files must comply with the defined schema to be valid.
+  - Run `context validate` in CI to catch invalid YAML and schema violations for every pull request.
+  - Context files must not contain secrets, API keys, passwords, or PII.
 derived_fields:
   - version
   - last_updated

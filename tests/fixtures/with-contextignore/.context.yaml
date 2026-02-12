@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:06:45.879Z
+last_updated: 2026-02-12T22:23:43.284Z
 fingerprint: b4aa2bc2
 scope: tests/fixtures/with-contextignore
 summary: >
-  This directory contains test fixtures for unit testing purposes, including both permanent and temporary mock data and
-  scenarios relevant to the application's context. It provides a structured way to manage and utilize test data during
-  the testing process.
+  This directory serves as a collection of test fixture source files and temporary test fixtures specifically designed
+  for unit testing. It ensures that test data is organized and isolated from the main application code, promoting
+  clarity in the test suite.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,20 +14,21 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using a contextignore pattern for managing temporary fixtures
-    why: Allows exclusion of certain files from version control, reducing clutter and focusing on relevant test data.
-    tradeoff: May lead to potential confusion if files are unintentionally ignored or if necessary data is not tracked.
+  - what: The test fixtures are separated into 'src' and 'tmp' directories.
+    why: This structure allows for a clear distinction between permanent test fixture sources and transient data used during
+      testing.
+    tradeoff: While this adds organization, it may introduce overhead in managing two separate directories.
 constraints:
-  - All temporary test fixtures must be placed in the 'tmp/' directory.
+  - All test fixtures must adhere to naming conventions that clearly indicate their purpose and context.
 subdirectories:
   - name: src/
     summary: >
-      This directory contains test fixtures used for unit testing purposes. It serves as a source for mock data and
-      scenarios relevant to the application's context. 
+      This directory contains test fixture source files used for testing purposes. It is structured to allow for easy
+      integration and utilization within test cases while maintaining isolation from the main application code.
   - name: tmp/
     summary: >
-      This directory contains temporary test fixtures used for unit testing within the project. It serves as a
-      placeholder for data or variables needed during test execution.
+      This directory contains temporary test fixtures specifically used for unit testing within the project. It aids in
+      separating test data from the main test suite for clarity and organization.
 derived_fields:
   - version
   - last_updated

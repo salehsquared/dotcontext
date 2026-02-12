@@ -8,6 +8,7 @@ const ALWAYS_IGNORE = new Set([
   ".git",
   "dist",
   "build",
+  "out",
   ".next",
   ".nuxt",
   "__pycache__",
@@ -17,12 +18,20 @@ const ALWAYS_IGNORE = new Set([
   ".mypy_cache",
   ".pytest_cache",
   "target",       // Rust/Java
-  "vendor",       // Go
+  "vendor",       // Go/PHP/Ruby
+  "obj",          // C#/.NET
+  "_build",       // Elixir/C
+  "Pods",         // iOS CocoaPods
+  "bower_components",
   ".cache",
   "coverage",
   ".turbo",
   ".vercel",
   ".svelte-kit",
+  "_site",        // Jekyll/static site generators
+  "storybook-static",
+  "tmp",
+  "temp",
 ]);
 
 // File extensions considered "source code"

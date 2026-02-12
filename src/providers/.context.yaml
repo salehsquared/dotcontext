@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:06:55.733Z
-fingerprint: 3da3d665
+last_updated: 2026-02-12T22:23:47.091Z
+fingerprint: b0038652
 scope: src/providers
 summary: >
-  This directory contains implementations of various LLM (Large Language Model) providers, each adapted to a common
-  interface. It allows for the creation and usage of different models from providers like Anthropic, Google, and OpenAI,
-  enabling flexible integration into applications.
+  This directory implements various LLM provider classes that adhere to a common interface, allowing for the generation
+  of text responses from different language models. Each provider encapsulates the specifics of interacting with an
+  external API or SDK. 
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +14,23 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using dynamic imports for provider loading
-    why: To minimize the initial bundle size and only load the necessary provider when requested.
-    tradeoff: It may introduce slight delay during instantiation due to the asynchronous nature of dynamic imports.
+  - what: Providers are instantiated dynamically based on a string identifier.
+    why: This allows for easy extensibility in supporting additional LLM providers without modifying the core code.
+    tradeoff: Increased complexity in the provider creation logic may make it less intuitive for new developers.
 constraints:
-  - Each provider must implement the LLMProvider interface and adhere to its method signature.
-  - API keys or host URLs must be provided for cloud-based providers.
+  - API keys must be provided for cloud providers when instantiating the corresponding provider classes.
+  - The maximum output tokens for all implementations is hard-coded to 4096.
+exports:
+  - class AnthropicProvider
+  - class GoogleProvider
+  - interface LLMProvider
+  - type ProviderName
+  - "async function createProvider( name: ProviderName, credential?: string, model?: string, ): Promise<LLMProvider>"
+  - class OllamaProvider
+  - class OpenAIProvider
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports

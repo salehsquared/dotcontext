@@ -1,11 +1,10 @@
 version: 1
-last_updated: 2026-02-12T18:06:15.704Z
+last_updated: 2026-02-12T22:23:37.816Z
 fingerprint: c3d9dc8c
 scope: tests/fixtures/simple-project/src
 summary: >
-  This directory contains the source code for a simple project that includes a main entry function and a utility
-  function for addition. It serves as a foundational example for testing and demonstrating basic TypeScript
-  functionality.
+  This directory contains the source files for a simple project, including a main function and a utility for adding
+  numbers. It serves as the basic implementation for demonstrating functionality.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,13 +13,17 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The decision to separate the main logic and utility functions into distinct files.
-    why: This promotes modularity and reusable code components.
-    tradeoff: Increased file count which may lead to slight complexity in navigation.
+  - what: The project structure separates core functionality into independent modules.
+    why: This promotes modularity and reusability within the code.
+    tradeoff: Increased complexity in project organization may deter newcomers.
 constraints:
-  - All exported functions must have clear, descriptive names.
+  - All exported functions must have clear and descriptive names.
+exports:
+  - "function main(): string"
+  - "function add(a: number, b: number): number"
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - exports

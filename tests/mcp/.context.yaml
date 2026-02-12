@@ -1,10 +1,11 @@
 version: 1
-last_updated: 2026-02-12T18:07:05.647Z
-fingerprint: ab44fa8c
+last_updated: 2026-02-12T22:23:51.344Z
+fingerprint: 570d3896
 scope: tests/mcp
 summary: >
-  This directory contains unit tests for the MCP (Model Context Protocol) server and its associated tools. It validates
-  functionality such as server startup, handling of context queries, freshness checks, and tool registration.
+  This directory contains tests for the MCP (Model Context Protocol) components, including server initialization and
+  tool functionality. It ensures that the behavior of the MCP server and associated tools meet the expected outcomes
+  defined in the specifications.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,13 +14,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using vitest for testing framework
-    why: Vitest provides a fast and efficient testing environment compatible with the project's needs.
-    tradeoff: While other frameworks exist, choosing vitest means potential limitations in community support compared to
-      more widely used options.
+  - what: Use of Vitest for testing framework
+    why: Vitest provides a fast and efficient testing experience for TypeScript environments.
+    tradeoff: While it has a learning curve, it offers improved performance compared to some established testing libraries.
 constraints:
-  - Tests must mock dependencies to avoid side effects on the filesystem or network.
-  - All tests must clean up after themselves, ensuring no state leaks between tests.
+  - Tests must clean up any temporary files or directories created during execution.
+  - Path traversal attempts in context queries will result in an error and should be rejected.
 derived_fields:
   - version
   - last_updated
