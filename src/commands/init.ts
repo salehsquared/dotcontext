@@ -89,7 +89,7 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
     : "Generating context... (this may take a minute)");
 
   const provider = (!options.noLlm && config)
-    ? await createProvider(config.provider, resolveApiKey(config) ?? "")
+    ? await createProvider(config.provider, resolveApiKey(config), config.model)
     : null;
 
   const childContexts = new Map<string, ContextFile>();

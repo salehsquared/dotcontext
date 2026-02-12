@@ -129,9 +129,13 @@ async function scanDir(
     if (entry.name === CONFIG_FILENAME) continue;
 
     if (entry.isDirectory()) {
+      const entryRelativePath = relPath === "."
+        ? entry.name
+        : `${relPath}/${entry.name}`;
+
       if (ALWAYS_IGNORE.has(entry.name)) continue;
       if (entry.name.startsWith(".") && entry.name !== ".") continue;
-      if (isIgnored(entry.name, ignorePatterns)) continue;
+      if (isIgnored(entryRelativePath, ignorePatterns)) continue;
 
       if (depth < maxDepth) {
         const childResult = await scanDir(
@@ -171,12 +175,90 @@ function isSourceFile(filename: string): boolean {
   return SOURCE_EXTENSIONS.has(filename.substring(dotIndex).toLowerCase());
 }
 
-function isIgnored(name: string, patterns: string[]): boolean {
-  for (const pattern of patterns) {
-    const clean = pattern.replace(/\/$/, "");
-    if (name === clean) return true;
+function isIgnored(relativeDirPath: string, patterns: string[]): boolean {
+  const normalizedPath = normalizePath(relativeDirPath);
+  const segments = normalizedPath.split("/").filter(Boolean);
+
+  let ignored = false;
+
+  for (const rawPattern of patterns) {
+    if (!rawPattern) continue;
+
+    const negated = rawPattern.startsWith("!");
+    const pattern = normalizePattern(negated ? rawPattern.slice(1) : rawPattern);
+    if (!pattern) continue;
+
+    const matched = matchPattern(normalizedPath, segments, pattern);
+    if (matched) {
+      ignored = !negated;
+    }
   }
-  return false;
+
+  return ignored;
+}
+
+function normalizePath(path: string): string {
+  return path
+    .replace(/\\/g, "/")
+    .replace(/^\.\/+/, "")
+    .replace(/\/{2,}/g, "/")
+    .replace(/\/$/, "");
+}
+
+function normalizePattern(pattern: string): string {
+  return normalizePath(pattern.trim()).replace(/^\//, "");
+}
+
+function matchPattern(path: string, segments: string[], pattern: string): boolean {
+  // Path pattern (e.g. src/generated, packages/*/dist)
+  if (pattern.includes("/")) {
+    return globPathRegex(pattern).test(path);
+  }
+
+  // Segment pattern (e.g. dist, *.cache) should match any segment.
+  const segmentRegex = globSegmentRegex(pattern);
+  return segments.some((segment) => segmentRegex.test(segment));
+}
+
+function globSegmentRegex(pattern: string): RegExp {
+  return new RegExp(`^${globToRegexBody(pattern, false)}$`);
+}
+
+function globPathRegex(pattern: string): RegExp {
+  return new RegExp(`^${globToRegexBody(pattern, true)}$`);
+}
+
+function globToRegexBody(pattern: string, allowPathSeparators: boolean): string {
+  let out = "";
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (char === "*") {
+      const isDoubleStar = pattern[index + 1] === "*";
+      if (isDoubleStar && allowPathSeparators) {
+        out += ".*";
+        index += 1;
+      } else {
+        out += "[^/]*";
+      }
+      continue;
+    }
+
+    if (char === "?") {
+      out += "[^/]";
+      continue;
+    }
+
+    if ("\\^$+?.()|{}[]".includes(char)) {
+      out += `\\${char}`;
+      continue;
+    }
+
+    out += char;
+  }
+
+  return out;
 }
 
 async function loadGitignore(rootPath: string): Promise<string[]> {

@@ -9,23 +9,32 @@ export interface LLMProvider {
 
 export type ProviderName = "anthropic" | "openai" | "google" | "ollama";
 
-export async function createProvider(name: ProviderName, apiKey: string): Promise<LLMProvider> {
+/**
+ * Create a provider instance.
+ * For cloud providers, `credential` is the API key.
+ * For ollama, `credential` is the optional host URL.
+ */
+export async function createProvider(
+  name: ProviderName,
+  credential?: string,
+  model?: string,
+): Promise<LLMProvider> {
   switch (name) {
     case "anthropic": {
       const { AnthropicProvider } = await import("./anthropic.js");
-      return new AnthropicProvider(apiKey);
+      return new AnthropicProvider(credential ?? "", model);
     }
     case "openai": {
       const { OpenAIProvider } = await import("./openai.js");
-      return new OpenAIProvider(apiKey);
+      return new OpenAIProvider(credential ?? "", model);
     }
     case "google": {
       const { GoogleProvider } = await import("./google.js");
-      return new GoogleProvider(apiKey);
+      return new GoogleProvider(credential ?? "", model);
     }
     case "ollama": {
       const { OllamaProvider } = await import("./ollama.js");
-      return new OllamaProvider(apiKey);
+      return new OllamaProvider(credential, model);
     }
     default:
       throw new Error(`Unknown provider: ${name}`);

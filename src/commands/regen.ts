@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { resolve, relative, isAbsolute } from "node:path";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext, writeContext } from "../core/writer.js";
 import { generateStaticContext } from "../generator/static.js";
@@ -22,8 +22,18 @@ export async function regenCommand(
   // Determine which directories to regenerate
   let dirs = allDirs;
   if (!options.all && targetPath) {
-    const resolvedTarget = resolve(rootPath, targetPath).replace(/\/$/, "");
-    dirs = allDirs.filter((d) => d.path === resolvedTarget || d.path.startsWith(resolvedTarget + "/"));
+    const resolvedTarget = resolve(rootPath, targetPath);
+    const targetRelFromRoot = relative(rootPath, resolvedTarget);
+    const targetInsideRoot = targetRelFromRoot === "" || (!targetRelFromRoot.startsWith("..") && !isAbsolute(targetRelFromRoot));
+
+    if (targetInsideRoot) {
+      dirs = allDirs.filter((d) => {
+        const rel = relative(resolvedTarget, d.path);
+        return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+      });
+    } else {
+      dirs = [];
+    }
 
     if (dirs.length === 0) {
       console.log(errorMsg(`No matching directory found for: ${targetPath}`));
@@ -36,9 +46,9 @@ export async function regenCommand(
   if (!options.noLlm) {
     const config = await loadConfig(rootPath);
     if (config) {
-      const apiKey = resolveApiKey(config);
-      if (apiKey) {
-        provider = await createProvider(config.provider, apiKey);
+      const credential = resolveApiKey(config);
+      if (config.provider === "ollama" || credential) {
+        provider = await createProvider(config.provider, credential, config.model);
       }
     }
   }

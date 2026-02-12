@@ -96,6 +96,42 @@ describe("scanProject", () => {
     expect(allPaths.some((p) => p.includes("keep_this"))).toBe(true);
   });
 
+  it("supports glob directory patterns in ignore files", async () => {
+    await createFile(tmpDir, ".contextignore", "packages/*/dist\n");
+    await createNestedFile(tmpDir, "packages/a/dist/app.ts", "ignored");
+    await createNestedFile(tmpDir, "packages/a/src/app.ts", "kept");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+
+    expect(allPaths.some((p) => p.includes("packages/a/dist"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("packages/a/src"))).toBe(true);
+  });
+
+  it("supports path-based ignore rules", async () => {
+    await createFile(tmpDir, ".gitignore", "src/generated\n");
+    await createNestedFile(tmpDir, "src/generated/types.ts", "ignored");
+    await createNestedFile(tmpDir, "src/core/app.ts", "kept");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+
+    expect(allPaths.some((p) => p.includes("src/generated"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("src/core"))).toBe(true);
+  });
+
+  it("supports basename glob patterns in ignore files", async () => {
+    await createFile(tmpDir, ".contextignore", "*.cache\n");
+    await createNestedFile(tmpDir, "build.cache/tmp.ts", "ignored");
+    await createNestedFile(tmpDir, "src/app.ts", "kept");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+
+    expect(allPaths.some((p) => p.includes("build.cache"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("src"))).toBe(true);
+  });
+
   it("detects existing .context.yaml (hasContext flag)", async () => {
     await createFile(tmpDir, "index.ts", "code");
     await createFile(tmpDir, ".context.yaml", "version: 1");

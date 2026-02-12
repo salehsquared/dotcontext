@@ -29,4 +29,15 @@ describe("createProvider", () => {
   it("throws for unknown provider name", async () => {
     await expect(createProvider("mistral" as any, "key")).rejects.toThrow("Unknown provider");
   });
+
+  it("applies model override when provided", async () => {
+    const provider = await createProvider("openai", "test-key", "gpt-4.1-mini");
+    expect((provider as { model?: string }).model).toBe("gpt-4.1-mini");
+  });
+
+  it("uses Ollama default host when credential is missing", async () => {
+    const provider = await createProvider("ollama", undefined, "llama3.2");
+    expect((provider as { baseUrl?: string }).baseUrl).toBe("http://localhost:11434");
+    expect((provider as { model?: string }).model).toBe("llama3.2");
+  });
 });
