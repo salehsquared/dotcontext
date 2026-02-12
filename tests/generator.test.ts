@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { generateStaticContext } from "../src/generator/static.js";
+import { generateStaticContext, buildSmartSummary, extractOneSignature, type SummarySource } from "../src/generator/static.js";
 import { generateLLMContext } from "../src/generator/llm.js";
 import { contextSchema, SCHEMA_VERSION, DEFAULT_MAINTENANCE, FULL_MAINTENANCE } from "../src/core/schema.js";
 import type { ContextFile } from "../src/core/schema.js";
@@ -10,7 +10,6 @@ import {
   createTmpDir,
   cleanupTmpDir,
   createFile,
-  createNestedFile,
   makeScanResult,
   makeValidContext,
 } from "./helpers.js";
@@ -33,7 +32,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "utils.ts", 'export function help() {}');
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["index.ts", "utils.ts"] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(contextSchema.safeParse(result).success).toBe(true);
   });
@@ -41,7 +40,7 @@ describe("generateStaticContext", () => {
   it("populates required fields correctly (lean)", async () => {
     await createFile(tmpDir, "index.ts", "code");
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["index.ts"] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result.version).toBe(SCHEMA_VERSION);
     expect(result.last_updated).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -54,7 +53,7 @@ describe("generateStaticContext", () => {
   it("populates required fields correctly (full)", async () => {
     await createFile(tmpDir, "index.ts", "code");
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["index.ts"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     expect(result.version).toBe(SCHEMA_VERSION);
     expect(result.maintenance).toBe(FULL_MAINTENANCE);
@@ -67,7 +66,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "mod.ts", exports);
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result.files).toBeUndefined();
     expect(result.interfaces).toBeUndefined();
@@ -85,7 +84,7 @@ describe("generateStaticContext", () => {
     const childCtx = makeValidContext({ summary: "Core modules" });
     const childContexts = new Map<string, ContextFile>([[childPath, childCtx]]);
 
-    const result = await generateStaticContext(scan, childContexts);
+    const { context: result } = await generateStaticContext(scan, childContexts);
 
     expect(result.subdirectories).toBeDefined();
     expect(result.dependencies?.external).toBeDefined();
@@ -97,7 +96,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "package.json", '{"name":"test"}');
 
     const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["index.ts", "package.json"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     expect(result.files).toHaveLength(2);
     const pkgFile = result.files!.find((f) => f.name === "package.json");
@@ -113,7 +112,7 @@ describe("generateStaticContext", () => {
       relativePath: ".",
       files: ["Dockerfile", "README.md", "tsconfig.json"],
     });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     expect(result.files!.find((f) => f.name === "Dockerfile")?.purpose).toBe("Container build configuration");
     expect(result.files!.find((f) => f.name === "tsconfig.json")?.purpose).toBe("TypeScript compiler configuration");
@@ -124,7 +123,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "mod.ts", "export function hello() {}\nexport const world = 1;");
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     const mod = result.files!.find((f) => f.name === "mod.ts");
     expect(mod?.purpose).toContain("Exports:");
@@ -135,7 +134,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "module.py", "def greet():\n    pass\n\nclass Handler:\n    pass\n");
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["module.py"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     const mod = result.files!.find((f) => f.name === "module.py");
     expect(mod?.purpose).toContain("greet");
@@ -146,7 +145,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "main.go", "func HandleRequest() {}\nfunc internal() {}");
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["main.go"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     const mod = result.files!.find((f) => f.name === "main.go");
     expect(mod?.purpose).toContain("HandleRequest");
@@ -167,7 +166,7 @@ describe("generateStaticContext", () => {
     const childCtx = makeValidContext({ summary: "Core modules and schemas" });
     const childContexts = new Map<string, ContextFile>([[childPath, childCtx]]);
 
-    const result = await generateStaticContext(scan, childContexts);
+    const { context: result } = await generateStaticContext(scan, childContexts);
     expect(result.subdirectories).toBeDefined();
     expect(result.subdirectories![0].summary).toBe("Core modules and schemas");
   });
@@ -184,7 +183,7 @@ describe("generateStaticContext", () => {
       children: [childScan],
     });
 
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
     expect(result.subdirectories![0].summary).toContain("2 source files");
   });
 
@@ -195,7 +194,7 @@ describe("generateStaticContext", () => {
     }));
 
     const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["package.json"] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result.project).toBeDefined();
     expect(result.project!.name).toBe("myapp");
@@ -206,7 +205,7 @@ describe("generateStaticContext", () => {
     await createFile(tmpDir, "index.ts", "code");
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["index.ts"] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result.project).toBeUndefined();
   });
@@ -218,22 +217,24 @@ describe("generateStaticContext", () => {
     const childScan = makeScanResult(childPath, { relativePath: "src", files: ["app.ts"] });
 
     const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["index.ts"], children: [childScan] });
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result.structure).toBeDefined();
     expect(result.structure!.length).toBeGreaterThan(0);
   });
 
-  it("caps interfaces at 15 (full mode)", async () => {
-    // Create a file with 20 exports
-    const exports = Array.from({ length: 20 }, (_, i) => `export function fn${i}() {}`).join("\n");
-    await createFile(tmpDir, "big.ts", exports);
+  it("caps exports at 25 and includes interfaces in full mode", async () => {
+    // Create a file with 30 exports to exceed the cap of 25
+    const exportFns = Array.from({ length: 30 }, (_, i) => `export function fn${i}() {}`).join("\n");
+    await createFile(tmpDir, "big.ts", exportFns);
 
     const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["big.ts"] });
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
+    expect(result.exports).toBeDefined();
+    expect(result.exports!.length).toBeLessThanOrEqual(25);
+    // full mode includes interfaces alongside exports
     expect(result.interfaces).toBeDefined();
-    expect(result.interfaces!.length).toBeLessThanOrEqual(15);
   });
 });
 
@@ -545,7 +546,7 @@ describe("generateStaticContext golden shape", () => {
       children: [childScan],
     });
 
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     // Required fields always present
     expect(result).toHaveProperty("version");
@@ -595,7 +596,7 @@ describe("generateStaticContext golden shape", () => {
       children: [childScan],
     });
 
-    const result = await generateStaticContext(scan, new Map());
+    const { context: result } = await generateStaticContext(scan, new Map());
 
     expect(result).toHaveProperty("version");
     expect(result).toHaveProperty("summary");
@@ -615,7 +616,7 @@ describe("generateStaticContext golden shape", () => {
     await createFile(tmpDir, "mod.ts", "export const x = 1;");
     const scan = makeScanResult(tmpDir, { relativePath: "src/lib", files: ["mod.ts"] });
 
-    const result = await generateStaticContext(scan, new Map(), { mode: "full" });
+    const { context: result } = await generateStaticContext(scan, new Map(), { mode: "full" });
 
     expect(result).toHaveProperty("version");
     expect(result).toHaveProperty("summary");
@@ -624,5 +625,202 @@ describe("generateStaticContext golden shape", () => {
     expect(result).not.toHaveProperty("structure");
 
     expect(contextSchema.safeParse(result).success).toBe(true);
+  });
+});
+
+// --- Signature extraction tests ---
+
+describe("extractOneSignature", () => {
+  it("extracts TypeScript function signature with params and return type", () => {
+    const content = "export function greet(name: string): string { return name; }";
+    const sig = extractOneSignature(content, "greet", ".ts");
+    expect(sig).toContain("greet");
+    expect(sig).toContain("name: string");
+    expect(sig).toContain(": string");
+    expect(sig).not.toContain("export");
+  });
+
+  it("extracts async function signature", () => {
+    const content = "export async function fetchData(url: string): Promise<Response> { return fetch(url); }";
+    const sig = extractOneSignature(content, "fetchData", ".ts");
+    expect(sig).toContain("async function fetchData");
+    expect(sig).toContain("url: string");
+  });
+
+  it("extracts class declaration", () => {
+    const content = "export class MyService { }";
+    const sig = extractOneSignature(content, "MyService", ".ts");
+    expect(sig).toBe("class MyService");
+  });
+
+  it("extracts type alias", () => {
+    const content = "export type Config = { key: string; }";
+    const sig = extractOneSignature(content, "Config", ".ts");
+    expect(sig).toBe("type Config");
+  });
+
+  it("extracts interface", () => {
+    const content = "export interface Options { verbose: boolean; }";
+    const sig = extractOneSignature(content, "Options", ".ts");
+    expect(sig).toBe("interface Options");
+  });
+
+  it("extracts const with type annotation", () => {
+    const content = "export const VERSION: string = '1.0';";
+    const sig = extractOneSignature(content, "VERSION", ".ts");
+    expect(sig).toBe("VERSION: string");
+  });
+
+  it("falls back to name when no pattern matches", () => {
+    const content = "export { something as renamed };";
+    const sig = extractOneSignature(content, "renamed", ".ts");
+    expect(sig).toBe("renamed");
+  });
+
+  it("extracts Python def signature with type annotations", () => {
+    const content = "def greet(name: str) -> str:\n    return name";
+    const sig = extractOneSignature(content, "greet", ".py");
+    expect(sig).toContain("def greet");
+    expect(sig).toContain("name: str");
+    expect(sig).toContain("-> str");
+  });
+
+  it("extracts Python class", () => {
+    const content = "class Handler:\n    pass";
+    const sig = extractOneSignature(content, "Handler", ".py");
+    expect(sig).toBe("class Handler");
+  });
+
+  it("extracts Go exported function signature", () => {
+    const content = "func HandleRequest(w http.ResponseWriter, r *http.Request) error {\n}";
+    const sig = extractOneSignature(content, "HandleRequest", ".go");
+    expect(sig).toContain("HandleRequest");
+    expect(sig).toContain("http.ResponseWriter");
+  });
+
+  it("extracts Rust pub fn signature", () => {
+    const content = "pub fn process(input: &str) -> Result<String, Error> {\n}";
+    const sig = extractOneSignature(content, "process", ".rs");
+    expect(sig).toContain("fn process");
+    expect(sig).toContain("-> Result<String, Error>");
+    expect(sig).not.toContain("pub");
+  });
+});
+
+// --- Smart summary tests ---
+
+describe("buildSmartSummary", () => {
+  it("uses project description at root", async () => {
+    const scan = makeScanResult(tmpDir, { relativePath: ".", files: ["index.ts"] });
+    const { summary, source } = await buildSmartSummary(scan, true, "A CLI tool for context generation");
+    expect(summary).toBe("A CLI tool for context generation");
+    expect(source).toBe("project");
+  });
+
+  it("extracts summary from __init__.py docstring", async () => {
+    await createFile(tmpDir, "__init__.py", '"""Authentication module for handling OAuth flows."""\n');
+    const scan = makeScanResult(tmpDir, { relativePath: "auth", files: ["__init__.py"] });
+    const { summary, source } = await buildSmartSummary(scan, false);
+    expect(summary).toBe("Authentication module for handling OAuth flows.");
+    expect(source).toBe("docstring");
+  });
+
+  it("extracts summary from index.ts JSDoc", async () => {
+    await createFile(tmpDir, "index.ts", '/** Core scanner module for traversing project directories. */\nexport {};\n');
+    const scan = makeScanResult(tmpDir, { relativePath: "scanner", files: ["index.ts"] });
+    const { summary, source } = await buildSmartSummary(scan, false);
+    expect(summary).toBe("Core scanner module for traversing project directories.");
+    expect(source).toBe("docstring");
+  });
+
+  it("uses directory name heuristic", async () => {
+    const scan = makeScanResult(tmpDir, { relativePath: "src/utils", files: ["a.ts"] });
+    const { summary, source } = await buildSmartSummary(scan, false);
+    expect(summary).toBe("Utility functions.");
+    expect(source).toBe("dirname");
+  });
+
+  it("detects test directories from file patterns", async () => {
+    const scan = makeScanResult(tmpDir, { relativePath: "src/foo", files: ["a.test.ts", "b.test.ts"] });
+    const { summary, source } = await buildSmartSummary(scan, false);
+    expect(summary).toBe("Test suite.");
+    expect(source).toBe("pattern");
+  });
+
+  it("falls back to minimal label", async () => {
+    const scan = makeScanResult(tmpDir, { relativePath: "src/xyz123", files: ["a.ts", "b.ts"] });
+    const { summary, source } = await buildSmartSummary(scan, false);
+    expect(summary).toBe("Source directory.");
+    expect(source).toBe("fallback");
+  });
+
+  it("does not contain file counts or file names", async () => {
+    const scan = makeScanResult(tmpDir, { relativePath: "src/xyz123", files: ["a.ts", "b.ts", "c.ts"] });
+    const { summary } = await buildSmartSummary(scan, false);
+    expect(summary).not.toMatch(/\d+ files/);
+    expect(summary).not.toContain("a.ts");
+    expect(summary).not.toContain("Generated with static analysis");
+  });
+});
+
+// --- Exports integration tests ---
+
+describe("generateStaticContext exports", () => {
+  it("populates exports with function signatures", async () => {
+    await createFile(tmpDir, "mod.ts", "export function greet(name: string): string { return name; }\nexport const VERSION = 1;");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
+    const { context } = await generateStaticContext(scan, new Map());
+
+    expect(context.exports).toBeDefined();
+    expect(context.exports!.length).toBeGreaterThan(0);
+    // Should have actual signature, not just name
+    const greetSig = context.exports!.find((s) => s.includes("greet"));
+    expect(greetSig).toBeDefined();
+  });
+
+  it("populates exports in both lean and full mode", async () => {
+    await createFile(tmpDir, "mod.ts", "export function hello() {}");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
+
+    const { context: lean } = await generateStaticContext(scan, new Map());
+    const { context: full } = await generateStaticContext(scan, new Map(), { mode: "full" });
+
+    expect(lean.exports).toBeDefined();
+    expect(full.exports).toBeDefined();
+  });
+
+  it("includes both exports and interfaces in full mode", async () => {
+    await createFile(tmpDir, "mod.ts", "export function hello() {}\nexport function world() {}");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
+    const { context } = await generateStaticContext(scan, new Map(), { mode: "full" });
+
+    expect(context.exports).toBeDefined();
+    expect(context.interfaces).toBeDefined();
+    expect(context.interfaces!.length).toBeGreaterThan(0);
+  });
+
+  it("skips non-source files for exports", async () => {
+    await createFile(tmpDir, "readme.md", "# Hello");
+    await createFile(tmpDir, "config.json", "{}");
+    const scan = makeScanResult(tmpDir, { relativePath: "docs", files: ["readme.md", "config.json"] });
+    const { context } = await generateStaticContext(scan, new Map());
+
+    expect(context.exports).toBeUndefined();
+  });
+
+  it("includes exports in derived_fields", async () => {
+    await createFile(tmpDir, "mod.ts", "export function hello() {}");
+    const scan = makeScanResult(tmpDir, { relativePath: "src", files: ["mod.ts"] });
+    const { context } = await generateStaticContext(scan, new Map());
+
+    expect(context.derived_fields).toContain("exports");
+  });
+
+  it("returns summarySource from buildSmartSummary", async () => {
+    await createFile(tmpDir, "mod.ts", "export const x = 1;");
+    const scan = makeScanResult(tmpDir, { relativePath: "src/utils", files: ["mod.ts"] });
+    const { summarySource } = await generateStaticContext(scan, new Map());
+
+    expect(summarySource).toBe("dirname");
   });
 });

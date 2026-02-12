@@ -6,6 +6,8 @@ import { scanProject, flattenBottomUp, type ScanResult } from "../core/scanner.j
 import { contextSchema, CONTEXT_FILENAME, type ContextFile } from "../core/schema.js";
 import { successMsg, errorMsg, warnMsg, dim } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { loadConfig } from "../utils/config.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 import { detectExportsWithFallback } from "../generator/static.js";
 import { detectInternalDeps } from "../generator/dependencies.js";
 
@@ -85,9 +87,11 @@ async function crossReference(dir: ScanResult, context: ContextFile): Promise<St
 export async function validateCommand(options: { path?: string; strict?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
+  const config = await loadConfig(rootPath);
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
+  const { dirs } = await filterByMinTokens(allDirs, config?.min_tokens);
 
   let valid = 0;
   let invalid = 0;

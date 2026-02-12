@@ -182,6 +182,146 @@ export async function detectExportsAST(
   }
 }
 
+/**
+ * Detect export signatures using tree-sitter AST parsing.
+ * Uses parent node text for reliable multiline/generic extraction.
+ * Returns null if tree-sitter is not available or unsupported.
+ */
+export async function detectExportSignaturesAST(
+  content: string,
+  ext: string,
+): Promise<{ name: string; signature: string }[] | null> {
+  const config = LANGUAGE_CONFIGS[ext];
+  if (!config) return null;
+
+  const grammarsDir = getGrammarsDir();
+  if (!existsSync(join(grammarsDir, config.wasmFile))) return null;
+
+  try {
+    const loaded = await loadTreeSitter();
+    if (!loaded) return null;
+
+    const parser = await getParser();
+    const language = await getLanguage(config.wasmFile);
+    parser.setLanguage(language);
+
+    const tree = parser.parse(content);
+    if (!tree) return null;
+    const query = getQuery(language, config.query);
+    const matches = query.matches(tree.rootNode);
+
+    const results: { name: string; signature: string }[] = [];
+    const seen = new Set<string>();
+
+    for (const match of matches) {
+      for (const capture of match.captures) {
+        if (capture.name !== "name") continue;
+        const name = capture.node.text;
+        if (config.nameFilter && !config.nameFilter.test(name)) continue;
+        if (seen.has(name)) continue;
+        seen.add(name);
+
+        const signature = extractSignatureFromNode(capture.node, ext);
+        results.push({ name, signature });
+      }
+    }
+
+    return results;
+  } catch {
+    return null;
+  }
+}
+
+function extractSignatureFromNode(
+  nameNode: { text: string; parent: { type: string; text: string } | null },
+  ext: string,
+): string {
+  const name = nameNode.text;
+  const parent = nameNode.parent;
+  if (!parent) return name;
+
+  const parentType = parent.type;
+  const parentText = parent.text;
+
+  // TypeScript / JavaScript
+  if ([".ts", ".tsx", ".js", ".jsx"].includes(ext)) {
+    if (parentType === "function_declaration") {
+      return cleanFunctionSignature(parentText, "ts");
+    }
+    if (parentType === "type_alias_declaration") return `type ${name}`;
+    if (parentType === "interface_declaration") return `interface ${name}`;
+    if (parentType === "class_declaration") return `class ${name}`;
+    if (parentType === "variable_declarator") {
+      // Try to get type annotation: `name: Type = ...`
+      const typeMatch = parentText.match(new RegExp(`^${escapeRegex(name)}\\s*:\\s*([^=]+?)\\s*=`));
+      if (typeMatch) return `${name}: ${typeMatch[1].trim()}`;
+      return name;
+    }
+    // export_specifier (re-export) — just the name
+    return name;
+  }
+
+  // Python
+  if (ext === ".py") {
+    if (parentType === "function_definition") {
+      return cleanFunctionSignature(parentText, "py");
+    }
+    if (parentType === "class_definition") return `class ${name}`;
+    return name;
+  }
+
+  // Go
+  if (ext === ".go") {
+    if (parentType === "function_declaration" || parentType === "method_declaration") {
+      return cleanFunctionSignature(parentText, "go");
+    }
+    if (parentType === "type_spec") return `type ${name}`;
+    return name;
+  }
+
+  // Rust
+  if (ext === ".rs") {
+    if (parentType === "function_item") {
+      return cleanFunctionSignature(parentText, "rs");
+    }
+    if (parentType === "struct_item") return `struct ${name}`;
+    if (parentType === "enum_item") return `enum ${name}`;
+    if (parentType === "trait_item") return `trait ${name}`;
+    return name;
+  }
+
+  return name;
+}
+
+function cleanFunctionSignature(text: string, lang: "ts" | "py" | "go" | "rs"): string {
+  // Strip body: everything from opening brace/colon onward
+  let sig: string;
+
+  if (lang === "py") {
+    // Python: take up to the colon that ends the def line
+    // Match: `def name(params) -> ReturnType:`
+    const match = text.match(/^(def\s+\w+\s*\([^)]*\)(?:\s*->\s*[^:]+)?)\s*:/s);
+    sig = match ? match[1] : text.split("\n")[0].replace(/:$/, "");
+  } else {
+    // TS/JS/Go/Rust: take up to opening `{`
+    const braceIdx = text.indexOf("{");
+    sig = braceIdx >= 0 ? text.substring(0, braceIdx) : text;
+  }
+
+  // Clean up: remove export/pub/async keywords from start, normalize whitespace
+  sig = sig
+    .replace(/^export\s+(default\s+)?/, "")
+    .replace(/^pub(\s*\(crate\))?\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return sig;
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** Check if tree-sitter WASM can load and grammars are available. */
 export async function isTreeSitterAvailable(): Promise<boolean> {
   try {

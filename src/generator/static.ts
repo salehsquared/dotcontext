@@ -4,19 +4,26 @@ import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
 import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, FULL_MAINTENANCE } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
-import { detectExportsAST } from "./ast.js";
+import { detectExportsAST, detectExportSignaturesAST } from "./ast.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
 import { collectBasicEvidence } from "./evidence.js";
+
+export type SummarySource = "project" | "docstring" | "dirname" | "pattern" | "fallback";
 
 /**
  * Generate a .context.yaml using static analysis only (no LLM).
  * Produces structural context: file listings, detected exports, basic metadata.
  */
+export interface StaticContextResult {
+  context: ContextFile;
+  summarySource: SummarySource;
+}
+
 export async function generateStaticContext(
   scanResult: ScanResult,
   childContexts: Map<string, ContextFile>,
   options?: { evidence?: boolean; mode?: "lean" | "full" },
-): Promise<ContextFile> {
+): Promise<StaticContextResult> {
   const mode = options?.mode ?? "lean";
   const isFull = mode === "full";
 
@@ -47,12 +54,21 @@ export async function generateStaticContext(
 
   const isRoot = scanResult.relativePath === ".";
 
+  // Detect project description for root summary
+  let projectDescription: string | undefined;
+  if (isRoot) {
+    const meta = await detectProjectMeta(scanResult.path);
+    if (meta?.description) projectDescription = meta.description;
+  }
+
+  const { summary, source: summarySource } = await buildSmartSummary(scanResult, isRoot, projectDescription);
+
   const context: ContextFile = {
     version: SCHEMA_VERSION,
     last_updated: now,
     fingerprint,
     scope: scanResult.relativePath,
-    summary: buildSummary(scanResult, isRoot),
+    summary,
     maintenance: isFull ? FULL_MAINTENANCE : DEFAULT_MAINTENANCE,
   };
 
@@ -62,6 +78,12 @@ export async function generateStaticContext(
 
   if (subdirectories.length > 0) {
     context.subdirectories = subdirectories;
+  }
+
+  // Extract compact method signatures (both lean and full — high-value routing data)
+  const exportSigs = await extractSignatures(scanResult);
+  if (exportSigs.length > 0) {
+    context.exports = exportSigs;
   }
 
   // Detect interfaces from exports (full mode only)
@@ -109,6 +131,7 @@ export async function generateStaticContext(
     derivedFields.push("files");
     if (context.interfaces) derivedFields.push("interfaces");
   }
+  if (context.exports) derivedFields.push("exports");
   if (context.dependencies?.external) derivedFields.push("dependencies.external");
   if (context.dependencies?.internal) derivedFields.push("dependencies.internal");
   if (context.subdirectories) derivedFields.push("subdirectories");
@@ -117,22 +140,319 @@ export async function generateStaticContext(
   if (context.evidence) derivedFields.push("evidence");
   context.derived_fields = derivedFields;
 
-  return context;
+  return { context, summarySource };
 }
 
-function buildSummary(scanResult: ScanResult, isRoot: boolean): string {
-  const dirName = scanResult.relativePath === "."
-    ? "project root"
-    : scanResult.relativePath;
+// --- Smart summary generation ---
 
-  const fileCount = scanResult.files.length;
-  const childCount = scanResult.children.length;
+const DIRECTORY_PURPOSES: Record<string, string> = {
+  src: "Source code.",
+  lib: "Library modules.",
+  core: "Core functionality.",
+  commands: "CLI command implementations.",
+  cmd: "CLI commands.",
+  routes: "Route handlers.",
+  controllers: "Request controllers.",
+  services: "Business logic services.",
+  handlers: "Event and request handlers.",
+  middleware: "Middleware.",
+  resolvers: "GraphQL resolvers.",
+  models: "Data models.",
+  entities: "Entity definitions.",
+  schemas: "Schema definitions.",
+  types: "Type definitions.",
+  db: "Database layer.",
+  migrations: "Database migrations.",
+  components: "UI components.",
+  views: "View templates.",
+  pages: "Page components.",
+  layouts: "Layout components.",
+  utils: "Utility functions.",
+  helpers: "Helper functions.",
+  common: "Shared code.",
+  config: "Configuration.",
+  providers: "Provider implementations.",
+  adapters: "Adapter implementations.",
+  plugins: "Plugin implementations.",
+  tests: "Test suite.",
+  test: "Test suite.",
+  __tests__: "Test suite.",
+  spec: "Test specifications.",
+  fixtures: "Test fixtures.",
+  docs: "Documentation.",
+  api: "API layer.",
+  mcp: "MCP server integration.",
+  hooks: "Lifecycle hooks.",
+  generator: "Code generation.",
+  internal: "Internal modules.",
+  scripts: "Build and utility scripts.",
+  assets: "Static assets.",
+  styles: "Stylesheets.",
+  i18n: "Internationalization.",
+  locales: "Locale files.",
+  templates: "Templates.",
+  workers: "Background workers.",
+  jobs: "Background jobs.",
+  tasks: "Task definitions.",
+  actions: "Action handlers.",
+  reducers: "State reducers.",
+  store: "State management.",
+  stores: "State management.",
+  context: "React context providers.",
+  constants: "Constant definitions.",
+  enums: "Enum definitions.",
+  errors: "Error definitions.",
+  exceptions: "Exception definitions.",
+  validation: "Validation logic.",
+  validators: "Validation logic.",
+  auth: "Authentication and authorization.",
+  security: "Security utilities.",
+  crypto: "Cryptographic utilities.",
+};
 
-  if (isRoot) {
-    return `Project root containing ${fileCount} files and ${childCount} subdirectories. Generated with static analysis — run \`context regen\` with an LLM provider for richer summaries.`;
+const ENTRY_FILES = [
+  "__init__.py",
+  "index.ts", "index.tsx", "index.js", "index.jsx",
+  "mod.ts", "mod.rs", "lib.rs",
+  "doc.go",
+];
+
+export async function buildSmartSummary(
+  scanResult: ScanResult,
+  isRoot: boolean,
+  projectDescription?: string,
+): Promise<{ summary: string; source: SummarySource }> {
+  // 1. Project description (root only)
+  if (isRoot && projectDescription && projectDescription !== "Project root") {
+    return { summary: projectDescription, source: "project" };
   }
 
-  return `Directory ${dirName} containing ${fileCount} files${childCount > 0 ? ` and ${childCount} subdirectories` : ""}. Generated with static analysis.`;
+  // 2. Entry file docstring
+  const docstring = await extractEntryDocstring(scanResult.path, scanResult.files);
+  if (docstring) {
+    return { summary: docstring, source: "docstring" };
+  }
+
+  // 3. Directory name heuristic
+  const dirName = inferFromDirectoryName(scanResult.relativePath);
+  if (dirName) {
+    return { summary: dirName, source: "dirname" };
+  }
+
+  // 4. File pattern inference
+  const pattern = inferFromFilePatterns(scanResult.files);
+  if (pattern) {
+    return { summary: pattern, source: "pattern" };
+  }
+
+  // 5. Minimal fallback
+  return { summary: "Source directory.", source: "fallback" };
+}
+
+async function extractEntryDocstring(dirPath: string, files: string[]): Promise<string | null> {
+  for (const entryFile of ENTRY_FILES) {
+    if (!files.includes(entryFile)) continue;
+
+    try {
+      const content = await readFile(join(dirPath, entryFile), "utf-8");
+      const lines = content.split("\n").slice(0, 30);
+      const firstLines = lines.join("\n");
+
+      // Python: """docstring""" or '''docstring'''
+      if (entryFile === "__init__.py") {
+        const pyMatch = firstLines.match(/^(?:\s*#[^\n]*\n)*\s*(?:"""|''')([\s\S]*?)(?:"""|''')/);
+        if (pyMatch) {
+          const doc = pyMatch[1].trim().split("\n")[0].trim();
+          if (doc.length > 5 && doc.length < 200) return doc;
+        }
+      }
+
+      // TypeScript/JavaScript: /** JSDoc */
+      if (/\.[jt]sx?$/.test(entryFile)) {
+        const jsdocMatch = firstLines.match(/\/\*\*\s*\n?\s*\*?\s*(.+?)(?:\n|\*\/)/);
+        if (jsdocMatch) {
+          const doc = jsdocMatch[1].trim().replace(/\*\/$/, "").trim();
+          if (doc.length > 5 && doc.length < 200) return doc;
+        }
+      }
+
+      // Go: // Package ... comments in doc.go
+      if (entryFile === "doc.go") {
+        const goMatch = firstLines.match(/\/\/\s*Package\s+\w+\s+(.*)/);
+        if (goMatch) {
+          const doc = goMatch[1].trim();
+          if (doc.length > 5 && doc.length < 200) return doc;
+        }
+      }
+
+      // Rust: //! module-level doc comments
+      if (entryFile === "lib.rs" || entryFile === "mod.rs") {
+        const rustLines = lines.filter((l) => l.startsWith("//!"));
+        if (rustLines.length > 0) {
+          const doc = rustLines[0].replace(/^\/\/!\s*/, "").trim();
+          if (doc.length > 5 && doc.length < 200) return doc;
+        }
+      }
+    } catch { /* skip */ }
+  }
+  return null;
+}
+
+function inferFromDirectoryName(relativePath: string): string | null {
+  if (relativePath === ".") return null;
+  const lastSegment = relativePath.split("/").pop()!.toLowerCase();
+  return DIRECTORY_PURPOSES[lastSegment] ?? null;
+}
+
+function inferFromFilePatterns(files: string[]): string | null {
+  if (files.length === 0) return null;
+
+  const testFiles = files.filter((f) => /\.(test|spec)\.\w+$/.test(f));
+  if (testFiles.length > 0 && testFiles.length >= files.length * 0.5) return "Test suite.";
+
+  const cssFiles = files.filter((f) => /\.(css|scss|less|sass)$/.test(f));
+  if (cssFiles.length > 0 && cssFiles.length >= files.length * 0.5) return "Stylesheets.";
+
+  const sqlFiles = files.filter((f) => /\.sql$/.test(f));
+  if (sqlFiles.length > 0 && sqlFiles.length >= files.length * 0.5) return "SQL scripts.";
+
+  const mdFiles = files.filter((f) => /\.(md|mdx)$/.test(f));
+  if (mdFiles.length > 0 && mdFiles.length >= files.length * 0.5) return "Documentation.";
+
+  return null;
+}
+
+// --- Signature extraction ---
+
+const SIGNATURE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"]);
+
+async function extractSignatures(scanResult: ScanResult): Promise<string[]> {
+  const signatures: string[] = [];
+
+  for (const filename of scanResult.files) {
+    const ext = extname(filename).toLowerCase();
+    if (!SIGNATURE_EXTENSIONS.has(ext)) continue;
+
+    try {
+      const content = await readFile(join(scanResult.path, filename), "utf-8");
+
+      // Try AST-first for reliable multiline/generic extraction
+      const astSigs = await detectExportSignaturesAST(content, ext);
+      if (astSigs) {
+        for (const { signature } of astSigs) {
+          if (!signatures.includes(signature)) signatures.push(signature);
+        }
+        continue;
+      }
+
+      // Regex fallback
+      const names = await detectExportsWithFallback(content, ext);
+      for (const name of names) {
+        const sig = extractOneSignature(content, name, ext);
+        if (sig && !signatures.includes(sig)) signatures.push(sig);
+      }
+    } catch { /* skip */ }
+  }
+
+  return signatures.slice(0, 25); // cap to avoid bloat
+}
+
+export function extractOneSignature(content: string, name: string, ext: string): string {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if ([".ts", ".tsx", ".js", ".jsx"].includes(ext)) {
+    // function declaration: `export [async] function name(params): ReturnType {`
+    const funcMatch = content.match(
+      new RegExp(`export\\s+(?:default\\s+)?(?:async\\s+)?function\\s+${escapedName}\\s*(<[^>]*>)?\\s*\\([^)]*\\)(?:\\s*:\\s*[^{]+)?`, "m"),
+    );
+    if (funcMatch) {
+      return funcMatch[0]
+        .replace(/^export\s+(default\s+)?/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    // class declaration
+    const classMatch = content.match(
+      new RegExp(`export\\s+(?:default\\s+)?(?:abstract\\s+)?class\\s+${escapedName}`, "m"),
+    );
+    if (classMatch) return `class ${name}`;
+
+    // type alias
+    const typeMatch = content.match(
+      new RegExp(`export\\s+type\\s+${escapedName}`, "m"),
+    );
+    if (typeMatch) return `type ${name}`;
+
+    // interface
+    const ifaceMatch = content.match(
+      new RegExp(`export\\s+interface\\s+${escapedName}`, "m"),
+    );
+    if (ifaceMatch) return `interface ${name}`;
+
+    // const/let
+    const constMatch = content.match(
+      new RegExp(`export\\s+(?:const|let)\\s+${escapedName}\\s*(?::\\s*([^=]+?))?\\s*=`, "m"),
+    );
+    if (constMatch && constMatch[1]) return `${name}: ${constMatch[1].trim()}`;
+
+    return name;
+  }
+
+  if (ext === ".py") {
+    // def name(params) -> ReturnType:
+    const defMatch = content.match(
+      new RegExp(`^(?:async\\s+)?def\\s+${escapedName}\\s*\\([^)]*\\)(?:\\s*->\\s*[^:]+)?`, "m"),
+    );
+    if (defMatch) return defMatch[0].trim();
+
+    // class Name
+    const classMatch = content.match(
+      new RegExp(`^class\\s+${escapedName}`, "m"),
+    );
+    if (classMatch) return `class ${name}`;
+
+    return name;
+  }
+
+  if (ext === ".go") {
+    // func (receiver) Name(params) ReturnType {
+    const funcMatch = content.match(
+      new RegExp(`^func\\s+(?:\\([^)]*\\)\\s+)?${escapedName}\\s*\\([^)]*\\)[^{]*`, "m"),
+    );
+    if (funcMatch) return funcMatch[0].replace(/\s+/g, " ").trim();
+
+    // type Name ...
+    const typeMatch = content.match(
+      new RegExp(`^type\\s+${escapedName}\\s+\\w+`, "m"),
+    );
+    if (typeMatch) return typeMatch[0].trim();
+
+    return name;
+  }
+
+  if (ext === ".rs") {
+    // pub [async] fn name(params) -> ReturnType {
+    const fnMatch = content.match(
+      new RegExp(`pub(?:\\s*\\(crate\\))?\\s+(?:async\\s+)?fn\\s+${escapedName}\\s*(?:<[^>]*>)?\\s*\\([^)]*\\)(?:\\s*->\\s*[^{]+)?`, "m"),
+    );
+    if (fnMatch) {
+      return fnMatch[0]
+        .replace(/^pub(\s*\(crate\))?\s+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    // pub struct/enum/trait Name
+    const typeMatch = content.match(
+      new RegExp(`pub\\s+(?:struct|enum|trait)\\s+${escapedName}`, "m"),
+    );
+    if (typeMatch) return typeMatch[0].replace(/^pub\s+/, "").trim();
+
+    return name;
+  }
+
+  return name;
 }
 
 async function detectFilePurpose(filePath: string): Promise<string> {

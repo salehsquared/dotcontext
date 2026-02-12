@@ -85,6 +85,8 @@ export const contextSchema = z.object({
   data_models: z.array(z.string()).optional(),
   events: z.array(z.string()).optional(),
   config: z.array(z.string()).optional(),
+  exports: z.array(z.string()).optional()
+    .describe("Compact method signatures and API surface"),
 
   // Root-only fields (optional, only present in root .context.yaml)
   project: projectSchema.optional(),
@@ -106,6 +108,8 @@ export const configSchema = z.object({
   ignore: z.array(z.string()).optional().describe("Additional directories to ignore"),
   max_depth: z.number().int().optional().describe("Max directory depth for scanning"),
   mode: z.enum(["lean", "full"]).optional().describe("Default generation mode (lean omits files/interfaces)"),
+  min_tokens: z.number().int().optional()
+    .describe("Minimum estimated tokens for a directory to get a .context.yaml (default: 4096)"),
 });
 
 // --- Types ---

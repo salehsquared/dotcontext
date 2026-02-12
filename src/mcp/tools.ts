@@ -9,13 +9,15 @@ import { CONTEXT_FILENAME } from "../core/schema.js";
 import type { ContextFile } from "../core/schema.js";
 import type { FreshnessState } from "../core/fingerprint.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { loadConfig } from "../utils/config.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 
 // Fields an LLM can request via the filter parameter
 const FILTERABLE_FIELDS = [
   "summary", "files", "interfaces", "decisions", "constraints",
   "dependencies", "current_state", "subdirectories", "environment",
   "testing", "todos", "data_models", "events", "config",
-  "project", "structure", "maintenance",
+  "project", "structure", "maintenance", "exports",
 ] as const;
 
 // Metadata fields always included in filtered output
@@ -93,6 +95,7 @@ export interface ContextEntry {
 export interface ListContextsResult {
   root: string;
   total_directories: number;
+  skipped_directories: number;
   tracked: number;
   entries: ContextEntry[];
   error?: string;
@@ -113,7 +116,11 @@ export async function handleQueryContext(
 
   const fileExists = await contextFileExists(targetDir);
   if (!fileExists) {
-    return { found: false, scope: input.scope, error: `No .context.yaml found at scope "${input.scope}"` };
+    return {
+      found: false,
+      scope: input.scope,
+      error: `No .context.yaml found at scope "${input.scope}". This scope may be below the min_tokens threshold; use list_contexts to see eligible scopes.`,
+    };
   }
 
   const context = await readContext(targetDir);
@@ -158,7 +165,11 @@ export async function handleCheckFreshness(
 
   const fileExists = await contextFileExists(targetDir);
   if (!fileExists) {
-    return { scope: input.scope, state: "missing", error: `No .context.yaml found at scope "${input.scope}"` };
+    return {
+      scope: input.scope,
+      state: "missing",
+      error: `No .context.yaml found at scope "${input.scope}". This scope may be below the min_tokens threshold; use list_contexts to see eligible scopes.`,
+    };
   }
 
   const context = await readContext(targetDir);
@@ -186,9 +197,11 @@ export async function handleListContexts(
   const rootPath = resolve(input.path ?? defaultRoot);
 
   try {
+    const config = await loadConfig(rootPath);
     const scanOptions = await loadScanOptions(rootPath);
     const scanResult = await scanProject(rootPath, scanOptions);
-    const dirs = flattenBottomUp(scanResult);
+    const allDirs = flattenBottomUp(scanResult);
+    const { dirs, skipped } = await filterByMinTokens(allDirs, config?.min_tokens);
 
     const entries: ContextEntry[] = [];
     let tracked = 0;
@@ -222,6 +235,7 @@ export async function handleListContexts(
     return {
       root: rootPath,
       total_directories: dirs.length,
+      skipped_directories: skipped,
       tracked,
       entries,
     };
@@ -229,6 +243,7 @@ export async function handleListContexts(
     return {
       root: rootPath,
       total_directories: 0,
+      skipped_directories: 0,
       tracked: 0,
       entries: [],
       error: `Failed to scan project at "${rootPath}"`,

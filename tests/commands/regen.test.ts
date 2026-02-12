@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import { initCommand } from "../../src/commands/init.js";
 import { regenCommand } from "../../src/commands/regen.js";
 import { CONTEXT_FILENAME } from "../../src/core/schema.js";
+import { saveConfig } from "../../src/utils/config.js";
 import { createTmpDir, cleanupTmpDir, createNestedFile, createFile } from "../helpers.js";
 import { AGENTS_FILENAME } from "../../src/core/markdown-writer.js";
 import { AGENTS_SECTION_START } from "../../src/generator/markdown.js";
@@ -14,6 +15,8 @@ let logs: string[];
 
 beforeEach(async () => {
   tmpDir = await createTmpDir();
+  // Disable token threshold for tests (tiny fixture files would be filtered out)
+  await saveConfig(tmpDir, { provider: "anthropic", min_tokens: 0 });
   logs = [];
   vi.spyOn(console, "log").mockImplementation((...args) => {
     logs.push(args.map(String).join(" "));
@@ -378,7 +381,7 @@ describe("regenCommand --parallel", () => {
       subdirectories?: Array<{ name: string; summary: string }>;
     };
     const coreSummary = srcContext.subdirectories?.find((entry) => entry.name === "core/")?.summary ?? "";
-    expect(coreSummary).toContain("2 files");
+    expect(coreSummary).toBe("Core functionality.");
   });
 
   it("isolates per-directory failures and continues other writes", async () => {

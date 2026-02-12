@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join, basename } from "node:path";
+import { join, basename, extname } from "node:path";
 import { parse } from "yaml";
 import type { LLMProvider } from "../providers/index.js";
 import type { ScanResult } from "../core/scanner.js";
@@ -9,6 +9,8 @@ import { computeFingerprint } from "../core/fingerprint.js";
 import { SYSTEM_PROMPT, LEAN_SYSTEM_PROMPT, buildUserPrompt } from "./prompts.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
 import { collectBasicEvidence } from "./evidence.js";
+import { detectExportSignaturesAST } from "./ast.js";
+import { detectExportsWithFallback, extractOneSignature } from "./static.js";
 
 /**
  * Generate a .context.yaml using an LLM provider.
@@ -120,6 +122,12 @@ export async function generateLLMContext(
     context.dependencies.internal = internalDeps;
   }
 
+  // Overlay machine-derived exports (more reliable than LLM guessing)
+  const exportSigs = await extractExportSignatures(scanResult, fileContents);
+  if (exportSigs.length > 0) {
+    context.exports = exportSigs;
+  }
+
   // Collect evidence (root only, opt-in)
   if (isRoot && options?.evidence) {
     const evidence = await collectBasicEvidence(scanResult.path);
@@ -130,6 +138,7 @@ export async function generateLLMContext(
   const derivedFields = ["version", "last_updated", "fingerprint", "scope"];
   if (preDetectedDeps.length > 0) derivedFields.push("dependencies.external");
   if (internalDeps.length > 0) derivedFields.push("dependencies.internal");
+  if (context.exports) derivedFields.push("exports");
   if (context.subdirectories) derivedFields.push("subdirectories");
   if (context.project) derivedFields.push("project");
   if (context.evidence) derivedFields.push("evidence");
@@ -168,4 +177,39 @@ export async function generateLLMContext(
   }
 
   return result.data;
+}
+
+const SIGNATURE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"]);
+
+async function extractExportSignatures(
+  scanResult: ScanResult,
+  fileContents: Map<string, string>,
+): Promise<string[]> {
+  const signatures: string[] = [];
+
+  for (const filename of scanResult.files) {
+    const ext = extname(filename).toLowerCase();
+    if (!SIGNATURE_EXTENSIONS.has(ext)) continue;
+
+    const content = fileContents.get(filename);
+    if (!content) continue;
+
+    // Try AST-first
+    const astSigs = await detectExportSignaturesAST(content, ext);
+    if (astSigs) {
+      for (const { signature } of astSigs) {
+        if (!signatures.includes(signature)) signatures.push(signature);
+      }
+      continue;
+    }
+
+    // Regex fallback
+    const names = await detectExportsWithFallback(content, ext);
+    for (const name of names) {
+      const sig = extractOneSignature(content, name, ext);
+      if (sig && !signatures.includes(sig)) signatures.push(sig);
+    }
+  }
+
+  return signatures.slice(0, 25);
 }
