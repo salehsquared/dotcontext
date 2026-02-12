@@ -1,25 +1,26 @@
 version: 1
-last_updated: 2026-02-12T01:27:56.117Z
+last_updated: 2026-02-12T04:46:25.532Z
 fingerprint: 46b2bea9
 scope: docs
 summary: >
-  This directory provides documentation and guidance for integrating dotcontext in CI/CD pipelines, detailing command
-  usage, integration with various tools, limitations, and troubleshooting steps.
+  This directory contains documentation for using dotcontext in CI/CD pipelines, integrations with LLM tools,
+  limitations, and troubleshooting common issues.
 files:
   - name: ci.md
-    purpose: Documentation for CI/CD pipeline integration and usage with dotcontext.
+    purpose: Guide for integrating dotcontext in CI/CD pipelines using GitHub Actions and GitLab CI.
   - name: integrations.md
-    purpose: Guidance on integrating dotcontext with external tools and environments.
+    purpose: Documentation on how to integrate dotcontext with various tools and services.
   - name: limitations.md
-    purpose: Documentation of known limitations related to dotcontext functionality.
+    purpose: Outlines the limitations and known boundaries of dotcontext functionality.
   - name: quickstart.md
-    purpose: A rapid guide to getting started with dotcontext.
+    purpose: Step-by-step instructions to get started with dotcontext quickly.
   - name: schema.md
     purpose: Reference for the schema structure of .context.yaml files.
   - name: troubleshooting.md
-    purpose: Help with common issues and their solutions.
+    purpose: Guidance on resolving common issues when using dotcontext.
   - name: trust-model.md
-    purpose: Explains the trust model of field provenance in .context.yaml files.
+    purpose: Explains the trust model for fields in .context.yaml files, distinguishing between machine-derived and
+      LLM-generated content.
   - name: validation.md
     purpose: Details on how to validate .context.yaml files for correctness.
 maintenance: |-

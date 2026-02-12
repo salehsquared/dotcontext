@@ -1,16 +1,15 @@
 version: 1
-last_updated: 2026-02-12T01:29:52.012Z
+last_updated: 2026-02-12T04:45:07.270Z
 fingerprint: e3b0c442
 scope: tests/fixtures/monorepo/packages
 summary: >
-  This directory contains subdirectories for handling different aspects of a monorepo, including an API package and a
-  shared package with TypeScript type definitions. Each subdirectory is structured to facilitate modular development and
-  reusability within the monorepo.
+  The `tests/fixtures/monorepo/packages` directory contains two primary packages for a monorepo setup, providing
+  essential functionality and shared components for API handling and shared configurations.
 files:
   - name: api/
-    purpose: Contains source code and configuration for the API package.
+    purpose: Houses the API package configuration and source code for API server functionality.
   - name: shared/
-    purpose: Includes TypeScript type definitions for use across the monorepo.
+    purpose: Contains shared package configuration and types for consistent setups across the monorepo.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -18,17 +17,15 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-constraints:
-  - TypeScript type definitions in shared/ must be maintained for compatibility across different packages.
 subdirectories:
   - name: api/
     summary: >
-      This directory contains the source code and configuration for an API package within a monorepo, which is
-      structured to handle API-related functionalities.
+      This directory houses the API package for the monorepo, containing the package configuration and source code for
+      the API server functionality.
   - name: shared/
     summary: >
-      This directory contains a shared package for a monorepo, which includes TypeScript type definitions for use across
-      different parts of the monorepo.
+      This directory contains the shared package configuration for a monorepo setup, including shared types for
+      consistent configurations across various packages.
 derived_fields:
   - version
   - last_updated

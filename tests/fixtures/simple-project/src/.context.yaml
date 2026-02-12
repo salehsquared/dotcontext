@@ -1,15 +1,15 @@
 version: 1
-last_updated: 2026-02-12T01:29:56.179Z
+last_updated: 2026-02-12T04:45:09.772Z
 fingerprint: c3d9dc8c
 scope: tests/fixtures/simple-project/src
 summary: >
-  This directory contains source code for a simple TypeScript project, including a main function and a utility function
-  for addition.
+  This directory contains TypeScript source files for a simple project that includes a main function and a utility
+  function for addition.
 files:
   - name: index.ts
     purpose: Exports the main function that returns a greeting string.
   - name: utils.ts
-    purpose: Exports a function that adds two numbers.
+    purpose: Exports a utility function that adds two numbers.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -19,9 +19,9 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 interfaces:
   - name: main
-    description: Returns the string 'hello'.
+    description: Returns a string 'hello'.
   - name: add
-    description: Returns the sum of two provided numbers.
+    description: Takes two numbers as input and returns their sum.
 derived_fields:
   - version
   - last_updated

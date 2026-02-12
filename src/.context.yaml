@@ -1,14 +1,14 @@
 version: 1
-last_updated: 2026-02-12T01:29:24.862Z
-fingerprint: 93997c04
+last_updated: 2026-02-12T04:46:24.621Z
+fingerprint: 2389ff21
 scope: src
 summary: >
-  The `src` directory implements a CLI tool for managing folder-level documentation through `.context.yaml` files,
-  supporting commands for initialization, regeneration, validation, and more, as well as starting a server for LLM tool
-  integration.
+  The src directory implements a command-line tool for generating, validating, and managing .context.yaml files for
+  projects, leveraging a variety of functionalities through commands for initialization, regeneration, and status
+  checks.
 files:
   - name: index.ts
-    purpose: Entry point for the CLI tool, defining command-line commands and their handlers.
+    purpose: Main entry point for the command-line interface managing context files.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -18,18 +18,19 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 interfaces:
   - name: createProgram
-    description: Creates the command-line interface with defined commands for managing context YAML files.
+    description: Sets up the command-line interface with various commands for context file management.
   - name: runCli
-    description: Executes the CLI tool with the provided command-line arguments.
+    description: Loads environment variables and starts the command-line interface.
 decisions:
-  - what: Use of the `commander` library for command-line processing
-    why: To simplify command definition and parsing of command-line arguments.
-    tradeoff: Additional library dependency, but enhances maintainability and readability.
+  - what: Use a command pattern for CLI commands
+    why: To modularize functionalities and make it easier to extend or modify individual commands.
+    tradeoff: Increased complexity in handling commands when adding new features.
 constraints:
-  - The CLI must not expose any sensitive information such as API keys or user credentials.
+  - Commands must adhere to defined options and validate parameters before execution.
 dependencies:
   internal:
     - ./commands/config.js
+    - ./commands/doctor.js
     - ./commands/ignore.js
     - ./commands/init.js
     - ./commands/regen.js
@@ -39,38 +40,38 @@ dependencies:
     - ./commands/validate.js
     - ./commands/watch.js
     - ./mcp/server.js
+    - ./utils/display.js
     - ./utils/env.js
 current_state:
   working:
-    - All defined commands are operational and can be executed via the CLI.
+    - The command-line commands are functioning as intended, allowing users to manage context files.
   in_progress:
-    - Documentation for additional commands may be expanded in the future.
+    - Potential improvements in error handling and options validation for several commands.
 subdirectories:
   - name: commands/
     summary: >
-      The `src/commands` directory contains command implementations for managing and configuring a context-aware system.
-      It supports initializing, regenerating, validating, and displaying context configurations.
+      The `commands` directory contains various command implementations for managing project configurations and context
+      files, including commands for initialization, configuration updates, status checks, validation, and regeneration
+      of context files.
   - name: core/
     summary: >
-      This directory contains functionalities for computing directory fingerprints, scanning project directories, and
-      managing context information for files. It includes methods for checking file freshness and identifying source
-      code.
+      The src/core directory contains utilities for managing project fingerprints, markdown generation for agents, and
+      scanning directory structures for context data. It provides functions for calculating file fingerprints, reading
+      and writing markdown files, and scanning project directories for relevant files.
   - name: generator/
-    summary: This directory contains various modules for generating structured YAML documents, detecting external and
-      internal dependencies, and collecting evidence from test artifacts using both static analysis and a language model
-      interface.
+    summary: Generates a .context.yaml file for directory context and documentation generation based on source code analysis.
   - name: mcp/
     summary: >
-      The src/mcp directory implements a Model Context Protocol (MCP) server, providing tools to manage and query
-      contextual data in project directories.
+      This directory implements a Model Context Protocol (MCP) server with tools for querying and managing context files
+      in a project. It includes functionalities to check context freshness and list contexts across directories.
   - name: providers/
     summary: >
-      This directory provides implementations of various large language model (LLM) providers, each adapting specific
-      SDKs to a common interface for generating responses based on user input.
+      The `src/providers` directory contains multiple implementations of a language model provider interface, allowing
+      interaction with different AI models from various vendors through a unified API.
   - name: utils/
     summary: >
-      The `src/utils` directory contains utility functions for managing configuration, environment variables, ignore
-      lists, and displaying status messages in the CLI.
+      The src/utils directory provides utility functions for managing configuration, environment variables, display
+      messages, and concurrent processing in a project.
 derived_fields:
   - version
   - last_updated

@@ -1,9 +1,9 @@
 version: 1
-last_updated: 2026-02-12T01:29:43.293Z
+last_updated: 2026-02-12T04:44:25.587Z
 fingerprint: aba2f4ec
 scope: tests/fixtures/monorepo/packages/api/src
 summary: |
-  This directory contains the source code for an API server implementation within a monorepo structure.
+  This directory contains code for starting an API server.
 files:
   - name: server.ts
     purpose: Defines a function to start the server on a specified port.

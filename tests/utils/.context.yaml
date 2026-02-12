@@ -1,0 +1,40 @@
+version: 1
+last_updated: 2026-02-12T04:46:01.667Z
+fingerprint: 8afa1303
+scope: tests/utils
+summary: >
+  This directory contains unit tests for the utility function poolMap, verifying its behavior with a variety of input
+  scenarios and concurrency limits.
+files:
+  - name: pool.test.ts
+    purpose: Unit tests for the poolMap utility function.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: poolMap
+    description: Processes an array of items with a worker function while respecting a concurrency limit.
+decisions:
+  - what: Use of Vitest for testing framework
+    why: Vitest provides a fast and efficient testing environment suitable for async tests.
+    tradeoff: May necessitate learning a new framework if the team is accustomed to another.
+constraints:
+  - Concurrency limit cannot exceed the number of items being processed.
+dependencies:
+  internal:
+    - ../../src/utils/pool.js
+current_state:
+  working:
+    - Tests verify correct processing of items and concurrency behavior.
+  broken: []
+  in_progress: []
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - dependencies.internal

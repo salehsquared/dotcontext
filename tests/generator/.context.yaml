@@ -1,0 +1,44 @@
+version: 1
+last_updated: 2026-02-12T04:45:58.187Z
+fingerprint: fedf8bb3
+scope: tests/generator
+summary: >
+  The tests/generator directory contains unit tests for various functions in the markdown module, which is responsible
+  for generating and manipulating markdown content related to agents.
+files:
+  - name: markdown.test.ts
+    purpose: Unit tests for functions that generate and escape markdown related to agents.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: escapeSummary
+    description: Escapes special characters in a summary string to ensure valid markdown format.
+  - name: generateAgentsMd
+    description: Generates a complete markdown document for agents, including headers and instructions.
+  - name: generateAgentsSection
+    description: Creates a markdown section encapsulated with start and end markers for agent entries.
+  - name: detectAgentsAction
+    description: Determines the appropriate action (create, append, replace, skip) based on the current content and section.
+  - name: applyAgentsSection
+    description: Incorporates a generated agents section into existing markdown content, depending on the detected action.
+decisions:
+  - what: Using Vitest for testing
+    why: Vitest provides a fast and easy way to run unit tests for JavaScript code.
+    tradeoff: May not have all features of other testing frameworks but offers better performance.
+dependencies:
+  internal:
+    - ../../src/generator/markdown.js
+current_state:
+  working:
+    - All tests for markdown generation functions are passing.
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - dependencies.internal

@@ -1,19 +1,21 @@
 version: 1
-last_updated: 2026-02-12T01:29:19.226Z
-fingerprint: 685ce3ed
+last_updated: 2026-02-12T04:45:58.904Z
+fingerprint: fb2b555e
 scope: src/utils
 summary: >
-  The `src/utils` directory contains utility functions for managing configuration, environment variables, ignore lists,
-  and displaying status messages in the CLI.
+  The src/utils directory provides utility functions for managing configuration, environment variables, display
+  messages, and concurrent processing in a project.
 files:
   - name: config.ts
-    purpose: Handles loading and saving project configuration.
+    purpose: Handles loading, saving, and resolving API keys for project configuration.
   - name: display.ts
-    purpose: Provides functions for formatting console output messages.
+    purpose: Provides utility functions for formatting console output.
   - name: env.ts
-    purpose: Loads environment variables from a local .env file and parses them.
+    purpose: Loads environment variables from a local .env file and parses its content.
   - name: ignore.ts
-    purpose: Manages paths to be ignored by adding them to a .contextignore file.
+    purpose: Manages paths in the .contextignore file to specify files and directories to be ignored.
+  - name: pool.ts
+    purpose: Implements a parallel processing function with bounded concurrency.
   - name: scan-options.ts
     purpose: Loads scanning options from the project configuration.
 maintenance: |-
@@ -25,13 +27,13 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 interfaces:
   - name: loadConfig
-    description: Loads project config from the specified root path, returning null if none exists.
+    description: Loads the project configuration from a specified root path.
   - name: saveConfig
-    description: Saves the given project config to the specified root path.
+    description: Saves the project configuration to a specified root path.
   - name: resolveApiKey
-    description: Resolves the API key based on the provided config and environment variables.
+    description: Retrieves the API key from the environment variables based on the provided configuration.
   - name: freshnessIcon
-    description: Returns a formatted icon representing the freshness state.
+    description: Returns a string representation of the freshness state for display.
   - name: successMsg
     description: Formats a success message for console output.
   - name: warnMsg
@@ -39,28 +41,28 @@ interfaces:
   - name: errorMsg
     description: Formats an error message for console output.
   - name: heading
-    description: Formats a message as a heading for console output.
+    description: Formats a message as a bold heading for console output.
   - name: dim
-    description: Formats a message in dim style for console output.
+    description: Formats a message in dim text for console output.
   - name: progressBar
-    description: Generates a progress bar string representation based on current and total values.
+    description: Generates a string representation of a progress bar based on the current and total counts.
   - name: loadEnvForCli
-    description: Loads environment variables from .env.local files in the specified root paths.
+    description: Loads environment variables from a local file for command line interface usage.
   - name: loadEnvLocal
-    description: Loads environment variables from a specific root path's .env.local file.
-  - name: parseEnvLine
-    description: Parses a single line from an environment file into a key-value pair.
+    description: Loads variables from the local .env file and sets them in process.env.
   - name: addToIgnore
-    description: Adds a specified path to the .contextignore file in the given root path.
+    description: Adds a specified path to the .contextignore file.
+  - name: poolMap
+    description: Processes items in parallel with a specified concurrency limit.
   - name: loadScanOptions
-    description: Loads scan options from the project configuration, returning an object with maxDepth and extraIgnore.
+    description: Loads scan options from the project's configuration.
 decisions:
-  - what: Using asynchronous functions for I/O operations.
-    why: To improve performance by not blocking the main thread during file access.
-    tradeoff: More complexity in handling asynchronous behavior compared to synchronous functions.
+  - what: Use environment variables for sensitive configuration values.
+    why: To avoid hardcoding sensitive information in the codebase.
+    tradeoff: Requires careful handling of environment variable management.
 constraints:
-  - The environment variable names are constrained by the provider type.
-  - The directory expects a .env.local file for loading environment variables.
+  - The maximum concurrency when processing items must be greater than 0.
+  - Environment variable names must follow the format specified (alphanumeric and underscores).
 dependencies:
   internal:
     - ../core/fingerprint.js
@@ -68,6 +70,14 @@ dependencies:
     - ../core/schema.js
     - ../core/writer.js
     - ./config.js
+current_state:
+  working:
+    - Configuration loading and saving functions operate as expected.
+    - Environment variable parsing and loading functionalities are implemented.
+  broken:
+    - No broken functionality identified.
+  in_progress:
+    - None identified.
 derived_fields:
   - version
   - last_updated
