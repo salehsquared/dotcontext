@@ -1,11 +1,13 @@
 version: 1
-last_updated: 2026-02-12T00:53:11.581Z
+last_updated: 2026-02-12T01:30:08.304Z
 fingerprint: b4aa2bc2
 scope: tests/fixtures/with-contextignore
-summary: Directory tests/fixtures/with-contextignore containing 1 files and 2 subdirectories. Generated with static analysis.
+summary: >
+  This directory contains testing fixtures for a TypeScript module designed for a specific context, along with temporary
+  files for test execution.
 files:
   - name: package.json
-    purpose: Node.js project configuration and dependencies
+    purpose: Defines the project metadata for the with-contextignore module.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -15,13 +17,14 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 subdirectories:
   - name: src/
-    summary: Directory tests/fixtures/with-contextignore/src containing 1 files. Generated with static analysis.
+    summary: |
+      This directory contains a simple TypeScript module that exports a constant variable.
   - name: tmp/
-    summary: Directory tests/fixtures/with-contextignore/tmp containing 1 files. Generated with static analysis.
+    summary: |
+      This directory contains test fixtures for a specific context, including temporary files for testing purposes.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - files
   - subdirectories

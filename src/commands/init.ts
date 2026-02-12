@@ -5,9 +5,10 @@ import { writeContext } from "../core/writer.js";
 import { generateStaticContext } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider, type ProviderName } from "../providers/index.js";
-import { saveConfig, resolveApiKey } from "../utils/config.js";
+import { loadConfig, saveConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { successMsg, errorMsg, progressBar, heading } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg, progressBar, heading } from "../utils/display.js";
+import { updateAgentsMd } from "../core/markdown-writer.js";
 import type { ContextFile, ConfigFile } from "../core/schema.js";
 
 function ask(question: string): Promise<string> {
@@ -20,11 +21,12 @@ function ask(question: string): Promise<string> {
   });
 }
 
-export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean }): Promise<void> {
+export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
   console.log(heading("\nWelcome to context.\n"));
 
+  const existingConfig = await loadConfig(rootPath);
   let config: ConfigFile | null = null;
 
   if (!options.noLlm) {
@@ -49,7 +51,7 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
       process.exit(1);
     }
 
-    config = { provider: providerName };
+    config = { ...(existingConfig ?? {}), provider: providerName };
 
     // Check for API key
     const apiKey = resolveApiKey(config);
@@ -118,6 +120,31 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
       completed++;
       const msg = err instanceof Error ? err.message : String(err);
       console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+    }
+  }
+
+  // Generate AGENTS.md at project root
+  if (!options.noAgents) {
+    const entries = Array.from(childContexts.values())
+      .map((ctx) => ({ scope: ctx.scope, summary: ctx.summary }))
+      .sort((a, b) => {
+        if (a.scope === ".") return -1;
+        if (b.scope === ".") return 1;
+        return a.scope.localeCompare(b.scope);
+      });
+
+    const rootContext = childContexts.get(rootPath)
+      ?? Array.from(childContexts.values()).find((c) => c.scope === ".");
+    const projectName = rootContext?.project?.name ?? "this project";
+
+    try {
+      const action = await updateAgentsMd(rootPath, entries, projectName);
+      if (action === "created") console.log(successMsg("AGENTS.md created"));
+      else if (action === "appended") console.log(successMsg("AGENTS.md updated (section appended)"));
+      else if (action === "replaced") console.log(successMsg("AGENTS.md updated (section refreshed)"));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(warnMsg(`AGENTS.md: ${msg}`));
     }
   }
 

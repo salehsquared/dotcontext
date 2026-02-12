@@ -1,31 +1,34 @@
 version: 1
-last_updated: 2026-02-12T00:53:11.565Z
-fingerprint: a7f63b29
+last_updated: 2026-02-12T01:29:41.190Z
+fingerprint: c95a4d00
 scope: tests/commands
-summary: Directory tests/commands containing 11 files. Generated with static analysis.
+summary: >
+  This directory contains tests for various command functions related to configuration management, file ignoring,
+  initialization, regeneration, rehashing, showing, status checking, validation, and watching directories in a
+  context-aware application.
 files:
   - name: config.test.ts
-    purpose: Test file
+    purpose: Tests the configCommand function for managing configuration settings.
   - name: ignore.test.ts
-    purpose: Test file
+    purpose: Tests the ignoreCommand for handling entries in the .contextignore file.
   - name: init.test.ts
-    purpose: Test file
+    purpose: Tests the initCommand for creating context files in new project directories.
   - name: regen-provider.test.ts
-    purpose: Test file
+    purpose: Tests provider-related functionalities within the regenCommand.
   - name: regen.test.ts
-    purpose: Test file
+    purpose: Tests the regenCommand for regenerating context files.
   - name: rehash.test.ts
-    purpose: Test file
+    purpose: Tests the rehashCommand for updating fingerprints and timestamps for tracked directories.
   - name: show.test.ts
-    purpose: Test file
+    purpose: Tests the showCommand for displaying the content of context files.
   - name: status.test.ts
-    purpose: Test file
+    purpose: Tests the statusCommand to check the health and state of context files.
   - name: validate.test.ts
-    purpose: Test file
+    purpose: Tests the validateCommand for ensuring context file validity.
   - name: watch-command.test.ts
-    purpose: Test file
+    purpose: Tests the watchCommand for monitoring changes in tracked directories.
   - name: watch.test.ts
-    purpose: Test file
+    purpose: Tests the core functionalities related to tracking the state of files and directories.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -33,6 +36,25 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: configCommand
+    description: Manages configuration settings for the context, including validation.
+  - name: ignoreCommand
+    description: Adds entries to the .contextignore file to specify ignored files.
+  - name: initCommand
+    description: Initializes a context in a given directory and creates necessary context files.
+  - name: regenCommand
+    description: Regenerates context files for specified directories.
+  - name: rehashCommand
+    description: Updates fingerprints and timestamps for directories with changes.
+  - name: showCommand
+    description: Displays the content of the context file.
+  - name: statusCommand
+    description: Checks and reports the status of tracked directories.
+  - name: validateCommand
+    description: Validates the structure and fields of context files.
+  - name: watchCommand
+    description: Monitors directories for changes and tracks state updates.
 dependencies:
   internal:
     - ../../src/commands/config.js
@@ -51,10 +73,14 @@ dependencies:
     - ../helpers.js
     - ../lib
     - ../utils
+current_state:
+  working:
+    - All tests are passing.
+  in_progress:
+    - Ensuring comprehensive coverage for newer functions and edge cases in tests.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - files
   - dependencies.internal

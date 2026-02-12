@@ -6,12 +6,13 @@ import { generateLLMContext } from "../generator/llm.js";
 import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { successMsg, errorMsg, progressBar } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg, progressBar } from "../utils/display.js";
+import { updateAgentsMd } from "../core/markdown-writer.js";
 import type { ContextFile } from "../core/schema.js";
 
 export async function regenCommand(
   targetPath: string | undefined,
-  options: { all?: boolean; force?: boolean; noLlm?: boolean; path?: string; evidence?: boolean },
+  options: { all?: boolean; force?: boolean; noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
@@ -86,6 +87,31 @@ export async function regenCommand(
       completed++;
       const msg = err instanceof Error ? err.message : String(err);
       console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+    }
+  }
+
+  // Update AGENTS.md on --all regen
+  if (options.all && !options.noAgents) {
+    const entries = Array.from(childContexts.values())
+      .map((ctx) => ({ scope: ctx.scope, summary: ctx.summary }))
+      .sort((a, b) => {
+        if (a.scope === ".") return -1;
+        if (b.scope === ".") return 1;
+        return a.scope.localeCompare(b.scope);
+      });
+
+    const rootContext = childContexts.get(rootPath)
+      ?? Array.from(childContexts.values()).find((c) => c.scope === ".");
+    const projectName = rootContext?.project?.name ?? "this project";
+
+    try {
+      const action = await updateAgentsMd(rootPath, entries, projectName);
+      if (action === "created") console.log(successMsg("AGENTS.md created"));
+      else if (action === "appended") console.log(successMsg("AGENTS.md updated (section appended)"));
+      else if (action === "replaced") console.log(successMsg("AGENTS.md updated (section refreshed)"));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(warnMsg(`AGENTS.md: ${msg}`));
     }
   }
 

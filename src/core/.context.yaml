@@ -1,17 +1,19 @@
 version: 1
-last_updated: 2026-02-12T00:53:11.524Z
+last_updated: 2026-02-12T01:28:28.195Z
 fingerprint: 6bc419a9
 scope: src/core
-summary: Directory src/core containing 4 files. Generated with static analysis.
+summary: >
+  This directory contains functionalities for computing directory fingerprints, scanning project directories, and
+  managing context information for files. It includes methods for checking file freshness and identifying source code.
 files:
   - name: fingerprint.ts
-    purpose: "Exports: computeFingerprint, FreshnessState, checkFreshness"
+    purpose: Computes a fingerprint for a directory and checks freshness against a stored fingerprint.
   - name: scanner.ts
-    purpose: "Exports: ScanResult, ScanOptions, scanProject (+1 more)"
+    purpose: Scans project directories to identify where context files should be created and gathers source code information.
   - name: schema.ts
-    purpose: "Exports: contextSchema, configSchema, ContextFile (+12 more)"
+    purpose: Defines the schema for context and config files, including data structures and validation rules.
   - name: writer.ts
-    purpose: "Exports: writeContext, readContext, writeConfig (+1 more)"
+    purpose: Handles reading and writing of context and configuration files in YAML format.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -21,43 +23,39 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 interfaces:
   - name: computeFingerprint
-    description: Exported from fingerprint.ts
-  - name: FreshnessState
-    description: Exported from fingerprint.ts
+    description: Computes a hash representing the contents of a directory.
   - name: checkFreshness
-    description: Exported from fingerprint.ts
-  - name: ScanResult
-    description: Exported from scanner.ts
-  - name: ScanOptions
-    description: Exported from scanner.ts
+    description: Compares a stored fingerprint with a newly computed fingerprint.
   - name: scanProject
-    description: Exported from scanner.ts
-  - name: flattenBottomUp
-    description: Exported from scanner.ts
-  - name: contextSchema
-    description: Exported from schema.ts
-  - name: configSchema
-    description: Exported from schema.ts
-  - name: ContextFile
-    description: Exported from schema.ts
-  - name: ConfigFile
-    description: Exported from schema.ts
-  - name: FileEntry
-    description: Exported from schema.ts
+    description: Scans a project directory tree for source files and context directories.
   - name: writeContext
-    description: Exported from writer.ts
+    description: Writes a ContextFile to disk as .context.yaml.
   - name: readContext
-    description: Exported from writer.ts
+    description: Reads and parses a .context.yaml from disk.
   - name: writeConfig
-    description: Exported from writer.ts
+    description: Writes a ConfigFile to disk.
+  - name: readConfig
+    description: Reads config file from disk.
+decisions:
+  - what: Ignore certain directories and file patterns during scanning.
+    why: To avoid processing files and directories that are not relevant to the context generation, such as build artifacts
+      or version control directories.
+    tradeoff: This may miss legitimate source files that happen to be placed in ignored directories.
+constraints:
+  - Only evaluates files directly in the specified directory; does not consider subdirectories.
 dependencies:
   internal:
     - ./schema.js
+current_state:
+  working:
+    - Directory scanning and fingerprint computation functions are operational.
+  broken:
+    - None reported.
+  in_progress:
+    - Integration of scanning and context management functionalities.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - files
-  - interfaces
   - dependencies.internal

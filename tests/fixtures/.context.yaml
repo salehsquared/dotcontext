@@ -1,9 +1,17 @@
 version: 1
-last_updated: 2026-02-12T00:53:11.582Z
+last_updated: 2026-02-12T01:30:12.175Z
 fingerprint: e3b0c442
 scope: tests/fixtures
-summary: Directory tests/fixtures containing 0 files and 3 subdirectories. Generated with static analysis.
-files: []
+summary: >
+  The tests/fixtures directory contains various configurations and testing materials for different project setups,
+  including a monorepo, a simple TypeScript project, and a context-specific module for testing.
+files:
+  - name: monorepo
+    purpose: Configuration and structural information for a monorepo workspace.
+  - name: simple-project
+    purpose: Configuration files and source code for a simple TypeScript project, including build settings.
+  - name: with-contextignore
+    purpose: Testing fixtures for a TypeScript module with specific context requirements.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the files list, interfaces, and current_state sections.
@@ -11,18 +19,23 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
+constraints:
+  - Testing fixtures must adhere to the configurations of the respective project types.
 subdirectories:
   - name: monorepo/
-    summary: Directory tests/fixtures/monorepo containing 1 files and 1 subdirectories. Generated with static analysis.
+    summary: |
+      This directory contains configuration and structural information for a monorepo workspace.
   - name: simple-project/
-    summary: Directory tests/fixtures/simple-project containing 2 files and 1 subdirectories. Generated with static analysis.
+    summary: >
+      This directory contains the configuration files and source code for a simple TypeScript project, including build
+      settings and strict type checking for improved code quality.
   - name: with-contextignore/
-    summary: Directory tests/fixtures/with-contextignore containing 1 files and 2 subdirectories. Generated with static
-      analysis.
+    summary: >
+      This directory contains testing fixtures for a TypeScript module designed for a specific context, along with
+      temporary files for test execution.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - files
   - subdirectories

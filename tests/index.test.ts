@@ -24,16 +24,34 @@ async function parse(programArgs: string[], handlers: CommandHandlers): Promise<
 }
 
 describe("CLI wiring", () => {
-  it("init defaults to noLlm true", async () => {
+  it("init defaults to noLlm true and noAgents false", async () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "init", "-p", "/tmp/project"], handlers);
-    expect(handlers.initCommand).toHaveBeenCalledWith({ noLlm: true, path: "/tmp/project" });
+    expect(handlers.initCommand).toHaveBeenCalledWith({
+      noLlm: true,
+      path: "/tmp/project",
+      noAgents: false,
+    });
   });
 
   it("init --llm flips noLlm to false", async () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "init", "--llm", "-p", "/tmp/project"], handlers);
-    expect(handlers.initCommand).toHaveBeenCalledWith({ noLlm: false, path: "/tmp/project" });
+    expect(handlers.initCommand).toHaveBeenCalledWith({
+      noLlm: false,
+      path: "/tmp/project",
+      noAgents: false,
+    });
+  });
+
+  it("init --no-agents sets noAgents to true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "init", "--no-agents", "-p", "/tmp/project"], handlers);
+    expect(handlers.initCommand).toHaveBeenCalledWith({
+      noLlm: true,
+      path: "/tmp/project",
+      noAgents: true,
+    });
   });
 
   it("regen --no-llm maps to noLlm true", async () => {
@@ -47,7 +65,20 @@ describe("CLI wiring", () => {
       force: true,
       noLlm: true,
       path: "/tmp/project",
+      noAgents: false,
     });
+  });
+
+  it("regen --no-agents sets noAgents to true", async () => {
+    const handlers = makeHandlers();
+    await parse(
+      ["node", "context", "regen", "--all", "--no-agents", "-p", "/tmp/project"],
+      handlers,
+    );
+    expect(handlers.regenCommand).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      all: true,
+      noAgents: true,
+    }));
   });
 
   it("config passes extended option set", async () => {

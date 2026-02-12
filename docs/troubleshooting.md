@@ -124,7 +124,7 @@
 | Error | Cause | Fix |
 |---|---|---|
 | ECONNREFUSED | Ollama not running | Start with `ollama serve` |
-| Model not found | Model not pulled | Run `ollama pull llama3.1` (or your configured model) |
+| Model not found | Model not pulled | Run `ollama pull llama3.2:3b` (or your configured model) |
 | Slow generation | Model too large for hardware | Try a smaller model: `context config --model llama3.2:1b` |
 
 ## Still Stuck?

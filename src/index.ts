@@ -54,9 +54,15 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .description("Scan project and generate all .context.yaml files")
     .option("--llm", "Use LLM provider for richer context generation")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
+    .option("--no-agents", "Skip AGENTS.md generation")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.initCommand({ noLlm: !opts.llm, path: opts.path, evidence: opts.evidence });
+      await handlers.initCommand({
+        noLlm: !opts.llm,
+        path: opts.path,
+        evidence: opts.evidence,
+        noAgents: opts.agents === false,
+      });
     });
 
   program
@@ -74,6 +80,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--force", "Overwrite without confirmation")
     .option("--no-llm", "Use static analysis only")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
+    .option("--no-agents", "Skip AGENTS.md generation")
     .option("-p, --path <path>", "Project root path")
     .action(async (target, opts) => {
       await handlers.regenCommand(target, {
@@ -82,6 +89,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         noLlm: opts.llm === false,
         path: opts.path,
         evidence: opts.evidence,
+        noAgents: opts.agents === false,
       });
     });
 

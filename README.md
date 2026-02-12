@@ -48,6 +48,15 @@ Every LLM coding tool — Claude Code, Cursor, Copilot, Windsurf, Aider — has 
 
 `.context.yaml` files fix this. Structured documentation at each level of the directory tree. An LLM reads one file and knows what the directory contains, what the key files do, what the public interfaces are, and what decisions were made — without opening a single source file.
 
+## Core Features
+
+- **Schema validation** — `.context.yaml` files are validated against a strict schema for consistent, machine-readable structure.
+- **MCP queryability** — LLM clients can query context through MCP tools instead of scraping text.
+- **Field filtering** — `query_context` can return only selected fields (for example `interfaces` or `dependencies`) to reduce token usage.
+- **Fingerprint-based freshness** — each directory has a content fingerprint with `fresh`, `stale`, and `missing` state tracking.
+- **`derived_fields` provenance tracking** — machine-derived fields are explicitly marked so agents can distinguish high-confidence facts from narrative.
+- **Strict cross-check validation** — `context validate --strict` can detect drift between declared context and actual code.
+
 ## How It Compares
 
 | Capability | dotcontext | CLAUDE.md / .cursorrules | Tool-native indexes | Memory tools |
@@ -135,17 +144,17 @@ See [docs/integrations.md](docs/integrations.md) for Windsurf, Continue, generic
 ```yaml
 # .context.config.yaml (add to .gitignore)
 provider: anthropic
-model: claude-sonnet-4-5-20250929
+model: claude-3-5-haiku-latest
 ignore: [tmp, scratch]
 max_depth: 5
 ```
 
 | Provider | Default Model | Env Var |
 |---|---|---|
-| Anthropic | claude-sonnet-4-5-20250929 | `ANTHROPIC_API_KEY` |
-| OpenAI | gpt-4o | `OPENAI_API_KEY` |
-| Google | gemini-2.0-flash | `GOOGLE_API_KEY` |
-| Ollama | llama3.1 | `OLLAMA_HOST` (local, no key) |
+| Anthropic | claude-3-5-haiku-latest | `ANTHROPIC_API_KEY` |
+| OpenAI | gpt-4o-mini | `OPENAI_API_KEY` |
+| Google | gemini-2.0-flash-lite | `GOOGLE_API_KEY` |
+| Ollama | llama3.2:3b | `OLLAMA_HOST` (local, no key) |
 
 ## How It Works
 
