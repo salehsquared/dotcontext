@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "node:path";
-import { cp, readFile, stat } from "node:fs/promises";
+import { cp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { parse } from "yaml";
 import { initCommand } from "../../src/commands/init.js";
 import { contextSchema, CONTEXT_FILENAME } from "../../src/core/schema.js";
@@ -28,6 +28,23 @@ const fixturesDir = join(import.meta.dirname, "../fixtures");
 
 async function copyFixture(name: string): Promise<void> {
   await cp(join(fixturesDir, name), tmpDir, { recursive: true });
+  await stripContextFiles(tmpDir);
+}
+
+async function stripContextFiles(dirPath: string): Promise<void> {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      await stripContextFiles(fullPath);
+      continue;
+    }
+
+    if (entry.isFile() && entry.name === CONTEXT_FILENAME) {
+      await rm(fullPath, { force: true });
+    }
+  }
 }
 
 async function readContextYaml(dirPath: string) {
