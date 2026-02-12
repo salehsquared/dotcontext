@@ -59,6 +59,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--llm", "Use LLM provider for richer context generation")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
     .option("--no-agents", "Skip AGENTS.md generation")
+    .option("--full", "Generate verbose context (files, interfaces, dependencies)")
     .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
@@ -73,6 +74,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         evidence: opts.evidence,
         noAgents: opts.agents === false,
         parallel: opts.parallel,
+        full: opts.full,
       });
     });
 
@@ -95,6 +97,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--no-agents", "Skip AGENTS.md generation")
     .option("--stale", "Only regenerate stale or missing contexts")
     .option("--dry-run", "Preview what would be regenerated without changes")
+    .option("--full", "Generate verbose context (files, interfaces, dependencies)")
     .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (target, opts) => {
@@ -113,6 +116,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         stale: opts.stale,
         dryRun: opts.dryRun,
         parallel: opts.parallel,
+        full: opts.full,
       });
     });
 
@@ -148,6 +152,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--max-depth <depth>", "Set maximum scan depth")
     .option("--ignore <dirs...>", "Add directories to ignore list")
     .option("--api-key-env <var>", "Set environment variable name for API key")
+    .option("--mode <mode>", "Set default generation mode (lean, full)")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
       await handlers.configCommand({
@@ -157,6 +162,7 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         maxDepth: opts.maxDepth,
         ignore: opts.ignore,
         apiKeyEnv: opts.apiKeyEnv,
+        mode: opts.mode,
       });
     });
 

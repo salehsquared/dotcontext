@@ -11,13 +11,14 @@ export async function configCommand(
     maxDepth?: string;
     ignore?: string[];
     apiKeyEnv?: string;
+    mode?: string;
   },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
   const existing = await loadConfig(rootPath);
 
   // If no flags, show current config
-  if (!options.provider && !options.model && !options.maxDepth && !options.ignore && !options.apiKeyEnv) {
+  if (!options.provider && !options.model && !options.maxDepth && !options.ignore && !options.apiKeyEnv && !options.mode) {
     if (!existing) {
       console.log(errorMsg("No .context.config.yaml found. Run `context init` first."));
       return;
@@ -28,6 +29,7 @@ export async function configCommand(
     if (existing.api_key_env) console.log(`  api_key_env: ${existing.api_key_env}`);
     if (existing.max_depth) console.log(`  max_depth: ${existing.max_depth}`);
     if (existing.ignore?.length) console.log(`  ignore: ${existing.ignore.join(", ")}`);
+    console.log(`  mode: ${existing.mode ?? "lean"}`);
     console.log("");
     return;
   }
@@ -63,6 +65,15 @@ export async function configCommand(
 
   if (options.apiKeyEnv) {
     updated.api_key_env = options.apiKeyEnv;
+  }
+
+  if (options.mode) {
+    const validModes = ["lean", "full"];
+    if (!validModes.includes(options.mode)) {
+      console.log(errorMsg(`Invalid mode: ${options.mode}. Must be one of: ${validModes.join(", ")}`));
+      return;
+    }
+    updated.mode = options.mode as "lean" | "full";
   }
 
   await saveConfig(rootPath, updated);

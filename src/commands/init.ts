@@ -2,14 +2,15 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { scanProject, flattenBottomUp, groupByDepth } from "../core/scanner.js";
 import { writeContext } from "../core/writer.js";
-import { generateStaticContext } from "../generator/static.js";
+import { generateStaticContext, type SummarySource } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider, type ProviderName } from "../providers/index.js";
 import { loadConfig, saveConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { successMsg, errorMsg, warnMsg, progressBar, heading } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg, progressBar, heading, dim } from "../utils/display.js";
 import { updateAgentsMd } from "../core/markdown-writer.js";
 import { poolMap } from "../utils/pool.js";
+import { filterByMinTokens, DEFAULT_MIN_TOKENS } from "../utils/tokens.js";
 import type { ContextFile, ConfigFile } from "../core/schema.js";
 
 function ask(question: string): Promise<string> {
@@ -22,7 +23,41 @@ function ask(question: string): Promise<string> {
   });
 }
 
-export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number }): Promise<void> {
+interface GenerationMetrics {
+  total_scanned: number;
+  skipped_min_tokens: number;
+  generated: number;
+  exports_extracted: number;
+  exports_total: number;
+  summary_from_docstring: number;
+  summary_from_dirname: number;
+  summary_from_pattern: number;
+  summary_from_project: number;
+  summary_fallback: number;
+}
+
+function trackSummarySource(metrics: GenerationMetrics, source: SummarySource): void {
+  if (source === "docstring") metrics.summary_from_docstring++;
+  else if (source === "dirname") metrics.summary_from_dirname++;
+  else if (source === "pattern") metrics.summary_from_pattern++;
+  else if (source === "project") metrics.summary_from_project++;
+  else metrics.summary_fallback++;
+}
+
+function printMetrics(metrics: GenerationMetrics): void {
+  console.log(dim("\n  metrics:"));
+  console.log(dim(`    scanned ${metrics.total_scanned} directories, skipped ${metrics.skipped_min_tokens} (below token threshold), generated ${metrics.generated}`));
+  console.log(dim(`    exports: ${metrics.exports_extracted}/${metrics.generated} directories (${metrics.exports_total} signatures)`));
+  const parts: string[] = [];
+  if (metrics.summary_from_project > 0) parts.push(`${metrics.summary_from_project} from project description`);
+  if (metrics.summary_from_docstring > 0) parts.push(`${metrics.summary_from_docstring} from docstrings`);
+  if (metrics.summary_from_dirname > 0) parts.push(`${metrics.summary_from_dirname} from directory names`);
+  if (metrics.summary_from_pattern > 0) parts.push(`${metrics.summary_from_pattern} from file patterns`);
+  if (metrics.summary_fallback > 0) parts.push(`${metrics.summary_fallback} fallback`);
+  console.log(dim(`    summaries: ${parts.join(", ")}`));
+}
+
+export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number; full?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
   console.log(heading("\nWelcome to context.\n"));
@@ -77,12 +112,24 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
   console.log("\nScanning project structure...");
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
 
-  console.log(`Found ${dirs.length} directories with source code.\n`);
+  // Filter by token threshold
+  const resolvedConfig = config ?? existingConfig;
+  const { dirs, skipped } = await filterByMinTokens(allDirs, resolvedConfig?.min_tokens);
+
+  console.log(`Found ${allDirs.length} directories with source code.`);
+  if (skipped > 0) {
+    console.log(dim(`  ${skipped} directories skipped (below token threshold)`));
+  }
+  console.log("");
 
   if (dirs.length === 0) {
-    console.log(errorMsg("No directories with source files found."));
+    if (skipped > 0) {
+      console.log(errorMsg(`All ${skipped} directories were below the token threshold (${resolvedConfig?.min_tokens ?? DEFAULT_MIN_TOKENS} tokens). Lower min_tokens in .context.config.yaml or set to 0 to disable filtering.`));
+    } else {
+      console.log(errorMsg("No directories with source files found."));
+    }
     return;
   }
 
@@ -97,21 +144,50 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
 
   const childContexts = new Map<string, ContextFile>();
   let completed = 0;
-  const genOptions = { evidence: options.evidence };
+  const configMode = existingConfig?.mode ?? "lean";
+  const mode = options.full ? "full" as const : configMode;
+  const genOptions = { evidence: options.evidence, mode };
+
+  const metrics: GenerationMetrics = {
+    total_scanned: allDirs.length,
+    skipped_min_tokens: skipped,
+    generated: 0,
+    exports_extracted: 0,
+    exports_total: 0,
+    summary_from_docstring: 0,
+    summary_from_dirname: 0,
+    summary_from_pattern: 0,
+    summary_from_project: 0,
+    summary_fallback: 0,
+  };
 
   if (options.parallel && options.parallel > 1) {
     // Parallel mode: process by depth layers
     const depthGroups = groupByDepth(scanResult);
+    const targetPaths = new Set(dirs.map((d) => d.path));
 
     for (const group of depthGroups) {
-      await poolMap(group, async (dir) => {
+      const layerDirs = group.filter((d) => targetPaths.has(d.path));
+      if (layerDirs.length === 0) continue;
+
+      await poolMap(layerDirs, async (dir) => {
         try {
-          const context = provider
-            ? await generateLLMContext(provider, dir, childContexts, genOptions)
-            : await generateStaticContext(dir, childContexts, genOptions);
+          let context: ContextFile;
+          if (provider) {
+            context = await generateLLMContext(provider, dir, childContexts, genOptions);
+          } else {
+            const result = await generateStaticContext(dir, childContexts, genOptions);
+            context = result.context;
+            trackSummarySource(metrics, result.summarySource);
+          }
           await writeContext(dir.path, context);
           childContexts.set(dir.path, context);
           completed++;
+          metrics.generated++;
+          if (context.exports && context.exports.length > 0) {
+            metrics.exports_extracted++;
+            metrics.exports_total += context.exports.length;
+          }
           console.log(successMsg(`.context.yaml  ${dir.relativePath === "." ? "(root)" : dir.relativePath}`));
         } catch (err) {
           completed++;
@@ -131,13 +207,20 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
         if (provider) {
           context = await generateLLMContext(provider, dir, childContexts, genOptions);
         } else {
-          context = await generateStaticContext(dir, childContexts, genOptions);
+          const result = await generateStaticContext(dir, childContexts, genOptions);
+          context = result.context;
+          trackSummarySource(metrics, result.summarySource);
         }
 
         await writeContext(dir.path, context);
         childContexts.set(dir.path, context);
 
         completed++;
+        metrics.generated++;
+        if (context.exports && context.exports.length > 0) {
+          metrics.exports_extracted++;
+          metrics.exports_total += context.exports.length;
+        }
         process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
         console.log(`\n${successMsg(`.context.yaml  ${dir.relativePath === "." ? "(root)" : dir.relativePath}`)}`);
       } catch (err) {
@@ -174,5 +257,6 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
   }
 
   console.log(`\n\nDone. ${completed} .context.yaml files created.`);
-  console.log('Run `context status` to check freshness.\n');
+  printMetrics(metrics);
+  console.log('\nRun `context status` to check freshness.\n');
 }

@@ -3,13 +3,17 @@ import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext, writeContext } from "../core/writer.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { loadConfig } from "../utils/config.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 
 export async function rehashCommand(options: { path?: string }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
+  const config = await loadConfig(rootPath);
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
+  const { dirs } = await filterByMinTokens(allDirs, config?.min_tokens);
 
   let updated = 0;
   let stale = 0;

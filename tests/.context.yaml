@@ -1,84 +1,59 @@
 version: 1
-last_updated: 2026-02-12T01:30:35.827Z
-fingerprint: 7c020e39
+last_updated: 2026-02-12T18:07:26.224Z
+fingerprint: ce633ea2
 scope: tests
 summary: >
-  This directory contains test files that validate the functionality of various modules and utilities in the codebase,
-  ensuring proper behavior through unit testing.
-files:
-  - name: ast.test.ts
-    purpose: Tests for AST export detection functionality for multiple programming languages.
-  - name: dependencies.test.ts
-    purpose: Tests for detecting external and internal dependencies from project manifests.
-  - name: env.test.ts
-    purpose: Tests for environment variable parsing and loading from .env.local files.
-  - name: fingerprint.test.ts
-    purpose: Tests for computing and checking the freshness of a project's fingerprint.
-  - name: generator.test.ts
-    purpose: Tests for generating static and LLM context from project scans.
-  - name: helpers.ts
-    purpose: Utility functions for creating temporary directories and files used in tests.
-  - name: index.test.ts
-    purpose: Tests for CLI command handling and argument parsing.
-  - name: prompts.test.ts
-    purpose: Tests for system prompts and user prompt construction.
-  - name: providers.test.ts
-    purpose: Tests for creating various LLM providers.
-  - name: scan-options.test.ts
-    purpose: Tests for loading and parsing scanning options from the configuration.
-  - name: scanner.test.ts
-    purpose: Tests for scanning project files and directories accurately.
-  - name: schema.test.ts
-    purpose: Tests for the context schema validation and structure.
-  - name: writer.test.ts
-    purpose: Tests for reading and writing context and configuration files.
+  This directory contains unit tests for the project's functionalities, ensuring that various components work correctly
+  through automated testing. It includes tests for detecting exports and dependencies, environmental configurations, and
+  other core functionalities.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-dependencies:
-  internal:
-    - ../core/scanner.js
-    - ../mod${i}/index.js
-    - ../shared/utils.js
-    - ../src/core/fingerprint.js
-    - ../src/core/scanner.js
-    - ../src/core/schema.js
-    - ../src/core/writer.js
-    - ../src/generator/ast.js
-    - ../src/generator/dependencies.js
-    - ../src/generator/llm.js
-    - ../src/generator/prompts.js
-    - ../src/generator/static.js
-    - ../src/index.js
-    - ../src/providers/index.js
-    - ../src/utils/config.js
-    - ../src/utils/env.js
-    - ../src/utils/scan-options.js
-    - ./config.js
-    - ./helper.js
-    - ./helpers.js
+decisions:
+  - what: Use Vitest for testing framework
+    why: Vitest provides a fast and efficient testing experience with modern features.
+    tradeoff: Could limit compatibility with other libraries or environments not optimized for Vitest.
+constraints:
+  - Tests must not include secrets, API keys, or any sensitive information.
+  - Expectations in tests should handle potential nulls or errors gracefully.
 subdirectories:
   - name: commands/
     summary: >
-      This directory contains tests for various command functions related to configuration management, file ignoring,
-      initialization, regeneration, rehashing, showing, status checking, validation, and watching directories in a
-      context-aware application.
+      The tests/commands directory contains unit tests for various command functionalities including configuration
+      management, initialization, and validation within the context of a software project. It ensures the integrity and
+      correctness of command behaviors through automated testing using Vitest.
+  - name: core/
+    summary: >
+      The tests/core directory contains tests for the core functionality of the markdown writer module. It verifies the
+      reading, writing, and updating of AGENTS.md files in various scenarios to ensure data integrity and expected
+      behavior.
   - name: fixtures/
     summary: >
-      The tests/fixtures directory contains various configurations and testing materials for different project setups,
-      including a monorepo, a simple TypeScript project, and a context-specific module for testing.
+      The tests/fixtures directory provides sample configurations and mock data for testing various project setups,
+      including monorepos, simple projects, and context-specific scenarios. It facilitates structured and reusable test
+      data management to support unit testing and integration testing processes.
+  - name: generator/
+    summary: >
+      The tests/generator directory contains unit tests for the markdown generation functionality related to agents. It
+      ensures that various markdown generation utilities work correctly by validating their output against expected
+      results.
   - name: mcp/
     summary: >
-      This directory contains tests for the MCP (Model Context Protocol) server and tools, ensuring functionalities like
-      server starting, context handling, and tool registration operate as expected.
+      This directory contains unit tests for the MCP (Model Context Protocol) server and its associated tools. It
+      validates functionality such as server startup, handling of context queries, freshness checks, and tool
+      registration.
+  - name: utils/
+    summary: >
+      This directory contains unit tests for utility functions, specifically for testing asynchronous operations with
+      concurrency control. It ensures the correctness and reliability of the utility methods used within the
+      application.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal
   - subdirectories

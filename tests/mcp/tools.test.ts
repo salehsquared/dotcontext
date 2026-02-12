@@ -10,6 +10,7 @@ import {
 import { writeContext } from "../../src/core/writer.js";
 import { computeFingerprint } from "../../src/core/fingerprint.js";
 import { CONTEXT_FILENAME } from "../../src/core/schema.js";
+import { saveConfig } from "../../src/utils/config.js";
 import {
   createTmpDir,
   cleanupTmpDir,
@@ -214,6 +215,11 @@ describe("handleCheckFreshness", () => {
 // --- handleListContexts ---
 
 describe("handleListContexts", () => {
+  beforeEach(async () => {
+    // Disable token threshold for tests (tiny fixture files would be filtered out)
+    await saveConfig(tmpDir, { provider: "anthropic", min_tokens: 0 });
+  });
+
   it("lists tracked directories with fresh status", async () => {
     await createFile(tmpDir, "index.ts", "code");
     const fp = await computeFingerprint(tmpDir);

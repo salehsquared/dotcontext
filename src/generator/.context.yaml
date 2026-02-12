@@ -1,75 +1,28 @@
 version: 1
-last_updated: 2026-02-12T01:28:48.111Z
-fingerprint: f2e12df5
+last_updated: 2026-02-12T18:07:07.600Z
+fingerprint: 3e67e345
 scope: src/generator
-summary: This directory contains various modules for generating structured YAML documents, detecting external and
-  internal dependencies, and collecting evidence from test artifacts using both static analysis and a language model
-  interface.
-files:
-  - name: ast.ts
-    purpose: Detects exports from source code using tree-sitter AST parsing.
-  - name: dependencies.ts
-    purpose: Detects external and internal dependencies from package manifests and import statements.
-  - name: evidence.ts
-    purpose: Collects evidence from existing test and typecheck artifacts.
-  - name: llm.ts
-    purpose: Generates a .context.yaml using an LLM provider based on file contents.
-  - name: prompts.ts
-    purpose: Defines prompts for analyzing directories and generating YAML documentation.
-  - name: static.ts
-    purpose: Generates a .context.yaml using static analysis, producing structural context.
+summary: >
+  The `src/generator` directory is responsible for generating context YAML files from source code through both static
+  analysis and LLM-based methods. It includes functionality to detect exports, dependencies, and other project details
+  to create comprehensive context files.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: detectExportsAST
-    description: Detects and returns exports from source code based on specified language extensions.
-  - name: detectExternalDeps
-    description: Detects external dependencies from package manifests such as package.json and requirements.txt.
-  - name: detectInternalDeps
-    description: Detects internal dependencies from import statements in source files.
-  - name: collectBasicEvidence
-    description: Collects evidence from test result artifacts to determine test status and counts.
-  - name: generateLLMContext
-    description: Generates structured context using an LLM provider by analyzing file contents.
-  - name: generateStaticContext
-    description: Generates structured context using static analysis, detecting interfaces and dependencies.
 decisions:
-  - what: Use tree-sitter for AST parsing.
-    why: To accurately detect exports from various programming languages.
-    tradeoff: Increases dependency complexity due to the need for WASM files.
-  - what: Implement both static and LLM-based context generation.
-    why: To allow for flexibility in how context is created depending on available resources.
-    tradeoff: Static analysis may not capture as rich metadata as LLM-generated context.
+  - what: Utilizes WebAssembly-based tree-sitter parsers for analyzing source files.
+    why: To enable robust syntax parsing and export detection for multiple programming languages.
+    tradeoff: Increased complexity and dependency on WASM files and their availability in the project.
 constraints:
-  - Only parses files with specific extensions such as .ts, .js, .py, .go, and .rs.
-  - Limits the number of detected dependencies and exports to prevent overload in output.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../providers/index.js
-    - ./...
-    - ./ast.js
-    - ./dependencies.js
-    - ./evidence.js
-    - ./prompts.js
-current_state:
-  working:
-    - Export detection using tree-sitter works for supported languages.
-    - Dependencies can be detected from various manifest files.
-  broken:
-    - No known broken functionalities.
-  in_progress:
-    - Improving internal dependency detection accuracy.
+  - Requires tree-sitter WASM files to be present in the grammars directory to function correctly.
+  - Only supports relative imports for internal dependency detection.
+  - Collect evidence for test results only if invoked from the project root.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

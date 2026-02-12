@@ -5,6 +5,8 @@ import { readContext } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
 import { freshnessIcon, heading, dim } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { loadConfig } from "../utils/config.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 import type { ScanResult } from "../core/scanner.js";
 import type { FreshnessState } from "../core/fingerprint.js";
 
@@ -51,9 +53,11 @@ export async function watchCommand(
   const parsedInterval = Number.parseInt(options.interval ?? "500", 10);
   const debounceMs = Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : 500;
 
+  const config = await loadConfig(rootPath);
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
+  const { dirs } = await filterByMinTokens(allDirs, config?.min_tokens);
 
   // Compute initial state
   const dirStates = new Map<string, DirState>();

@@ -1,27 +1,24 @@
 version: 1
-last_updated: 2026-02-12T01:29:56.179Z
+last_updated: 2026-02-12T18:06:15.704Z
 fingerprint: c3d9dc8c
 scope: tests/fixtures/simple-project/src
 summary: >
-  This directory contains source code for a simple TypeScript project, including a main function and a utility function
-  for addition.
-files:
-  - name: index.ts
-    purpose: Exports the main function that returns a greeting string.
-  - name: utils.ts
-    purpose: Exports a function that adds two numbers.
+  This directory contains the source code for a simple project that includes a main entry function and a utility
+  function for addition. It serves as a foundational example for testing and demonstrating basic TypeScript
+  functionality.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: main
-    description: Returns the string 'hello'.
-  - name: add
-    description: Returns the sum of two provided numbers.
+decisions:
+  - what: The decision to separate the main logic and utility functions into distinct files.
+    why: This promotes modularity and reusable code components.
+    tradeoff: Increased file count which may lead to slight complexity in navigation.
+constraints:
+  - All exported functions must have clear, descriptive names.
 derived_fields:
   - version
   - last_updated

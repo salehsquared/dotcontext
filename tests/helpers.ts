@@ -36,6 +36,18 @@ export function makeValidContext(overrides?: Partial<ContextFile>): ContextFile 
   };
 }
 
+export function makeLeanContext(overrides?: Partial<ContextFile>): ContextFile {
+  return {
+    version: 1,
+    last_updated: "2025-01-01T00:00:00.000Z",
+    fingerprint: "abc12345",
+    scope: ".",
+    summary: "Test directory",
+    maintenance: "Keep updated",
+    ...overrides,
+  };
+}
+
 export function makeScanResult(path: string, overrides?: Partial<ScanResult>): ScanResult {
   return {
     path,

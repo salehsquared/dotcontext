@@ -14,6 +14,8 @@ let logs: string[];
 
 beforeEach(async () => {
   tmpDir = await createTmpDir();
+  // Disable token threshold for tests (tiny fixture files would be filtered out)
+  await saveConfig(tmpDir, { provider: "anthropic", min_tokens: 0 });
   logs = [];
   vi.spyOn(console, "log").mockImplementation((...args) => {
     logs.push(args.map(String).join(" "));
@@ -94,9 +96,18 @@ describe("initCommand (--no-llm)", () => {
     expect(srcContext.scope).toBe("src");
   });
 
-  it("files list matches actual sources", async () => {
+  it("lean mode omits files from generated context", async () => {
     await copyFixture("simple-project");
     await initCommand({ noLlm: true, path: tmpDir });
+
+    const srcContext = await readContextYaml(join(tmpDir, "src"));
+    expect(srcContext.files).toBeUndefined();
+    expect(srcContext.summary).toBeDefined();
+  });
+
+  it("full mode includes files list", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir, full: true });
 
     const srcContext = await readContextYaml(join(tmpDir, "src"));
     const fileNames = srcContext.files.map((f: { name: string }) => f.name);
@@ -126,7 +137,7 @@ describe("initCommand (--no-llm)", () => {
 describe("initCommand respects scan-options from config", () => {
   it("ignore config excludes directories from scanning", async () => {
     await copyFixture("simple-project");
-    await saveConfig(tmpDir, { provider: "anthropic", ignore: ["src"] });
+    await saveConfig(tmpDir, { provider: "anthropic", ignore: ["src"], min_tokens: 0 });
 
     await initCommand({ noLlm: true, path: tmpDir });
 
@@ -142,7 +153,7 @@ describe("initCommand respects scan-options from config", () => {
     await copyFixture("monorepo");
     // max_depth: 1 means root (depth 0) + one level of children (depth 1).
     // monorepo's deeper dirs (packages/api/src, packages/shared/src) should be excluded.
-    await saveConfig(tmpDir, { provider: "anthropic", max_depth: 1 });
+    await saveConfig(tmpDir, { provider: "anthropic", max_depth: 1, min_tokens: 0 });
 
     await initCommand({ noLlm: true, path: tmpDir });
 

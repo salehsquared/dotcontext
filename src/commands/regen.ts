@@ -2,16 +2,51 @@ import { resolve, relative, isAbsolute } from "node:path";
 import { scanProject, flattenBottomUp, groupByDepth } from "../core/scanner.js";
 import { readContext, writeContext } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
-import { generateStaticContext } from "../generator/static.js";
+import { generateStaticContext, type SummarySource } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { successMsg, errorMsg, warnMsg, progressBar, freshnessIcon } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg, progressBar, freshnessIcon, dim } from "../utils/display.js";
 import { updateAgentsMd } from "../core/markdown-writer.js";
 import { poolMap } from "../utils/pool.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 import type { ContextFile } from "../core/schema.js";
 import type { ScanResult } from "../core/scanner.js";
+
+interface GenerationMetrics {
+  total_scanned: number;
+  skipped_min_tokens: number;
+  generated: number;
+  exports_extracted: number;
+  exports_total: number;
+  summary_from_docstring: number;
+  summary_from_dirname: number;
+  summary_from_pattern: number;
+  summary_from_project: number;
+  summary_fallback: number;
+}
+
+function trackSummarySource(metrics: GenerationMetrics, source: SummarySource): void {
+  if (source === "docstring") metrics.summary_from_docstring++;
+  else if (source === "dirname") metrics.summary_from_dirname++;
+  else if (source === "pattern") metrics.summary_from_pattern++;
+  else if (source === "project") metrics.summary_from_project++;
+  else metrics.summary_fallback++;
+}
+
+function printMetrics(metrics: GenerationMetrics): void {
+  console.log(dim("\n  metrics:"));
+  console.log(dim(`    scanned ${metrics.total_scanned} directories, skipped ${metrics.skipped_min_tokens} (below token threshold), generated ${metrics.generated}`));
+  console.log(dim(`    exports: ${metrics.exports_extracted}/${metrics.generated} directories (${metrics.exports_total} signatures)`));
+  const parts: string[] = [];
+  if (metrics.summary_from_project > 0) parts.push(`${metrics.summary_from_project} from project description`);
+  if (metrics.summary_from_docstring > 0) parts.push(`${metrics.summary_from_docstring} from docstrings`);
+  if (metrics.summary_from_dirname > 0) parts.push(`${metrics.summary_from_dirname} from directory names`);
+  if (metrics.summary_from_pattern > 0) parts.push(`${metrics.summary_from_pattern} from file patterns`);
+  if (metrics.summary_fallback > 0) parts.push(`${metrics.summary_fallback} fallback`);
+  console.log(dim(`    summaries: ${parts.join(", ")}`));
+}
 
 export async function regenCommand(
   targetPath: string | undefined,
@@ -25,6 +60,7 @@ export async function regenCommand(
     stale?: boolean;
     dryRun?: boolean;
     parallel?: number;
+    full?: boolean;
   },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
@@ -33,15 +69,21 @@ export async function regenCommand(
   const scanResult = await scanProject(rootPath, scanOptions);
   const allDirs = flattenBottomUp(scanResult);
 
+  // Load config
+  const config = await loadConfig(rootPath);
+
+  // Filter by token threshold
+  const { dirs: filteredDirs, skipped } = await filterByMinTokens(allDirs, config?.min_tokens);
+
   // Determine which directories to regenerate
-  let dirs: ScanResult[] = allDirs;
+  let dirs: ScanResult[] = filteredDirs;
   if (!options.all && targetPath) {
     const resolvedTarget = resolve(rootPath, targetPath);
     const targetRelFromRoot = relative(rootPath, resolvedTarget);
     const targetInsideRoot = targetRelFromRoot === "" || (!targetRelFromRoot.startsWith("..") && !isAbsolute(targetRelFromRoot));
 
     if (targetInsideRoot) {
-      dirs = allDirs.filter((d) => {
+      dirs = filteredDirs.filter((d) => {
         const rel = relative(resolvedTarget, d.path);
         return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
       });
@@ -57,13 +99,10 @@ export async function regenCommand(
 
   // Set up provider
   let provider = null;
-  if (!options.noLlm) {
-    const config = await loadConfig(rootPath);
-    if (config) {
-      const credential = resolveApiKey(config);
-      if (config.provider === "ollama" || credential) {
-        provider = await createProvider(config.provider, credential, config.model);
-      }
+  if (!options.noLlm && config) {
+    const credential = resolveApiKey(config);
+    if (config.provider === "ollama" || credential) {
+      provider = await createProvider(config.provider, credential, config.model);
     }
   }
 
@@ -106,14 +145,35 @@ export async function regenCommand(
       const label = dir.relativePath === "." ? "(root)" : dir.relativePath;
       console.log(`  ${freshnessIcon(state)}  ${label}`);
     }
+    if (skipped > 0) {
+      console.log(dim(`\n  ${skipped} directories skipped (below token threshold)`));
+    }
     console.log("");
     return;
   }
 
   console.log(`\nRegenerating context for ${dirs.length} director${dirs.length > 1 ? "ies" : "y"}...`);
+  if (skipped > 0) {
+    console.log(dim(`  ${skipped} directories skipped (below token threshold)`));
+  }
 
   let completed = 0;
-  const genOptions = { evidence: options.evidence };
+  const configMode = config?.mode ?? "lean";
+  const mode = options.full ? "full" as const : configMode;
+  const genOptions = { evidence: options.evidence, mode };
+
+  const metrics: GenerationMetrics = {
+    total_scanned: allDirs.length,
+    skipped_min_tokens: skipped,
+    generated: 0,
+    exports_extracted: 0,
+    exports_total: 0,
+    summary_from_docstring: 0,
+    summary_from_dirname: 0,
+    summary_from_pattern: 0,
+    summary_from_project: 0,
+    summary_fallback: 0,
+  };
 
   if (options.parallel && options.parallel > 1) {
     // Parallel mode: process by depth layers
@@ -126,12 +186,22 @@ export async function regenCommand(
 
       await poolMap(layerDirs, async (dir) => {
         try {
-          const context = provider
-            ? await generateLLMContext(provider, dir, childContexts, genOptions)
-            : await generateStaticContext(dir, childContexts, genOptions);
+          let context: ContextFile;
+          if (provider) {
+            context = await generateLLMContext(provider, dir, childContexts, genOptions);
+          } else {
+            const result = await generateStaticContext(dir, childContexts, genOptions);
+            context = result.context;
+            trackSummarySource(metrics, result.summarySource);
+          }
           await writeContext(dir.path, context);
           childContexts.set(dir.path, context);
           completed++;
+          metrics.generated++;
+          if (context.exports && context.exports.length > 0) {
+            metrics.exports_extracted++;
+            metrics.exports_total += context.exports.length;
+          }
           console.log(successMsg(`${dir.relativePath}/.context.yaml updated`));
         } catch (err) {
           completed++;
@@ -150,13 +220,20 @@ export async function regenCommand(
         if (provider) {
           context = await generateLLMContext(provider, dir, childContexts, genOptions);
         } else {
-          context = await generateStaticContext(dir, childContexts, genOptions);
+          const result = await generateStaticContext(dir, childContexts, genOptions);
+          context = result.context;
+          trackSummarySource(metrics, result.summarySource);
         }
 
         await writeContext(dir.path, context);
         childContexts.set(dir.path, context);
 
         completed++;
+        metrics.generated++;
+        if (context.exports && context.exports.length > 0) {
+          metrics.exports_extracted++;
+          metrics.exports_total += context.exports.length;
+        }
         console.log(`\n${successMsg(`${dir.relativePath}/.context.yaml updated`)}`);
       } catch (err) {
         completed++;
@@ -192,5 +269,7 @@ export async function regenCommand(
     }
   }
 
-  console.log(`\nDone. ${completed} file${completed > 1 ? "s" : ""} regenerated.\n`);
+  console.log(`\nDone. ${completed} file${completed > 1 ? "s" : ""} regenerated.`);
+  printMetrics(metrics);
+  console.log("");
 }

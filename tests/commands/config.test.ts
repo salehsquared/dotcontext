@@ -103,4 +103,39 @@ describe("configCommand", () => {
     expect(output).toContain("provider: google");
     expect(output).toContain("model: gemini-2.0-flash");
   });
+
+  it("sets mode to lean or full", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic", mode: "full" });
+
+    const config = await readConfig(tmpDir);
+    expect(config?.mode).toBe("full");
+  });
+
+  it("rejects invalid mode", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic", mode: "verbose" });
+
+    const config = await readConfig(tmpDir);
+    expect(config).toBeNull();
+    expect(logs.join("\n")).toContain("Invalid mode");
+  });
+
+  it("displays mode in config readout", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic", mode: "full" });
+    logs = [];
+
+    await configCommand({ path: tmpDir });
+
+    const output = logs.join("\n");
+    expect(output).toContain("mode: full");
+  });
+
+  it("displays default mode as lean when not set", async () => {
+    await configCommand({ path: tmpDir, provider: "anthropic" });
+    logs = [];
+
+    await configCommand({ path: tmpDir });
+
+    const output = logs.join("\n");
+    expect(output).toContain("mode: lean");
+  });
 });

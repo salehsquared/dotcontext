@@ -6,6 +6,7 @@ import { checkFreshness } from "../core/fingerprint.js";
 import { contextSchema, CONTEXT_FILENAME, type ContextFile } from "../core/schema.js";
 import { loadConfig, resolveApiKey, getDefaultApiKeyEnv } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 import { successMsg, warnMsg, errorMsg } from "../utils/display.js";
 import { readAgentsMd } from "../core/markdown-writer.js";
 import { AGENTS_SECTION_START } from "../generator/markdown.js";
@@ -83,7 +84,8 @@ export async function doctorCommand(options: { path?: string; json?: boolean }):
   // Read all context files once (raw), distinguishing missing/invalid/valid
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
+  const { dirs } = await filterByMinTokens(allDirs, config?.min_tokens);
 
   const dirResults = await Promise.all(dirs.map(async (dir) => ({
     dir,

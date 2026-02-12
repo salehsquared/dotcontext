@@ -2,8 +2,10 @@ import { resolve } from "node:path";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext } from "../core/writer.js";
 import { checkFreshness, type FreshnessState } from "../core/fingerprint.js";
-import { freshnessIcon, heading } from "../utils/display.js";
+import { freshnessIcon, heading, dim } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
+import { loadConfig } from "../utils/config.js";
+import { filterByMinTokens } from "../utils/tokens.js";
 
 interface StatusEntry {
   scope: string;
@@ -15,9 +17,11 @@ interface StatusEntry {
 export async function statusCommand(options: { path?: string; json?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
+  const config = await loadConfig(rootPath);
   const scanOptions = await loadScanOptions(rootPath);
   const scanResult = await scanProject(rootPath, scanOptions);
-  const dirs = flattenBottomUp(scanResult);
+  const allDirs = flattenBottomUp(scanResult);
+  const { dirs, skipped: skippedCount } = await filterByMinTokens(allDirs, config?.min_tokens);
 
   let tracked = 0;
   let issues = 0;
@@ -71,6 +75,7 @@ export async function statusCommand(options: { path?: string; json?: boolean }):
         fresh: tracked - staleCount,
         stale: staleCount,
         missing: missingCount,
+        skipped: skippedCount,
       },
     }, null, 2) + "\n");
     return;
@@ -89,6 +94,10 @@ export async function statusCommand(options: { path?: string; json?: boolean }):
   }
 
   console.log(heading(`\ncontext health: ${tracked} of ${dirs.length} directories tracked\n`));
+
+  if (skippedCount > 0) {
+    console.log(dim(`  ${skippedCount} directories below token threshold (skipped)\n`));
+  }
 
   if (issues > 0) {
     console.log(`${issues} issue${issues > 1 ? "s" : ""} found. Run:`);

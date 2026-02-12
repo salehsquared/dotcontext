@@ -1,76 +1,26 @@
 version: 1
-last_updated: 2026-02-12T01:29:19.226Z
-fingerprint: 685ce3ed
+last_updated: 2026-02-12T18:06:56.017Z
+fingerprint: fb2b555e
 scope: src/utils
 summary: >
-  The `src/utils` directory contains utility functions for managing configuration, environment variables, ignore lists,
-  and displaying status messages in the CLI.
-files:
-  - name: config.ts
-    purpose: Handles loading and saving project configuration.
-  - name: display.ts
-    purpose: Provides functions for formatting console output messages.
-  - name: env.ts
-    purpose: Loads environment variables from a local .env file and parses them.
-  - name: ignore.ts
-    purpose: Manages paths to be ignored by adding them to a .contextignore file.
-  - name: scan-options.ts
-    purpose: Loads scanning options from the project configuration.
+  The src/utils directory contains utility functions for handling configuration, environment variables, display
+  messages, and concurrency. It provides essential helpers to manage application settings and present user messages
+  effectively.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: loadConfig
-    description: Loads project config from the specified root path, returning null if none exists.
-  - name: saveConfig
-    description: Saves the given project config to the specified root path.
-  - name: resolveApiKey
-    description: Resolves the API key based on the provided config and environment variables.
-  - name: freshnessIcon
-    description: Returns a formatted icon representing the freshness state.
-  - name: successMsg
-    description: Formats a success message for console output.
-  - name: warnMsg
-    description: Formats a warning message for console output.
-  - name: errorMsg
-    description: Formats an error message for console output.
-  - name: heading
-    description: Formats a message as a heading for console output.
-  - name: dim
-    description: Formats a message in dim style for console output.
-  - name: progressBar
-    description: Generates a progress bar string representation based on current and total values.
-  - name: loadEnvForCli
-    description: Loads environment variables from .env.local files in the specified root paths.
-  - name: loadEnvLocal
-    description: Loads environment variables from a specific root path's .env.local file.
-  - name: parseEnvLine
-    description: Parses a single line from an environment file into a key-value pair.
-  - name: addToIgnore
-    description: Adds a specified path to the .contextignore file in the given root path.
-  - name: loadScanOptions
-    description: Loads scan options from the project configuration, returning an object with maxDepth and extraIgnore.
 decisions:
-  - what: Using asynchronous functions for I/O operations.
-    why: To improve performance by not blocking the main thread during file access.
-    tradeoff: More complexity in handling asynchronous behavior compared to synchronous functions.
+  - what: Using async functions for file operations.
+    why: To ensure non-blocking I/O operations for better performance.
+    tradeoff: Increased complexity in error handling due to async nature.
 constraints:
-  - The environment variable names are constrained by the provider type.
-  - The directory expects a .env.local file for loading environment variables.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../core/writer.js
-    - ./config.js
+  - "Environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/."
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

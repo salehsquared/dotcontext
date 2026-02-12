@@ -17,12 +17,24 @@ Rules:
   dependencies.external, derived_fields, evidence, subdirectories, version, last_updated, fingerprint, scope, maintenance
 - Focus your analysis on narrative fields: summary, files[].purpose, interfaces[].description, decisions, constraints, current_state`;
 
+export const LEAN_SYSTEM_PROMPT = `You are a technical documentation generator producing lean .context.yaml routing files.
+
+Rules:
+- Focus on SUMMARY, DECISIONS, and CONSTRAINTS only.
+- Summary: 1-3 precise sentences describing what this directory does and its role.
+- Decisions: only non-obvious architectural choices that cannot be inferred from reading the code.
+- Constraints: only hard rules that a developer must know.
+- Do NOT list files, interfaces, or dependencies — those are redundant with source code.
+- Output ONLY valid YAML — no markdown fences, no explanatory text.
+- Do NOT include secrets, API keys, passwords, or PII.`;
+
 export function buildUserPrompt(
   scanResult: ScanResult,
   fileContents: Map<string, string>,
   childContexts: Map<string, ContextFile>,
   isRoot: boolean,
   externalDeps?: string[],
+  mode: "lean" | "full" = "lean",
 ): string {
   let prompt = `Analyze the following directory and generate a .context.yaml for it.
 
@@ -70,7 +82,8 @@ Directory: ${scanResult.relativePath}
   }
 
   // Specify output format
-  prompt += `
+  if (mode === "full") {
+    prompt += `
 --- Output format ---
 Generate YAML with these fields (dependencies.external, subdirectories, and other machine-derived fields are handled automatically — do NOT include them):
 
@@ -101,6 +114,23 @@ current_state:  # only if things are clearly in progress or broken
   in_progress:
     - "<what's being worked on>"
 `;
+  } else {
+    prompt += `
+--- Output format ---
+Generate lean YAML with ONLY these fields (all other fields are machine-derived — do NOT include them):
+
+summary: |
+  <1-3 sentence description of what this directory does>
+
+decisions:  # only if you can identify non-obvious architectural choices
+  - what: "<decision>"
+    why: "<reasoning>"
+    tradeoff: "<known tradeoff>"
+
+constraints:  # only if there are hard rules
+  - "<constraint>"
+`;
+  }
 
   if (isRoot) {
     prompt += `

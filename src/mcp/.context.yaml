@@ -1,58 +1,27 @@
 version: 1
-last_updated: 2026-02-12T01:28:54.933Z
+last_updated: 2026-02-12T18:07:02.581Z
 fingerprint: 56b886f6
 scope: src/mcp
 summary: >
-  The src/mcp directory implements a Model Context Protocol (MCP) server, providing tools to manage and query contextual
-  data in project directories.
-files:
-  - name: server.ts
-    purpose: Starts the MCP server and registers tools.
-  - name: tools.ts
-    purpose: Defines utility functions to handle context queries, check freshness, and list contexts.
+  The `src/mcp` directory implements the Model Context Protocol server, handling context queries, freshness checks, and
+  tool registrations for project scopes. It facilitates interaction with `.context.yaml` files and provides structured
+  documentation through a JSON-RPC channel.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: startMcpServer
-    description: Initializes and starts the MCP server with the specified root path.
-  - name: handleQueryContext
-    description: Processes a request to retrieve content from a .context.yaml file based on a given scope.
-  - name: handleCheckFreshness
-    description: Checks if the .context.yaml file at a specified scope is fresh or requires updates.
-  - name: handleListContexts
-    description: Lists all directories in the project along with their context status.
-  - name: registerTools
-    description: Registers various tools with the MCP server for handling context-related operations.
 decisions:
-  - what: Use of a standard transport layer.
-    why: To facilitate communication between the MCP server and external clients using standard input/output.
-    tradeoff: Relies on synchronous I/O, which may block when waiting for input.
+  - what: Use of `McpServer` from the SDK
+    why: To leverage existing protocols for managing context in a standardized way.
+    tradeoff: Introduces dependency on the external SDK but enables integration with a wider ecosystem.
 constraints:
-  - Path traversal is not allowed when resolving directory scopes.
-  - Must check for the existence of a .context.yaml file before processing context-related requests.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../core/writer.js
-    - ../utils/scan-options.js
-    - ./tools.js
-current_state:
-  working:
-    - The MCP server can be successfully started and tools registered.
-  broken:
-    - No broken features identified.
-  in_progress:
-    - Enhancements to support additional context field filters.
+  - Paths given to the server must not lead to directory traversal vulnerabilities.
+  - A valid `.context.yaml` file must exist at the specified scope for context operations to succeed.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal
