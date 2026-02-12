@@ -167,7 +167,7 @@ Only present in the root `.context.yaml` (where `scope` is `"."`):
 
 ```yaml
 provider: anthropic           # anthropic | openai | google | ollama
-model: claude-sonnet-4-5-20250929     # optional model override
+model: claude-3-5-haiku-latest         # optional model override
 api_key_env: MY_CUSTOM_KEY    # optional env var name for API key
 ignore:                       # additional directories to ignore
   - tmp

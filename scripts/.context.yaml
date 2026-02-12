@@ -1,0 +1,42 @@
+version: 1
+last_updated: 2026-02-12T01:28:02.015Z
+fingerprint: 775bfc0a
+scope: scripts
+summary: >
+  This directory contains scripts to manage grammar files and generate JSON Schema files from Zod schemas. It automates
+  the copying of pre-built WASM grammar files to the grammars directory and produces schema files from defined Zod
+  schemas.
+files:
+  - name: build-grammars.mjs
+    purpose: Copy pre-built WASM grammar files from node_modules to grammars/.
+  - name: generate-schemas.mjs
+    purpose: Generate JSON Schema files from Zod schemas.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: build-grammars
+    description: Copies specified WASM files for language grammars to the local grammars directory.
+  - name: generate-schemas
+    description: Generates JSON Schema files from the provided Zod schemas and writes them to the filesystem.
+decisions:
+  - what: Use Zod's native toJSONSchema() method.
+    why: To avoid additional dependencies and simplify the schema generation process.
+    tradeoff: Potential limitations based on the capabilities of Zod's schema generation.
+constraints:
+  - Requires a compiled dist/ directory to import Zod schemas.
+current_state:
+  working:
+    - WASM grammar files can be successfully copied.
+    - JSON Schema files can be generated from Zod schemas.
+  broken: []
+  in_progress: []
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope

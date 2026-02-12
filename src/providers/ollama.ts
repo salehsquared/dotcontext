@@ -4,7 +4,7 @@ export class OllamaProvider implements LLMProvider {
   private baseUrl: string;
   private model: string;
 
-  constructor(host = "http://localhost:11434", model = "llama3.1") {
+  constructor(host = "http://localhost:11434", model = "llama3.2:3b") {
     this.baseUrl = host.replace(/\/$/, "");
     this.model = model;
   }

@@ -1,0 +1,41 @@
+version: 1
+last_updated: 2026-02-12T01:29:00.054Z
+fingerprint: 3da3d665
+scope: src/providers
+summary: >
+  This directory provides implementations of various large language model (LLM) providers, each adapting specific SDKs
+  to a common interface for generating responses based on user input.
+files:
+  - name: anthropic.ts
+    purpose: Implements the LLMProvider interface using the Anthropic SDK.
+  - name: google.ts
+    purpose: Implements the LLMProvider interface using the Google Cloud API directly.
+  - name: index.ts
+    purpose: Defines the LLMProvider interface and a function for creating provider instances.
+  - name: ollama.ts
+    purpose: Implements the LLMProvider interface using the Ollama API.
+  - name: openai.ts
+    purpose: Implements the LLMProvider interface using the OpenAI SDK.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: createProvider
+    description: Creates an instance of a specific LLM provider based on the provided name and credentials.
+decisions:
+  - what: Using an interface for LLM providers.
+    why: To standardize the interaction with different LLM SDKs.
+    tradeoff: Increased abstraction might add complexity for new providers.
+dependencies:
+  internal:
+    - ./index.js
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - dependencies.internal

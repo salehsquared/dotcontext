@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "node:path";
-import { cp, readFile, stat } from "node:fs/promises";
+import { cp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { initCommand } from "../../src/commands/init.js";
 import { contextSchema, CONTEXT_FILENAME } from "../../src/core/schema.js";
 import { saveConfig } from "../../src/utils/config.js";
 import { createTmpDir, cleanupTmpDir } from "../helpers.js";
+import { AGENTS_FILENAME } from "../../src/core/markdown-writer.js";
+import { AGENTS_SECTION_START, AGENTS_SECTION_END } from "../../src/generator/markdown.js";
 
 let tmpDir: string;
 let logs: string[];
@@ -28,6 +30,23 @@ const fixturesDir = join(import.meta.dirname, "../fixtures");
 
 async function copyFixture(name: string): Promise<void> {
   await cp(join(fixturesDir, name), tmpDir, { recursive: true });
+  await stripContextFiles(tmpDir);
+}
+
+async function stripContextFiles(dirPath: string): Promise<void> {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      await stripContextFiles(fullPath);
+      continue;
+    }
+
+    if (entry.isFile() && entry.name === CONTEXT_FILENAME) {
+      await rm(fullPath, { force: true });
+    }
+  }
 }
 
 async function readContextYaml(dirPath: string) {
@@ -134,5 +153,105 @@ describe("initCommand respects scan-options from config", () => {
     await expect(
       stat(join(tmpDir, "packages", "shared", "src", CONTEXT_FILENAME)),
     ).rejects.toThrow();
+  });
+});
+
+describe("initCommand AGENTS.md generation", () => {
+  it("creates AGENTS.md at project root by default", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const content = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    expect(content).toContain(AGENTS_SECTION_START);
+    expect(content).toContain(AGENTS_SECTION_END);
+    expect(content).toContain(".context.yaml");
+  });
+
+  it("skips AGENTS.md with noAgents: true", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir, noAgents: true });
+
+    await expect(stat(join(tmpDir, AGENTS_FILENAME))).rejects.toThrow();
+  });
+
+  it("appends to existing AGENTS.md without dotcontext section", async () => {
+    await copyFixture("simple-project");
+    await writeFile(join(tmpDir, AGENTS_FILENAME), "# Custom Instructions\n\nDo things.\n", "utf-8");
+
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const content = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    expect(content).toContain("# Custom Instructions");
+    expect(content).toContain("Do things.");
+    expect(content).toContain(AGENTS_SECTION_START);
+  });
+
+  it("is idempotent on re-run (no marker multiplication)", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const content = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    const startCount = content.split(AGENTS_SECTION_START).length - 1;
+    const endCount = content.split(AGENTS_SECTION_END).length - 1;
+    expect(startCount).toBe(1);
+    expect(endCount).toBe(1);
+  });
+
+  it("preserves user content when updating", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    // Add user content around the markers
+    const original = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    const modified = "# My Header\n\nCustom notes.\n\n" + original + "\n## My Footer\n";
+    await writeFile(join(tmpDir, AGENTS_FILENAME), modified, "utf-8");
+
+    // Re-run init
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const result = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    expect(result).toContain("# My Header");
+    expect(result).toContain("Custom notes.");
+    expect(result).toContain("## My Footer");
+  });
+
+  it("lists directory entries in AGENTS.md", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const content = await readFile(join(tmpDir, AGENTS_FILENAME), "utf-8");
+    expect(content).toContain("`.` (root)");
+    expect(content).toContain("`src`");
+  });
+
+  it("reports AGENTS.md creation in output", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir });
+
+    const output = logs.join("\n");
+    expect(output).toContain("AGENTS.md created");
+  });
+});
+
+describe("initCommand --parallel", () => {
+  it("produces same contexts as sequential mode", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir, noAgents: true });
+
+    const seqRoot = parse(await readFile(join(tmpDir, CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+    const seqSrc = parse(await readFile(join(tmpDir, "src", CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+
+    // Strip context files and re-run with --parallel
+    await stripContextFiles(tmpDir);
+    await initCommand({ noLlm: true, path: tmpDir, noAgents: true, parallel: 4 });
+
+    const parRoot = parse(await readFile(join(tmpDir, CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+    const parSrc = parse(await readFile(join(tmpDir, "src", CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+
+    expect(parRoot.scope).toBe(seqRoot.scope);
+    expect(parRoot.summary).toBe(seqRoot.summary);
+    expect(parSrc.scope).toBe(seqSrc.scope);
+    expect(parSrc.summary).toBe(seqSrc.summary);
   });
 });

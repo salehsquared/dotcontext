@@ -19,11 +19,11 @@ export async function saveConfig(rootPath: string, config: ConfigFile): Promise<
  * Resolve the API key from environment variables.
  */
 export function resolveApiKey(config: ConfigFile): string | undefined {
-  const envVar = config.api_key_env ?? getDefaultEnvVar(config.provider);
+  const envVar = config.api_key_env ?? getDefaultApiKeyEnv(config.provider);
   return process.env[envVar];
 }
 
-function getDefaultEnvVar(provider: string): string {
+export function getDefaultApiKeyEnv(provider: string): string {
   switch (provider) {
     case "anthropic": return "ANTHROPIC_API_KEY";
     case "openai": return "OPENAI_API_KEY";

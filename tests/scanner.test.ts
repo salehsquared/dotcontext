@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { scanProject, flattenBottomUp } from "../src/core/scanner.js";
+import { scanProject, flattenBottomUp, groupByDepth } from "../src/core/scanner.js";
 import { createTmpDir, cleanupTmpDir, createFile, createNestedFile } from "./helpers.js";
 
 let tmpDir: string;
@@ -246,5 +246,79 @@ describe("flattenBottomUp", () => {
     expect(cIdx).toBeLessThan(bIdx);
     expect(bIdx).toBeLessThan(aIdx);
     expect(aIdx).toBeLessThan(rootIdx);
+  });
+});
+
+describe("groupByDepth", () => {
+  it("groups root-only tree into single layer", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const groups = groupByDepth(result);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toHaveLength(1);
+    expect(groups[0][0].relativePath).toBe(".");
+  });
+
+  it("groups two-level tree into 2 layers", async () => {
+    await createNestedFile(tmpDir, "src/app.ts", "code");
+    await createFile(tmpDir, "index.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const groups = groupByDepth(result);
+
+    expect(groups).toHaveLength(2);
+    // First layer (deepest) = children
+    expect(groups[0].map((r) => r.relativePath)).toContain("src");
+    // Second layer = root
+    expect(groups[1].map((r) => r.relativePath)).toContain(".");
+  });
+
+  it("groups three-level tree correctly (deepest first)", async () => {
+    await createNestedFile(tmpDir, "a/b/file.ts", "code");
+    await createFile(tmpDir, "index.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const groups = groupByDepth(result);
+
+    expect(groups).toHaveLength(3);
+    // Deepest layer first
+    expect(groups[0].some((r) => r.relativePath === "a/b")).toBe(true);
+    expect(groups[1].some((r) => r.relativePath === "a")).toBe(true);
+    expect(groups[2].some((r) => r.relativePath === ".")).toBe(true);
+  });
+
+  it("leaf layer first, root layer last (bottom-up)", async () => {
+    await createNestedFile(tmpDir, "src/core/file.ts", "code");
+    await createNestedFile(tmpDir, "src/file.ts", "code");
+    await createFile(tmpDir, "index.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const groups = groupByDepth(result);
+
+    // First group is deepest, last group is root
+    const firstPaths = groups[0].map((r) => r.relativePath);
+    const lastPaths = groups[groups.length - 1].map((r) => r.relativePath);
+
+    expect(firstPaths).toContain("src/core");
+    expect(lastPaths).toContain(".");
+  });
+
+  it("each layer contains only siblings (no parent-child)", async () => {
+    await createNestedFile(tmpDir, "a/file.ts", "code");
+    await createNestedFile(tmpDir, "b/file.ts", "code");
+    await createFile(tmpDir, "index.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const groups = groupByDepth(result);
+
+    // Layer 0 should contain a and b (both at depth 1) — they are siblings
+    const layer0Paths = groups[0].map((r) => r.relativePath).sort();
+    expect(layer0Paths).toEqual(["a", "b"]);
+
+    // Layer 1 should contain only root
+    expect(groups[1]).toHaveLength(1);
+    expect(groups[1][0].relativePath).toBe(".");
   });
 });

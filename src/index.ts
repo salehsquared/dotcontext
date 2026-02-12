@@ -12,7 +12,10 @@ import { showCommand } from "./commands/show.js";
 import { configCommand } from "./commands/config.js";
 import { ignoreCommand } from "./commands/ignore.js";
 import { watchCommand } from "./commands/watch.js";
+import { doctorCommand } from "./commands/doctor.js";
 import { startMcpServer } from "./mcp/server.js";
+import { loadEnvForCli } from "./utils/env.js";
+import { errorMsg } from "./utils/display.js";
 
 export interface CommandHandlers {
   initCommand: typeof initCommand;
@@ -24,6 +27,7 @@ export interface CommandHandlers {
   configCommand: typeof configCommand;
   ignoreCommand: typeof ignoreCommand;
   watchCommand: typeof watchCommand;
+  doctorCommand: typeof doctorCommand;
   startMcpServer: typeof startMcpServer;
 }
 
@@ -37,6 +41,7 @@ const defaultHandlers: CommandHandlers = {
   configCommand,
   ignoreCommand,
   watchCommand,
+  doctorCommand,
   startMcpServer,
 };
 
@@ -53,17 +58,31 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .description("Scan project and generate all .context.yaml files")
     .option("--llm", "Use LLM provider for richer context generation")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
+    .option("--no-agents", "Skip AGENTS.md generation")
+    .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.initCommand({ noLlm: !opts.llm, path: opts.path, evidence: opts.evidence });
+      if (opts.parallel !== undefined && (!Number.isInteger(opts.parallel) || opts.parallel < 1)) {
+        console.error(errorMsg("--parallel must be a positive integer"));
+        process.exitCode = 1;
+        return;
+      }
+      await handlers.initCommand({
+        noLlm: !opts.llm,
+        path: opts.path,
+        evidence: opts.evidence,
+        noAgents: opts.agents === false,
+        parallel: opts.parallel,
+      });
     });
 
   program
     .command("status")
     .description("Check freshness of all .context.yaml files")
+    .option("--json", "Output machine-readable JSON")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.statusCommand({ path: opts.path });
+      await handlers.statusCommand({ path: opts.path, json: opts.json });
     });
 
   program
@@ -73,14 +92,27 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--force", "Overwrite without confirmation")
     .option("--no-llm", "Use static analysis only")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
+    .option("--no-agents", "Skip AGENTS.md generation")
+    .option("--stale", "Only regenerate stale or missing contexts")
+    .option("--dry-run", "Preview what would be regenerated without changes")
+    .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (target, opts) => {
+      if (opts.parallel !== undefined && (!Number.isInteger(opts.parallel) || opts.parallel < 1)) {
+        console.error(errorMsg("--parallel must be a positive integer"));
+        process.exitCode = 1;
+        return;
+      }
       await handlers.regenCommand(target, {
         all: opts.all,
         force: opts.force,
         noLlm: opts.llm === false,
         path: opts.path,
         evidence: opts.evidence,
+        noAgents: opts.agents === false,
+        stale: opts.stale,
+        dryRun: opts.dryRun,
+        parallel: opts.parallel,
       });
     });
 
@@ -146,6 +178,15 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     });
 
   program
+    .command("doctor")
+    .description("Check project health: config, API keys, coverage, staleness, validation")
+    .option("--json", "Output machine-readable JSON")
+    .option("-p, --path <path>", "Project root path")
+    .action(async (opts) => {
+      await handlers.doctorCommand({ path: opts.path, json: opts.json });
+    });
+
+  program
     .command("serve")
     .description("Start MCP server for LLM tool integration (stdio transport)")
     .option("-p, --path <path>", "Project root path")
@@ -161,6 +202,7 @@ export async function runCli(
   argv: string[] = process.argv,
   handlers: CommandHandlers = defaultHandlers,
 ): Promise<void> {
+  await loadEnvForCli(argv);
   const program = createProgram(handlers);
   await program.parseAsync(argv);
 }

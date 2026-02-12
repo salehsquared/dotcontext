@@ -1,0 +1,75 @@
+version: 1
+last_updated: 2026-02-12T01:28:14.604Z
+fingerprint: 711cf876
+scope: src/commands
+summary: >
+  The `src/commands` directory contains command implementations for managing and configuring a context-aware system. It
+  supports initializing, regenerating, validating, and displaying context configurations.
+files:
+  - name: config.ts
+    purpose: Manages the configuration settings for the context.
+  - name: ignore.ts
+    purpose: Handles the addition of paths to the ignore list.
+  - name: init.ts
+    purpose: Initializes the context configuration and generates context files.
+  - name: regen.ts
+    purpose: Regenerates .context.yaml files for specified directories.
+  - name: rehash.ts
+    purpose: Updates fingerprints in context files based on their current state.
+  - name: show.ts
+    purpose: Displays the content of a specific context file.
+  - name: status.ts
+    purpose: Checks the freshness and status of context files.
+  - name: validate.ts
+    purpose: Validates the structure and content of context files against defined schemas.
+  - name: watch.ts
+    purpose: Tracks changes in directories and reports staleness of context in real-time.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: configCommand
+    description: Modifies and displays the context configuration based on provided options.
+  - name: ignoreCommand
+    description: Adds a specified path to the ignore list for context generation.
+  - name: initCommand
+    description: Sets up initial configuration for the context and scans the project for context generation.
+  - name: regenCommand
+    description: Regenerates context files for all or specified directories based on updates.
+  - name: rehashCommand
+    description: Updates the fingerprint of directories to reflect changes.
+  - name: showCommand
+    description: Reads and outputs the content of a specific .context.yaml file.
+  - name: statusCommand
+    description: Reviews and displays the freshness status of context files across directories.
+  - name: validateCommand
+    description: Checks context files for correctness and adherence to a schema.
+  - name: watchCommand
+    description: Observes directory changes in real-time and indicates context freshness.
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ../generator/dependencies.js
+    - ../generator/llm.js
+    - ../generator/static.js
+    - ../providers/index.js
+    - ../utils/config.js
+    - ../utils/display.js
+    - ../utils/ignore.js
+    - ../utils/scan-options.js
+current_state:
+  working:
+    - All command functionalities are operating as intended.
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - dependencies.internal

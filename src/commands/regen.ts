@@ -1,17 +1,31 @@
 import { resolve, relative, isAbsolute } from "node:path";
-import { scanProject, flattenBottomUp } from "../core/scanner.js";
+import { scanProject, flattenBottomUp, groupByDepth } from "../core/scanner.js";
 import { readContext, writeContext } from "../core/writer.js";
+import { checkFreshness } from "../core/fingerprint.js";
 import { generateStaticContext } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
 import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { successMsg, errorMsg, progressBar } from "../utils/display.js";
+import { successMsg, errorMsg, warnMsg, progressBar, freshnessIcon } from "../utils/display.js";
+import { updateAgentsMd } from "../core/markdown-writer.js";
+import { poolMap } from "../utils/pool.js";
 import type { ContextFile } from "../core/schema.js";
+import type { ScanResult } from "../core/scanner.js";
 
 export async function regenCommand(
   targetPath: string | undefined,
-  options: { all?: boolean; force?: boolean; noLlm?: boolean; path?: string; evidence?: boolean },
+  options: {
+    all?: boolean;
+    force?: boolean;
+    noLlm?: boolean;
+    path?: string;
+    evidence?: boolean;
+    noAgents?: boolean;
+    stale?: boolean;
+    dryRun?: boolean;
+    parallel?: number;
+  },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
@@ -20,7 +34,7 @@ export async function regenCommand(
   const allDirs = flattenBottomUp(scanResult);
 
   // Determine which directories to regenerate
-  let dirs = allDirs;
+  let dirs: ScanResult[] = allDirs;
   if (!options.all && targetPath) {
     const resolvedTarget = resolve(rootPath, targetPath);
     const targetRelFromRoot = relative(rootPath, resolvedTarget);
@@ -53,8 +67,6 @@ export async function regenCommand(
     }
   }
 
-  console.log(`\nRegenerating context for ${dirs.length} director${dirs.length > 1 ? "ies" : "y"}...`);
-
   const childContexts = new Map<string, ContextFile>();
 
   // Pre-populate child contexts from existing files
@@ -63,29 +75,120 @@ export async function regenCommand(
     if (existing) childContexts.set(dir.path, existing);
   }
 
-  let completed = 0;
+  // --stale: filter to only stale or missing directories
+  if (options.stale) {
+    const staleOrMissing: ScanResult[] = [];
+    for (const dir of dirs) {
+      const existing = childContexts.get(dir.path);
+      if (!existing) {
+        staleOrMissing.push(dir);
+      } else {
+        const { state } = await checkFreshness(dir.path, existing.fingerprint);
+        if (state !== "fresh") staleOrMissing.push(dir);
+      }
+    }
+    dirs = staleOrMissing;
 
-  for (const dir of dirs) {
-    process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
+    if (dirs.length === 0) {
+      console.log(successMsg("All contexts are fresh. Nothing to regenerate."));
+      return;
+    }
+  }
+
+  // --dry-run: print what would be regenerated and exit
+  if (options.dryRun) {
+    console.log(`\nWould regenerate ${dirs.length} director${dirs.length > 1 ? "ies" : "y"}:\n`);
+    for (const dir of dirs) {
+      const existing = childContexts.get(dir.path);
+      const { state } = existing
+        ? await checkFreshness(dir.path, existing.fingerprint)
+        : { state: "missing" as const };
+      const label = dir.relativePath === "." ? "(root)" : dir.relativePath;
+      console.log(`  ${freshnessIcon(state)}  ${label}`);
+    }
+    console.log("");
+    return;
+  }
+
+  console.log(`\nRegenerating context for ${dirs.length} director${dirs.length > 1 ? "ies" : "y"}...`);
+
+  let completed = 0;
+  const genOptions = { evidence: options.evidence };
+
+  if (options.parallel && options.parallel > 1) {
+    // Parallel mode: process by depth layers
+    const depthGroups = groupByDepth(scanResult);
+    const targetPaths = new Set(dirs.map((d) => d.path));
+
+    for (const group of depthGroups) {
+      const layerDirs = group.filter((d) => targetPaths.has(d.path));
+      if (layerDirs.length === 0) continue;
+
+      await poolMap(layerDirs, async (dir) => {
+        try {
+          const context = provider
+            ? await generateLLMContext(provider, dir, childContexts, genOptions)
+            : await generateStaticContext(dir, childContexts, genOptions);
+          await writeContext(dir.path, context);
+          childContexts.set(dir.path, context);
+          completed++;
+          console.log(successMsg(`${dir.relativePath}/.context.yaml updated`));
+        } catch (err) {
+          completed++;
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(errorMsg(`${dir.relativePath}: ${msg}`));
+        }
+      }, options.parallel);
+    }
+  } else {
+    // Sequential mode (default)
+    for (const dir of dirs) {
+      process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
+
+      try {
+        let context: ContextFile;
+        if (provider) {
+          context = await generateLLMContext(provider, dir, childContexts, genOptions);
+        } else {
+          context = await generateStaticContext(dir, childContexts, genOptions);
+        }
+
+        await writeContext(dir.path, context);
+        childContexts.set(dir.path, context);
+
+        completed++;
+        console.log(`\n${successMsg(`${dir.relativePath}/.context.yaml updated`)}`);
+      } catch (err) {
+        completed++;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+      }
+    }
+  }
+
+  // Update AGENTS.md only on full-tree runs
+  const isFullTree = options.all || (options.stale && !targetPath);
+  if (isFullTree && !options.noAgents) {
+    const entries = Array.from(childContexts.values())
+      .map((ctx) => ({ scope: ctx.scope, summary: ctx.summary }))
+      .sort((a, b) => {
+        if (a.scope === ".") return -1;
+        if (b.scope === ".") return 1;
+        return a.scope.localeCompare(b.scope);
+      });
+
+    const rootContext = childContexts.get(rootPath)
+      ?? Array.from(childContexts.values()).find((c) => c.scope === ".");
+    const projectName = rootContext?.project?.name ?? "this project";
 
     try {
-      let context: ContextFile;
-      const genOptions = { evidence: options.evidence };
-      if (provider) {
-        context = await generateLLMContext(provider, dir, childContexts, genOptions);
-      } else {
-        context = await generateStaticContext(dir, childContexts, genOptions);
-      }
-
-      await writeContext(dir.path, context);
-      childContexts.set(dir.path, context);
-
-      completed++;
-      console.log(`\n${successMsg(`${dir.relativePath}/.context.yaml updated`)}`);
+      const action = await updateAgentsMd(rootPath, entries, projectName);
+      if (action === "created") console.log(successMsg("AGENTS.md created"));
+      else if (action === "appended") console.log(successMsg("AGENTS.md updated (section appended)"));
+      else if (action === "replaced") console.log(successMsg("AGENTS.md updated (section refreshed)"));
     } catch (err) {
-      completed++;
       const msg = err instanceof Error ? err.message : String(err);
-      console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+      console.log(warnMsg(`AGENTS.md: ${msg}`));
     }
   }
 

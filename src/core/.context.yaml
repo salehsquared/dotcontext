@@ -1,0 +1,61 @@
+version: 1
+last_updated: 2026-02-12T01:28:28.195Z
+fingerprint: 6bc419a9
+scope: src/core
+summary: >
+  This directory contains functionalities for computing directory fingerprints, scanning project directories, and
+  managing context information for files. It includes methods for checking file freshness and identifying source code.
+files:
+  - name: fingerprint.ts
+    purpose: Computes a fingerprint for a directory and checks freshness against a stored fingerprint.
+  - name: scanner.ts
+    purpose: Scans project directories to identify where context files should be created and gathers source code information.
+  - name: schema.ts
+    purpose: Defines the schema for context and config files, including data structures and validation rules.
+  - name: writer.ts
+    purpose: Handles reading and writing of context and configuration files in YAML format.
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: computeFingerprint
+    description: Computes a hash representing the contents of a directory.
+  - name: checkFreshness
+    description: Compares a stored fingerprint with a newly computed fingerprint.
+  - name: scanProject
+    description: Scans a project directory tree for source files and context directories.
+  - name: writeContext
+    description: Writes a ContextFile to disk as .context.yaml.
+  - name: readContext
+    description: Reads and parses a .context.yaml from disk.
+  - name: writeConfig
+    description: Writes a ConfigFile to disk.
+  - name: readConfig
+    description: Reads config file from disk.
+decisions:
+  - what: Ignore certain directories and file patterns during scanning.
+    why: To avoid processing files and directories that are not relevant to the context generation, such as build artifacts
+      or version control directories.
+    tradeoff: This may miss legitimate source files that happen to be placed in ignored directories.
+constraints:
+  - Only evaluates files directly in the specified directory; does not consider subdirectories.
+dependencies:
+  internal:
+    - ./schema.js
+current_state:
+  working:
+    - Directory scanning and fingerprint computation functions are operational.
+  broken:
+    - None reported.
+  in_progress:
+    - Integration of scanning and context management functionalities.
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - dependencies.internal
