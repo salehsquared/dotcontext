@@ -25,6 +25,7 @@ export async function regenCommand(
     stale?: boolean;
     dryRun?: boolean;
     parallel?: number;
+    full?: boolean;
   },
 ): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
@@ -55,15 +56,15 @@ export async function regenCommand(
     }
   }
 
+  // Load config (needed for mode and provider)
+  const config = await loadConfig(rootPath);
+
   // Set up provider
   let provider = null;
-  if (!options.noLlm) {
-    const config = await loadConfig(rootPath);
-    if (config) {
-      const credential = resolveApiKey(config);
-      if (config.provider === "ollama" || credential) {
-        provider = await createProvider(config.provider, credential, config.model);
-      }
+  if (!options.noLlm && config) {
+    const credential = resolveApiKey(config);
+    if (config.provider === "ollama" || credential) {
+      provider = await createProvider(config.provider, credential, config.model);
     }
   }
 
@@ -113,7 +114,9 @@ export async function regenCommand(
   console.log(`\nRegenerating context for ${dirs.length} director${dirs.length > 1 ? "ies" : "y"}...`);
 
   let completed = 0;
-  const genOptions = { evidence: options.evidence };
+  const configMode = config?.mode ?? "lean";
+  const mode = options.full ? "full" as const : configMode;
+  const genOptions = { evidence: options.evidence, mode };
 
   if (options.parallel && options.parallel > 1) {
     // Parallel mode: process by depth layers

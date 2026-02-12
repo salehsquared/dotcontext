@@ -1,24 +1,28 @@
 version: 1
-last_updated: 2026-02-12T04:44:59.419Z
+last_updated: 2026-02-12T18:06:05.336Z
 fingerprint: 7f8b642c
 scope: tests/fixtures/monorepo/packages/api
 summary: >
-  This directory houses the API package for the monorepo, containing the package configuration and source code for the
-  API server functionality.
-files:
-  - name: package.json
-    purpose: Defines the package name and version for the API module.
+  This directory contains the API server for the monorepo, managing the HTTP server functionality for API operations. It
+  serves as the main entry point for routing and handling API requests.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
+decisions:
+  - what: The API server is designed to start on a specified port.
+    why: This allows flexibility in deployment and testing configurations.
+    tradeoff: Potential port conflicts may arise if not managed properly.
+constraints:
+  - The API server must be configured to only listen on allowed network interfaces as defined in deployment guidelines.
 subdirectories:
   - name: src/
-    summary: |
-      This directory contains code for starting an API server.
+    summary: >
+      This directory contains the source code for the API server, which defines the functionality to start an HTTP
+      server on a specified port. It serves as the entry point for API-related operations in the monorepo.
 derived_fields:
   - version
   - last_updated

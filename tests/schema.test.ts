@@ -6,8 +6,9 @@ import {
   CONFIG_FILENAME,
   SCHEMA_VERSION,
   DEFAULT_MAINTENANCE,
+  FULL_MAINTENANCE,
 } from "../src/core/schema.js";
-import { makeValidContext } from "./helpers.js";
+import { makeValidContext, makeLeanContext } from "./helpers.js";
 
 describe("contextSchema", () => {
   describe("valid inputs", () => {
@@ -122,8 +123,8 @@ describe("contextSchema", () => {
       const result = contextSchema.safeParse(data);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.files[0].test_file).toBe("index.test.ts");
-        expect(result.data.files[1].test_file).toBeUndefined();
+        expect(result.data.files?.[0].test_file).toBe("index.test.ts");
+        expect(result.data.files?.[1].test_file).toBeUndefined();
       }
     });
 
@@ -134,6 +135,30 @@ describe("contextSchema", () => {
       if (result.success) {
         expect(result.data.derived_fields).toBeUndefined();
         expect(result.data.evidence).toBeUndefined();
+      }
+    });
+
+    it("accepts lean context (no files, no interfaces)", () => {
+      const lean = makeLeanContext();
+      const result = contextSchema.safeParse(lean);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.files).toBeUndefined();
+        expect(result.data.interfaces).toBeUndefined();
+      }
+    });
+
+    it("accepts lean context with decisions and constraints", () => {
+      const lean = makeLeanContext({
+        decisions: [{ what: "JWT", why: "Stateless", tradeoff: "Needs blocklist" }],
+        constraints: ["All endpoints require auth"],
+      });
+      const result = contextSchema.safeParse(lean);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.decisions).toHaveLength(1);
+        expect(result.data.constraints).toHaveLength(1);
+        expect(result.data.files).toBeUndefined();
       }
     });
   });
@@ -164,9 +189,13 @@ describe("contextSchema", () => {
       expect(contextSchema.safeParse(rest).success).toBe(false);
     });
 
-    it("rejects when files is missing", () => {
+    it("accepts context without files (lean mode)", () => {
       const { files, ...rest } = makeValidContext();
-      expect(contextSchema.safeParse(rest).success).toBe(false);
+      const result = contextSchema.safeParse(rest);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.files).toBeUndefined();
+      }
     });
 
     it("rejects when maintenance is missing", () => {
@@ -248,6 +277,26 @@ describe("configSchema", () => {
   it("rejects max_depth as string", () => {
     expect(configSchema.safeParse({ provider: "openai", max_depth: "5" }).success).toBe(false);
   });
+
+  it("accepts mode lean", () => {
+    expect(configSchema.safeParse({ provider: "anthropic", mode: "lean" }).success).toBe(true);
+  });
+
+  it("accepts mode full", () => {
+    expect(configSchema.safeParse({ provider: "anthropic", mode: "full" }).success).toBe(true);
+  });
+
+  it("accepts config without mode (defaults to lean)", () => {
+    const result = configSchema.safeParse({ provider: "anthropic" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mode).toBeUndefined();
+    }
+  });
+
+  it("rejects invalid mode value", () => {
+    expect(configSchema.safeParse({ provider: "anthropic", mode: "verbose" }).success).toBe(false);
+  });
 });
 
 describe("constants", () => {
@@ -263,8 +312,15 @@ describe("constants", () => {
     expect(SCHEMA_VERSION).toBe(1);
   });
 
-  it("DEFAULT_MAINTENANCE contains update instruction", () => {
+  it("DEFAULT_MAINTENANCE contains lean update instruction", () => {
     expect(DEFAULT_MAINTENANCE).toContain("update this .context.yaml");
+    expect(DEFAULT_MAINTENANCE).toContain("summary, and any decisions or constraints");
     expect(DEFAULT_MAINTENANCE).toContain("Do not include secrets");
+  });
+
+  it("FULL_MAINTENANCE contains verbose update instruction", () => {
+    expect(FULL_MAINTENANCE).toContain("update this .context.yaml");
+    expect(FULL_MAINTENANCE).toContain("files list, interfaces, and current_state");
+    expect(FULL_MAINTENANCE).toContain("Do not include secrets");
   });
 });

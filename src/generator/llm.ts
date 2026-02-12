@@ -4,9 +4,9 @@ import { parse } from "yaml";
 import type { LLMProvider } from "../providers/index.js";
 import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile } from "../core/schema.js";
-import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, contextSchema } from "../core/schema.js";
+import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, FULL_MAINTENANCE, contextSchema } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts.js";
+import { SYSTEM_PROMPT, LEAN_SYSTEM_PROMPT, buildUserPrompt } from "./prompts.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
 import { collectBasicEvidence } from "./evidence.js";
 
@@ -18,8 +18,11 @@ export async function generateLLMContext(
   provider: LLMProvider,
   scanResult: ScanResult,
   childContexts: Map<string, ContextFile>,
-  options?: { evidence?: boolean },
+  options?: { evidence?: boolean; mode?: "lean" | "full" },
 ): Promise<ContextFile> {
+  const mode = options?.mode ?? "lean";
+  const isFull = mode === "full";
+
   // Read file contents
   const fileContents = new Map<string, string>();
   for (const filename of scanResult.files) {
@@ -33,10 +36,11 @@ export async function generateLLMContext(
 
   const isRoot = scanResult.relativePath === ".";
   const preDetectedDeps = await detectExternalDeps(scanResult.path);
-  const userPrompt = buildUserPrompt(scanResult, fileContents, childContexts, isRoot, preDetectedDeps);
+  const userPrompt = buildUserPrompt(scanResult, fileContents, childContexts, isRoot, preDetectedDeps, mode);
 
   // Call LLM
-  const rawResponse = await provider.generate(SYSTEM_PROMPT, userPrompt);
+  const systemPrompt = isFull ? SYSTEM_PROMPT : LEAN_SYSTEM_PROMPT;
+  const rawResponse = await provider.generate(systemPrompt, userPrompt);
 
   // Strip markdown fences if present
   const yamlStr = rawResponse
@@ -54,16 +58,26 @@ export async function generateLLMContext(
     fingerprint,
     scope: scanResult.relativePath,
     summary: (llmOutput.summary as string) ?? `Directory: ${scanResult.relativePath}`,
-    files: (llmOutput.files as ContextFile["files"]) ?? [],
-    maintenance: DEFAULT_MAINTENANCE,
+    maintenance: isFull ? FULL_MAINTENANCE : DEFAULT_MAINTENANCE,
   };
 
+  // Files: only in full mode
+  if (isFull) {
+    context.files = (llmOutput.files as ContextFile["files"]) ?? [];
+  }
+
   // Merge optional fields from LLM output
-  if (llmOutput.interfaces) context.interfaces = llmOutput.interfaces as ContextFile["interfaces"];
+  // Always merge high-value fields (decisions, constraints)
   if (llmOutput.decisions) context.decisions = llmOutput.decisions as ContextFile["decisions"];
   if (llmOutput.constraints) context.constraints = llmOutput.constraints as ContextFile["constraints"];
-  if (llmOutput.dependencies) context.dependencies = llmOutput.dependencies as ContextFile["dependencies"];
-  if (llmOutput.current_state) context.current_state = llmOutput.current_state as ContextFile["current_state"];
+
+  // Full-mode-only fields
+  if (isFull) {
+    if (llmOutput.interfaces) context.interfaces = llmOutput.interfaces as ContextFile["interfaces"];
+    if (llmOutput.current_state) context.current_state = llmOutput.current_state as ContextFile["current_state"];
+    if (llmOutput.dependencies) context.dependencies = llmOutput.dependencies as ContextFile["dependencies"];
+  }
+
   if (llmOutput.project) context.project = llmOutput.project as ContextFile["project"];
   if (llmOutput.structure) context.structure = llmOutput.structure as ContextFile["structure"];
 
@@ -95,7 +109,7 @@ export async function generateLLMContext(
   }
 
   // Overlay machine-derived dependencies (more reliable than LLM guessing)
-  const internalDeps = await detectInternalDeps(scanResult);
+  const internalDeps = isFull ? await detectInternalDeps(scanResult) : [];
 
   if (preDetectedDeps.length > 0) {
     context.dependencies = context.dependencies ?? {};
@@ -131,9 +145,11 @@ export async function generateLLMContext(
       fingerprint,
       scope: scanResult.relativePath,
       summary: (llmOutput.summary as string) ?? `Directory: ${scanResult.relativePath}`,
-      files: scanResult.files.map((f) => ({ name: f, purpose: "Source file" })),
-      maintenance: DEFAULT_MAINTENANCE,
+      maintenance: isFull ? FULL_MAINTENANCE : DEFAULT_MAINTENANCE,
     };
+    if (isFull) {
+      fallback.files = scanResult.files.map((f) => ({ name: f, purpose: "Source file" }));
+    }
     if (scanResult.relativePath === ".") {
       fallback.project = {
         name: basename(scanResult.path) || "unknown",

@@ -1,69 +1,28 @@
 version: 1
-last_updated: 2026-02-12T04:45:49.303Z
-fingerprint: bfbc0cf6
+last_updated: 2026-02-12T18:07:07.600Z
+fingerprint: 3e67e345
 scope: src/generator
-summary: Generates a .context.yaml file for directory context and documentation generation based on source code analysis.
-files:
-  - name: ast.ts
-    purpose: Handles AST parsing using tree-sitter to detect exported symbols in multiple languages.
-  - name: dependencies.ts
-    purpose: Detects external and internal dependencies from source files and package manifests.
-  - name: evidence.ts
-    purpose: Collects evidence from existing test or typecheck artifacts.
-  - name: llm.ts
-    purpose: Generates a .context.yaml using an LLM provider based on file contents.
-  - name: markdown.ts
-    purpose: Handles markdown generation and section management for project documentation.
-  - name: prompts.ts
-    purpose: Defines prompts and input formats for LLMs to generate context files.
-  - name: static.ts
-    purpose: Generates a .context.yaml using static analysis only to provide directory structure and file details.
+summary: >
+  The `src/generator` directory is responsible for generating context YAML files from source code through both static
+  analysis and LLM-based methods. It includes functionality to detect exports, dependencies, and other project details
+  to create comprehensive context files.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: detectExportsAST
-    description: Detects exported symbols from source code using AST parsing via tree-sitter.
-  - name: detectExternalDeps
-    description: Detects external dependencies from various package manifest formats.
-  - name: collectBasicEvidence
-    description: Gathers evidence from existing artifacts related to tests or type checks.
-  - name: generateLLMContext
-    description: Generates a context file using LLM output based on scanned file contents.
-  - name: generateStaticContext
-    description: Generates context information through static analysis of code files.
 decisions:
-  - what: Use tree-sitter for AST parsing.
-    why: Allows for more accurate and language-aware export detection.
-    tradeoff: Increased complexity and potential issues with loading WASM files.
+  - what: Utilizes WebAssembly-based tree-sitter parsers for analyzing source files.
+    why: To enable robust syntax parsing and export detection for multiple programming languages.
+    tradeoff: Increased complexity and dependency on WASM files and their availability in the project.
 constraints:
-  - Only supports specific programming languages defined in LANGUAGE_CONFIGS.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../providers/index.js
-    - ./...
-    - ./ast.js
-    - ./dependencies.js
-    - ./evidence.js
-    - ./prompts.js
-current_state:
-  working:
-    - Export detection functions operational for supported languages.
-    - Dependency detection from package manifests and source files functional.
-  broken:
-    - Tree-sitter loading failures can result in export detection fallback.
-  in_progress:
-    - Improvements to evidence collection process and reporting.
+  - Requires tree-sitter WASM files to be present in the grammars directory to function correctly.
+  - Only supports relative imports for internal dependency detection.
+  - Collect evidence for test results only if invoked from the project root.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

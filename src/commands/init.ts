@@ -22,7 +22,7 @@ function ask(question: string): Promise<string> {
   });
 }
 
-export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number }): Promise<void> {
+export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number; full?: boolean }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
   console.log(heading("\nWelcome to context.\n"));
@@ -97,7 +97,9 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
 
   const childContexts = new Map<string, ContextFile>();
   let completed = 0;
-  const genOptions = { evidence: options.evidence };
+  const configMode = existingConfig?.mode ?? "lean";
+  const mode = options.full ? "full" as const : configMode;
+  const genOptions = { evidence: options.evidence, mode };
 
   if (options.parallel && options.parallel > 1) {
     // Parallel mode: process by depth layers

@@ -1,28 +1,25 @@
 version: 1
-last_updated: 2026-02-12T04:45:00.392Z
+last_updated: 2026-02-12T18:06:05.245Z
 fingerprint: 15cbf504
 scope: tests/fixtures/monorepo/packages/shared
 summary: >
-  This directory contains the shared package configuration for a monorepo setup, including shared types for consistent
-  configurations across various packages.
-files:
-  - name: package.json
-    purpose: Defines the shared package metadata.
+  This directory contains shared TypeScript type definitions for the monorepo's packages, facilitating a consistent
+  interface for configuration management. It specifically defines the `Config` interface that can be utilized across
+  different packages.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces: []
-decisions: []
-constraints: []
-current_state: {}
+constraints:
+  - Type definitions must adhere to the defined `Config` interface to ensure compatibility across packages.
 subdirectories:
   - name: src/
-    summary: |
-      This directory contains types for the shared configuration used across packages in a monorepo setup.
+    summary: >
+      This directory contains shared TypeScript type definitions used across the monorepo's packages. It specifically
+      defines the `Config` interface for configuration management.
 derived_fields:
   - version
   - last_updated

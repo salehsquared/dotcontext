@@ -68,7 +68,7 @@ describe("generateAgentsMd", () => {
   it("includes Maintenance section", () => {
     const result = generateAgentsMd("my-project", sampleEntries);
     expect(result).toContain("### Maintenance");
-    expect(result).toContain("Update the `files` list");
+    expect(result).toContain("Update `summary`");
   });
 
   it("lists all directory entries in the table", () => {

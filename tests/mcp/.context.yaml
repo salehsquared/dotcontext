@@ -1,53 +1,27 @@
 version: 1
-last_updated: 2026-02-12T04:45:59.877Z
+last_updated: 2026-02-12T18:07:05.647Z
 fingerprint: ab44fa8c
 scope: tests/mcp
 summary: >
-  This directory contains tests for the MCP (Model Context Protocol) server and tool functionality, ensuring proper
-  behavior of server initialization and context handling.
-files:
-  - name: server.test.ts
-    purpose: Tests the startMcpServer function to verify server creation, tool registration, and transport connection.
-  - name: tools.test.ts
-    purpose: Tests various utility functions for handling context queries, freshness checks, and context listings.
+  This directory contains unit tests for the MCP (Model Context Protocol) server and its associated tools. It validates
+  functionality such as server startup, handling of context queries, freshness checks, and tool registration.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: handleQueryContext
-    description: Handles requests to query context data, supporting filters and subdirectory scopes.
-  - name: handleCheckFreshness
-    description: Checks the freshness of context data against stored fingerprints.
-  - name: handleListContexts
-    description: Lists all tracked contexts with their freshness statuses.
 decisions:
-  - what: Used Vitest for testing framework
-    why: Vitest provides fast and efficient testing capabilities, integrated with modern JavaScript features.
-    tradeoff: Tradeoff may involve switching costs for developers familiar with other testing frameworks.
+  - what: Using vitest for testing framework
+    why: Vitest provides a fast and efficient testing environment compatible with the project's needs.
+    tradeoff: While other frameworks exist, choosing vitest means potential limitations in community support compared to
+      more widely used options.
 constraints:
-  - Tests must be self-contained and use mocked dependencies to ensure isolation.
-  - File structure must adhere to a specific hierarchy for the context queries to function correctly.
-dependencies:
-  internal:
-    - ../../src/core/fingerprint.js
-    - ../../src/core/schema.js
-    - ../../src/core/writer.js
-    - ../../src/mcp/tools.js
-    - ../helpers.js
-current_state:
-  working:
-    - All tests pass with expected results for mock implementations.
-  broken:
-    - N/A
-  in_progress:
-    - Refactoring tests for improved clarity and maintainability.
+  - Tests must mock dependencies to avoid side effects on the filesystem or network.
+  - All tests must clean up after themselves, ensuring no state leaks between tests.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

@@ -1,86 +1,26 @@
 version: 1
-last_updated: 2026-02-12T04:45:58.904Z
+last_updated: 2026-02-12T18:06:56.017Z
 fingerprint: fb2b555e
 scope: src/utils
 summary: >
-  The src/utils directory provides utility functions for managing configuration, environment variables, display
-  messages, and concurrent processing in a project.
-files:
-  - name: config.ts
-    purpose: Handles loading, saving, and resolving API keys for project configuration.
-  - name: display.ts
-    purpose: Provides utility functions for formatting console output.
-  - name: env.ts
-    purpose: Loads environment variables from a local .env file and parses its content.
-  - name: ignore.ts
-    purpose: Manages paths in the .contextignore file to specify files and directories to be ignored.
-  - name: pool.ts
-    purpose: Implements a parallel processing function with bounded concurrency.
-  - name: scan-options.ts
-    purpose: Loads scanning options from the project configuration.
+  The src/utils directory contains utility functions for handling configuration, environment variables, display
+  messages, and concurrency. It provides essential helpers to manage application settings and present user messages
+  effectively.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: loadConfig
-    description: Loads the project configuration from a specified root path.
-  - name: saveConfig
-    description: Saves the project configuration to a specified root path.
-  - name: resolveApiKey
-    description: Retrieves the API key from the environment variables based on the provided configuration.
-  - name: freshnessIcon
-    description: Returns a string representation of the freshness state for display.
-  - name: successMsg
-    description: Formats a success message for console output.
-  - name: warnMsg
-    description: Formats a warning message for console output.
-  - name: errorMsg
-    description: Formats an error message for console output.
-  - name: heading
-    description: Formats a message as a bold heading for console output.
-  - name: dim
-    description: Formats a message in dim text for console output.
-  - name: progressBar
-    description: Generates a string representation of a progress bar based on the current and total counts.
-  - name: loadEnvForCli
-    description: Loads environment variables from a local file for command line interface usage.
-  - name: loadEnvLocal
-    description: Loads variables from the local .env file and sets them in process.env.
-  - name: addToIgnore
-    description: Adds a specified path to the .contextignore file.
-  - name: poolMap
-    description: Processes items in parallel with a specified concurrency limit.
-  - name: loadScanOptions
-    description: Loads scan options from the project's configuration.
 decisions:
-  - what: Use environment variables for sensitive configuration values.
-    why: To avoid hardcoding sensitive information in the codebase.
-    tradeoff: Requires careful handling of environment variable management.
+  - what: Using async functions for file operations.
+    why: To ensure non-blocking I/O operations for better performance.
+    tradeoff: Increased complexity in error handling due to async nature.
 constraints:
-  - The maximum concurrency when processing items must be greater than 0.
-  - Environment variable names must follow the format specified (alphanumeric and underscores).
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../core/writer.js
-    - ./config.js
-current_state:
-  working:
-    - Configuration loading and saving functions operate as expected.
-    - Environment variable parsing and loading functionalities are implemented.
-  broken:
-    - No broken functionality identified.
-  in_progress:
-    - None identified.
+  - "Environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/."
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

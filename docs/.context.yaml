@@ -1,35 +1,25 @@
 version: 1
-last_updated: 2026-02-12T04:46:25.532Z
+last_updated: 2026-02-12T18:07:18.458Z
 fingerprint: 46b2bea9
 scope: docs
 summary: >
-  This directory contains documentation for using dotcontext in CI/CD pipelines, integrations with LLM tools,
-  limitations, and troubleshooting common issues.
-files:
-  - name: ci.md
-    purpose: Guide for integrating dotcontext in CI/CD pipelines using GitHub Actions and GitLab CI.
-  - name: integrations.md
-    purpose: Documentation on how to integrate dotcontext with various tools and services.
-  - name: limitations.md
-    purpose: Outlines the limitations and known boundaries of dotcontext functionality.
-  - name: quickstart.md
-    purpose: Step-by-step instructions to get started with dotcontext quickly.
-  - name: schema.md
-    purpose: Reference for the schema structure of .context.yaml files.
-  - name: troubleshooting.md
-    purpose: Guidance on resolving common issues when using dotcontext.
-  - name: trust-model.md
-    purpose: Explains the trust model for fields in .context.yaml files, distinguishing between machine-derived and
-      LLM-generated content.
-  - name: validation.md
-    purpose: Details on how to validate .context.yaml files for correctness.
+  The docs directory contains comprehensive documentation for using and configuring dotcontext, including CI/CD
+  integration, integration with various tools, and limitations. It serves as a guide for developers to effectively
+  implement context validation and management in their projects.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
+decisions:
+  - what: Use YAML for .context.yaml files
+    why: YAML is human-readable and widely supported by various tools and libraries.
+    tradeoff: Requires validation schemas to ensure correctness.
+constraints:
+  - Do not include secrets, API keys, passwords, or PII in any context files.
+  - All `.context.yaml` files must comply with the defined schema to be valid.
 derived_fields:
   - version
   - last_updated

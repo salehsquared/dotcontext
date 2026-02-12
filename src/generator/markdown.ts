@@ -46,19 +46,17 @@ export function generateAgentsSection(entries: AgentsEntry[]): string {
 
 This project uses [dotcontext](https://github.com/dotcontext/cli) for structured codebase documentation.
 
-**Every directory with source files contains a \`.context.yaml\` file.** Before reading source files in any directory, read its \`.context.yaml\` first — it describes:
+**Every directory with source files contains a \`.context.yaml\` file.** It describes:
 
-- What the directory contains and its purpose
-- Key files and their roles
-- Public interfaces and exports
-- Dependencies (internal and external)
-- Architectural decisions, constraints, and current state
+- What the directory contains and its purpose (summary)
+- Architectural decisions and constraints (things you can't infer from code)
+- Subdirectory routing (what's inside each subdirectory)
 
 ### How to Use Context Files
 
-1. **Before exploring a directory**, read its \`.context.yaml\` to understand what's there without opening every file
-2. **Before modifying code**, check the \`interfaces\` and \`decisions\` fields to understand contracts and rationale
-3. **After modifying files**, update the directory's \`.context.yaml\` to reflect your changes (the \`maintenance\` field has instructions)
+1. **Before exploring a directory**, read its \`.context.yaml\` summary to understand what it does
+2. **Before modifying code**, check \`decisions\` and \`constraints\` for rationale and hard rules
+3. **After modifying files**, update the summary if the directory's purpose changed
 4. **To check freshness**, run \`context status\` — stale contexts may have outdated information
 
 ### Directory Index
@@ -67,11 +65,10 @@ ${table}
 
 ### Maintenance
 
-When you add, remove, or significantly change files in a directory, update its \`.context.yaml\`:
-- Update the \`files\` list if files were added or removed
-- Update \`interfaces\` if public APIs changed
+When you significantly change files in a directory, update its \`.context.yaml\`:
 - Update \`summary\` if the directory's purpose shifted
-- Update \`dependencies\` if imports changed
+- Update \`decisions\` if architectural choices changed
+- Update \`constraints\` if hard rules changed
 
 The \`maintenance\` field in each \`.context.yaml\` contains specific instructions.
 ${AGENTS_SECTION_END}`;

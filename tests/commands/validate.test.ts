@@ -5,7 +5,7 @@ import { validateCommand } from "../../src/commands/validate.js";
 import { writeContext } from "../../src/core/writer.js";
 import { computeFingerprint } from "../../src/core/fingerprint.js";
 import { CONTEXT_FILENAME } from "../../src/core/schema.js";
-import { createTmpDir, cleanupTmpDir, createFile, makeValidContext } from "../helpers.js";
+import { createTmpDir, cleanupTmpDir, createFile, makeValidContext, makeLeanContext } from "../helpers.js";
 
 let tmpDir: string;
 let logs: string[];
@@ -315,6 +315,21 @@ describe("validateCommand", () => {
       const output = logs.join("\n");
       expect(output).not.toContain("declared internal dep not found");
       expect(output).not.toContain("undeclared internal dep found");
+    });
+
+    it("collapses lean-skip messages into summary line", async () => {
+      await createFile(tmpDir, "index.ts", "export const x = 1;");
+      const fp = await computeFingerprint(tmpDir);
+      await writeContext(tmpDir, makeLeanContext({ fingerprint: fp }));
+
+      await validateCommand({ path: tmpDir, strict: true });
+
+      const output = logs.join("\n");
+      // Should NOT print per-directory lean skip messages
+      expect(output).not.toContain("file cross-reference skipped (lean context");
+      // Should print aggregated summary
+      expect(output).toContain("1 lean context");
+      expect(output).toContain("file cross-ref skipped");
     });
   });
 });

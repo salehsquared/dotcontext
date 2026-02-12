@@ -1,40 +1,40 @@
 version: 1
-last_updated: 2026-02-12T04:45:53.167Z
+last_updated: 2026-02-12T18:07:01.488Z
 fingerprint: e3b0c442
 scope: tests/fixtures
 summary: >
-  The `tests/fixtures` directory provides sample files and configurations for various testing scenarios, enabling the
-  development and testing of code across different project structures.
-files:
-  - name: monorepo
-    purpose: Defines a monorepo structure with workspace support for managing multiple packages.
-  - name: simple-project
-    purpose: Contains configuration files for a simple TypeScript project compiling to ES2022.
-  - name: with-contextignore
-    purpose: Includes configuration and test fixtures for a project focusing on context management.
+  The tests/fixtures directory provides sample configurations and mock data for testing various project setups,
+  including monorepos, simple projects, and context-specific scenarios. It facilitates structured and reusable test data
+  management to support unit testing and integration testing processes.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
+decisions:
+  - what: Using a monorepo structure for fixtures
+    why: To ensure cohesive interactions and shared definitions across multiple packages.
+    tradeoff: Increased complexity in managing dependencies and workspace configurations.
 constraints:
-  - Projects must adhere to their respective configuration standards for TypeScript and context management.
+  - Test fixtures must be maintainable and relevant to the application's current context.
+  - Mock data should be appropriately categorized to prevent overlap between different testing scenarios.
 subdirectories:
   - name: monorepo/
     summary: >
-      The `tests/fixtures/monorepo` directory defines a monorepo structure with workspace support for managing multiple
-      packages within a single repository.
+      This directory serves as a fixture configuration for a monorepo setup utilizing workspaces to manage multiple
+      packages. It ensures cohesive interactions and shared definitions across the various components of the project.
   - name: simple-project/
     summary: >
-      This directory contains configuration files for a simple project using TypeScript, which compiles down to ES2022
-      and utilizes Node16 modules.
+      This directory contains a simple TypeScript project setup for foundational testing purposes. It includes
+      configuration files for building and managing the project structure, focusing on a minimal codebase that
+      highlights essential TypeScript functionality.
   - name: with-contextignore/
     summary: >
-      This directory contains files relevant to the "with-contextignore" project, including configuration for the
-      project and test fixtures for a testing framework. It serves as a workspace for developing and testing code with a
-      specific focus on managing context-related files.
+      This directory contains test fixtures for unit testing purposes, including both permanent and temporary mock data
+      and scenarios relevant to the application's context. It provides a structured way to manage and utilize test data
+      during the testing process.
 derived_fields:
   - version
   - last_updated

@@ -1,22 +1,19 @@
 version: 1
-last_updated: 2026-02-12T04:45:09.877Z
+last_updated: 2026-02-12T18:06:14.731Z
 fingerprint: 710c74e3
 scope: tests/fixtures/with-contextignore/src
-summary: |
-  This directory contains a single TypeScript file that exports a constant value.
-files:
-  - name: index.ts
-    purpose: Exports a constant integer.
+summary: >
+  This directory contains test fixtures used for unit testing purposes. It serves as a source for mock data and
+  scenarios relevant to the application's context. 
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: x
-    description: A constant integer with the value of 1.
+constraints:
+  - All test fixtures must be self-contained and should not have external dependencies.
 derived_fields:
   - version
   - last_updated

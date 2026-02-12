@@ -1,91 +1,29 @@
 version: 1
-last_updated: 2026-02-12T04:45:49.373Z
-fingerprint: a8502bf1
+last_updated: 2026-02-12T18:06:51.296Z
+fingerprint: 7e864d55
 scope: src/commands
 summary: >
-  The `commands` directory contains various command implementations for managing project configurations and context
-  files, including commands for initialization, configuration updates, status checks, validation, and regeneration of
-  context files.
-files:
-  - name: config.ts
-    purpose: Handles configuration command for displaying and updating project settings.
-  - name: doctor.ts
-    purpose: Performs health checks on project configuration and context files.
-  - name: ignore.ts
-    purpose: Implements command to add paths to the ignore list.
-  - name: init.ts
-    purpose: Initializes the project and generates context files based on user input.
-  - name: regen.ts
-    purpose: Regenerates context files for specified directories.
-  - name: rehash.ts
-    purpose: Updates fingerprints of existing context files.
-  - name: show.ts
-    purpose: Displays the content of a specific context file.
-  - name: status.ts
-    purpose: Checks and reports the freshness status of context files.
-  - name: validate.ts
-    purpose: Validates context files against predefined schemas.
-  - name: watch.ts
-    purpose: Watches for file changes and reports context freshness in real-time.
+  This directory contains command modules that facilitate various operations, including configuring settings, generating
+  context files, and checking the health of the project structure. Each command interacts with project files and
+  configurations to maintain coherence and facilitate user workflows.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: configCommand
-    description: Displays current configuration or updates it based on provided options.
-  - name: doctorCommand
-    description: Executes a series of checks to ensure project health, returning issues found.
-  - name: ignoreCommand
-    description: Adds specified paths to the ignore configuration.
-  - name: initCommand
-    description: Sets up project context files and configuration based on user decisions.
-  - name: regenCommand
-    description: Regenerates context files for specific directories or all directories.
-  - name: rehashCommand
-    description: Updates the context file fingerprints across specified directories.
-  - name: showCommand
-    description: Retrieves and displays the content of a context file at a given path.
-  - name: statusCommand
-    description: Reports the freshness status of tracked directories and context files.
-  - name: validateCommand
-    description: Checks context files for validity and cross-references with the file system.
-  - name: watchCommand
-    description: Monitors files for changes and alerts on the freshness state of context files.
 decisions:
-  - what: Use modular command files archiving.
-    why: Allows separation of concerns and scalability for additional command implementations.
-    tradeoff: Increased number of files may complicate navigation.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/markdown-writer.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../core/writer.js
-    - ../generator/dependencies.js
-    - ../generator/llm.js
-    - ../generator/markdown.js
-    - ../generator/static.js
-    - ../providers/index.js
-    - ../utils/config.js
-    - ../utils/display.js
-    - ../utils/ignore.js
-    - ../utils/pool.js
-    - ../utils/scan-options.js
-current_state:
-  working:
-    - Configuration command successfully reads and updates settings.
-    - Context files can be validated and regenerated.
-    - Health checks provide accurate verification of project state.
-  in_progress:
-    - Improving commands for better error messaging and user experience.
+  - what: The configuration command defaults to the 'anthropic' provider.
+    why: This provides a default option that allows users to quickly set up the environment without making immediate
+      decisions.
+    tradeoff: Users may need to change the provider if they intend to use a different service, increasing initial setup time
+      for those who have specific needs.
+constraints:
+  - Commands require a valid project structure; otherwise, they will return errors or prompts for initialization.
+  - The configuration must adhere to the allowed values for provider and mode; invalid inputs will result in errors.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

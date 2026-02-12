@@ -1,89 +1,27 @@
 version: 1
-last_updated: 2026-02-12T04:46:20.213Z
-fingerprint: 9383acf5
+last_updated: 2026-02-12T18:07:10.080Z
+fingerprint: c6add862
 scope: tests/commands
 summary: >
-  This directory contains unit tests for various command functionalities in the application, ensuring commands such as
-  config management, validation, status checking, and rehashing behave as expected within a temporary environment.
-files:
-  - name: config.test.ts
-    purpose: Tests for the configCommand functionality including error handling and writing configuration.
-  - name: doctor.test.ts
-    purpose: Tests for the doctorCommand, checking the setup and configuration status.
-  - name: ignore.test.ts
-    purpose: Tests the ignoreCommand to manage entries in the .contextignore file.
-  - name: init-llm.test.ts
-    purpose: Tests for the initCommand when initializing with the option for large language model integration.
-  - name: init.test.ts
-    purpose: Tests for the initCommand, ensuring .context.yaml files are created properly.
-  - name: regen-provider.test.ts
-    purpose: Tests for the regenCommand specifically related to provider interactions.
-  - name: regen.test.ts
-    purpose: Tests the regenCommand for regenerating context files.
-  - name: rehash.test.ts
-    purpose: Tests the rehashCommand to update fingerprints for tracked directories.
-  - name: show.test.ts
-    purpose: Tests the showCommand to display the context file contents.
-  - name: status.test.ts
-    purpose: Tests the statusCommand to show the current health of context configurations.
-  - name: validate.test.ts
-    purpose: Tests the validateCommand for schema validation of context files.
-  - name: watch-command.test.ts
-    purpose: Tests the watchCommand functionality for monitoring file changes.
-  - name: watch.test.ts
-    purpose: Checks low-level functionalities for tracking freshness and state of directories.
+  The tests/commands directory contains unit tests for various command functionalities including configuration
+  management, initialization, and validation within the context of a software project. It ensures the integrity and
+  correctness of command behaviors through automated testing using Vitest.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: configCommand
-    description: Manages the configuration of the application, including creating and updating config files.
-  - name: doctorCommand
-    description: Checks and reports on the health of the configuration and context files.
-  - name: ignoreCommand
-    description: Adds entries to the .contextignore file, preventing specified paths from being processed.
-  - name: initCommand
-    description: Initializes the project structure and creates necessary config files.
-  - name: regenCommand
-    description: Regenerates context files for specific directories.
-  - name: rehashCommand
-    description: Updates fingerprints for tracked directories based on file changes.
-  - name: showCommand
-    description: Displays the content of the .context.yaml file.
-  - name: statusCommand
-    description: Reports the health and status of tracked directories.
-  - name: validateCommand
-    description: Validates context files against defined schemas.
-  - name: watchCommand
-    description: Monitors file changes in tracked directories and logs state changes accordingly.
-dependencies:
-  internal:
-    - ../../src/commands/config.js
-    - ../../src/commands/doctor.js
-    - ../../src/commands/ignore.js
-    - ../../src/commands/init.js
-    - ../../src/commands/regen.js
-    - ../../src/commands/rehash.js
-    - ../../src/commands/show.js
-    - ../../src/commands/status.js
-    - ../../src/commands/validate.js
-    - ../../src/commands/watch.js
-    - ../../src/core/fingerprint.js
-    - ../../src/core/markdown-writer.js
-    - ../../src/core/schema.js
-    - ../../src/core/writer.js
-    - ../../src/generator/markdown.js
-    - ../../src/utils/config.js
-    - ../helpers.js
-    - ../lib
-    - ../utils
+decisions:
+  - what: Using temporary directories for tests
+    why: To isolate tests and prevent side effects from shared state.
+    tradeoff: Increased complexity in test setup and teardown.
+constraints:
+  - Tests must clean up after themselves to avoid polluting the filesystem.
+  - Input data used in tests must be valid and conform to expected formats.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal

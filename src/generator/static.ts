@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
-import { SCHEMA_VERSION, DEFAULT_MAINTENANCE } from "../core/schema.js";
+import { SCHEMA_VERSION, DEFAULT_MAINTENANCE, FULL_MAINTENANCE } from "../core/schema.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { detectExportsAST } from "./ast.js";
 import { detectExternalDeps, detectInternalDeps } from "./dependencies.js";
@@ -15,16 +15,22 @@ import { collectBasicEvidence } from "./evidence.js";
 export async function generateStaticContext(
   scanResult: ScanResult,
   childContexts: Map<string, ContextFile>,
-  options?: { evidence?: boolean },
+  options?: { evidence?: boolean; mode?: "lean" | "full" },
 ): Promise<ContextFile> {
-  const files: FileEntry[] = [];
+  const mode = options?.mode ?? "lean";
+  const isFull = mode === "full";
 
-  for (const filename of scanResult.files) {
-    const purpose = await detectFilePurpose(join(scanResult.path, filename));
-    const entry: FileEntry = { name: filename, purpose };
-    const testFile = detectTestFile(filename, scanResult);
-    if (testFile) entry.test_file = testFile;
-    files.push(entry);
+  // Files: only in full mode
+  let files: FileEntry[] | undefined;
+  if (isFull) {
+    files = [];
+    for (const filename of scanResult.files) {
+      const purpose = await detectFilePurpose(join(scanResult.path, filename));
+      const entry: FileEntry = { name: filename, purpose };
+      const testFile = detectTestFile(filename, scanResult);
+      if (testFile) entry.test_file = testFile;
+      files.push(entry);
+    }
   }
 
   const subdirectories: SubdirectoryEntry[] = [];
@@ -47,23 +53,28 @@ export async function generateStaticContext(
     fingerprint,
     scope: scanResult.relativePath,
     summary: buildSummary(scanResult, isRoot),
-    files,
-    maintenance: DEFAULT_MAINTENANCE,
+    maintenance: isFull ? FULL_MAINTENANCE : DEFAULT_MAINTENANCE,
   };
+
+  if (files) {
+    context.files = files;
+  }
 
   if (subdirectories.length > 0) {
     context.subdirectories = subdirectories;
   }
 
-  // Detect interfaces from exports
-  const interfaces = await detectInterfaces(scanResult);
-  if (interfaces.length > 0) {
-    context.interfaces = interfaces;
+  // Detect interfaces from exports (full mode only)
+  if (isFull) {
+    const interfaces = await detectInterfaces(scanResult);
+    if (interfaces.length > 0) {
+      context.interfaces = interfaces;
+    }
   }
 
   // Detect dependencies
   const externalDeps = await detectExternalDeps(scanResult.path);
-  const internalDeps = await detectInternalDeps(scanResult);
+  const internalDeps = isFull ? await detectInternalDeps(scanResult) : [];
   if (externalDeps.length > 0 || internalDeps.length > 0) {
     context.dependencies = {};
     if (externalDeps.length > 0) context.dependencies.external = externalDeps;
@@ -92,9 +103,12 @@ export async function generateStaticContext(
 
   // Populate derived_fields
   const derivedFields: string[] = [
-    "version", "last_updated", "fingerprint", "scope", "files",
+    "version", "last_updated", "fingerprint", "scope",
   ];
-  if (context.interfaces) derivedFields.push("interfaces");
+  if (isFull) {
+    derivedFields.push("files");
+    if (context.interfaces) derivedFields.push("interfaces");
+  }
   if (context.dependencies?.external) derivedFields.push("dependencies.external");
   if (context.dependencies?.internal) derivedFields.push("dependencies.internal");
   if (context.subdirectories) derivedFields.push("subdirectories");

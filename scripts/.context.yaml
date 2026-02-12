@@ -1,38 +1,25 @@
 version: 1
-last_updated: 2026-02-12T04:46:24.607Z
+last_updated: 2026-02-12T18:07:13.593Z
 fingerprint: 775bfc0a
 scope: scripts
 summary: >
-  The scripts directory contains automation scripts to manage grammar files and generate JSON Schema files from Zod
-  schemas.
-files:
-  - name: build-grammars.mjs
-    purpose: Copies pre-built WASM grammar files from node_modules to the grammars directory.
-  - name: generate-schemas.mjs
-    purpose: Generates JSON Schema files from Zod schemas after TypeScript compilation.
+  The scripts directory contains utilities for managing grammar files and generating JSON Schema files from Zod schemas.
+  These scripts automate the tasks of copying pre-built WebAssembly grammar files and creating schema definitions for
+  validation purposes.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: copyFileSync
-    description: Copies WASM files for various programming languages from the node_modules to the grammars directory.
-  - name: toJSONSchema
-    description: Transforms Zod schemas into JSON Schema format for context and configuration.
 decisions:
-  - what: Use native Zod's toJSONSchema() function
-    why: To avoid additional dependencies while generating JSON Schema.
-    tradeoff: Relies on Zod's features; may miss out on specific JSON Schema capabilities not covered by Zod.
-current_state:
-  working:
-    - Build and grammar management scripts execute without errors.
-  broken:
-    - No known broken functionality.
-  in_progress:
-    - No current work in progress is noted.
+  - what: The generate-schemas script runs after TypeScript compilation.
+    why: This ensures that the Zod schemas are imported from the compiled output.
+    tradeoff: This introduces a dependency on the TypeScript build process for generating schemas correctly.
+constraints:
+  - The copied grammar files must exist in the correct path within node_modules, or they will not be copied.
+  - The JSON Schema generation requires Zod version 4 or higher.
 derived_fields:
   - version
   - last_updated

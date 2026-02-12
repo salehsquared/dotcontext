@@ -113,7 +113,21 @@ describe("CLI wiring", () => {
       maxDepth: "5",
       ignore: ["tmp", "build"],
       apiKeyEnv: "CUSTOM_KEY",
+      mode: undefined,
     });
+  });
+
+  it("config --mode full passes mode: full", async () => {
+    const handlers = makeHandlers();
+    await parse(
+      ["node", "context", "config", "--mode", "full", "-p", "/tmp/project"],
+      handlers,
+    );
+
+    expect(handlers.configCommand).toHaveBeenCalledWith(expect.objectContaining({
+      mode: "full",
+      path: "/tmp/project",
+    }));
   });
 
   it("serve resolves path before calling server start", async () => {

@@ -1,22 +1,23 @@
 version: 1
-last_updated: 2026-02-12T04:44:28.792Z
+last_updated: 2026-02-12T18:05:37.453Z
 fingerprint: 64aa8200
 scope: tests/fixtures/monorepo/packages/shared/src
-summary: |
-  This directory contains types for the shared configuration used across packages in a monorepo setup.
-files:
-  - name: types.ts
-    purpose: Defines the Config interface for port and host settings.
+summary: >
+  This directory contains shared TypeScript type definitions used across the monorepo's packages. It specifically
+  defines the `Config` interface for configuration management.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-interfaces:
-  - name: Config
-    description: An interface that outlines the structure for configuration, specifying a port number and a host string.
+decisions:
+  - what: The `Config` interface enforces a specific structure for configuration objects across packages.
+    why: This promotes consistency and type safety when managing configuration within the monorepo.
+    tradeoff: Requires all packages to conform to this structure, which may limit flexibility in some cases.
+constraints:
+  - Any configuration implementing the `Config` interface must include both 'port' and 'host' properties.
 derived_fields:
   - version
   - last_updated

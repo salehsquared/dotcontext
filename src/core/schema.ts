@@ -69,7 +69,7 @@ export const contextSchema = z.object({
   fingerprint: z.string().describe("Short hash of directory contents"),
   scope: z.string().describe("Relative path from project root"),
   summary: z.string().describe("1-3 sentence description of this directory"),
-  files: z.array(fileEntrySchema).describe("Files in this directory"),
+  files: z.array(fileEntrySchema).optional().describe("Files in this directory"),
   maintenance: z.string().describe("Self-describing update instruction for LLMs"),
 
   // Optional fields
@@ -105,6 +105,7 @@ export const configSchema = z.object({
   api_key_env: z.string().optional().describe("Env var name for API key"),
   ignore: z.array(z.string()).optional().describe("Additional directories to ignore"),
   max_depth: z.number().int().optional().describe("Max directory depth for scanning"),
+  mode: z.enum(["lean", "full"]).optional().describe("Default generation mode (lean omits files/interfaces)"),
 });
 
 // --- Types ---
@@ -128,6 +129,13 @@ export const SCHEMA_VERSION = 1;
 // --- Default maintenance instruction ---
 
 export const DEFAULT_MAINTENANCE = `If you modify files in this directory, update this .context.yaml to reflect
+your changes. Update the summary, and any decisions or constraints that changed.
+Do NOT update the fingerprint manually — run \`context rehash\` or it will be
+updated automatically on the next \`context status\` check.
+If you only read files in this directory, do not modify this file.
+Do not include secrets, API keys, passwords, or PII in this file.`;
+
+export const FULL_MAINTENANCE = `If you modify files in this directory, update this .context.yaml to reflect
 your changes. Update the files list, interfaces, and current_state sections.
 Do NOT update the fingerprint manually — run \`context rehash\` or it will be
 updated automatically on the next \`context status\` check.

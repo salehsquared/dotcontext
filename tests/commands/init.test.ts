@@ -94,9 +94,18 @@ describe("initCommand (--no-llm)", () => {
     expect(srcContext.scope).toBe("src");
   });
 
-  it("files list matches actual sources", async () => {
+  it("lean mode omits files from generated context", async () => {
     await copyFixture("simple-project");
     await initCommand({ noLlm: true, path: tmpDir });
+
+    const srcContext = await readContextYaml(join(tmpDir, "src"));
+    expect(srcContext.files).toBeUndefined();
+    expect(srcContext.summary).toBeDefined();
+  });
+
+  it("full mode includes files list", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir, full: true });
 
     const srcContext = await readContextYaml(join(tmpDir, "src"));
     const fileNames = srcContext.files.map((f: { name: string }) => f.name);

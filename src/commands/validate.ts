@@ -17,19 +17,23 @@ interface StrictFinding {
 async function crossReference(dir: ScanResult, context: ContextFile): Promise<StrictFinding[]> {
   const findings: StrictFinding[] = [];
 
-  // 1. Files vs filesystem
-  const declaredFiles = new Set(context.files.map((f) => f.name));
-  const actualFiles = new Set(dir.files);
+  // 1. Files vs filesystem (only when files are declared)
+  if (context.files && context.files.length > 0) {
+    const declaredFiles = new Set(context.files.map((f) => f.name));
+    const actualFiles = new Set(dir.files);
 
-  for (const name of declaredFiles) {
-    if (!actualFiles.has(name)) {
-      findings.push({ severity: "warning", message: `phantom file: ${name} (listed but not on disk)` });
+    for (const name of declaredFiles) {
+      if (!actualFiles.has(name)) {
+        findings.push({ severity: "warning", message: `phantom file: ${name} (listed but not on disk)` });
+      }
     }
-  }
-  for (const name of actualFiles) {
-    if (!declaredFiles.has(name)) {
-      findings.push({ severity: "info", message: `unlisted file: ${name} (on disk but not in context)` });
+    for (const name of actualFiles) {
+      if (!declaredFiles.has(name)) {
+        findings.push({ severity: "info", message: `unlisted file: ${name} (on disk but not in context)` });
+      }
     }
+  } else {
+    findings.push({ severity: "info", message: "file cross-reference skipped (lean context — no files field)" });
   }
 
   // 2. Interfaces vs exports
@@ -90,6 +94,7 @@ export async function validateCommand(options: { path?: string; strict?: boolean
   let missing = 0;
   let strictWarnings = 0;
   let strictInfo = 0;
+  let leanSkipped = 0;
 
   for (const dir of dirs) {
     const filePath = join(dir.path, CONTEXT_FILENAME);
@@ -110,6 +115,10 @@ export async function validateCommand(options: { path?: string; strict?: boolean
         if (options.strict) {
           const findings = await crossReference(dir, result.data);
           for (const finding of findings) {
+            if (finding.message.includes("lean context")) {
+              leanSkipped++;
+              continue;
+            }
             if (finding.severity === "warning") {
               console.log(warnMsg(`  strict: ${finding.message}`));
               strictWarnings++;
@@ -138,8 +147,15 @@ export async function validateCommand(options: { path?: string; strict?: boolean
 
   console.log(`\n${valid} valid, ${invalid} invalid, ${missing} missing.`);
 
-  if (options.strict && (strictWarnings > 0 || strictInfo > 0)) {
-    console.log(dim(`strict: ${strictWarnings} warning${strictWarnings !== 1 ? "s" : ""}, ${strictInfo} info across ${dirs.length} director${dirs.length !== 1 ? "ies" : "y"}`));
+  if (options.strict && (strictWarnings > 0 || strictInfo > 0 || leanSkipped > 0)) {
+    const parts: string[] = [];
+    if (strictWarnings > 0 || strictInfo > 0) {
+      parts.push(`${strictWarnings} warning${strictWarnings !== 1 ? "s" : ""}, ${strictInfo} info`);
+    }
+    if (leanSkipped > 0) {
+      parts.push(`${leanSkipped} lean context${leanSkipped !== 1 ? "s" : ""} (file cross-ref skipped)`);
+    }
+    console.log(dim(`strict: ${parts.join("; ")} across ${dirs.length} director${dirs.length !== 1 ? "ies" : "y"}`));
   }
 
   console.log("");
