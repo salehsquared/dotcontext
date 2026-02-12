@@ -36,6 +36,10 @@
           "purpose": {
             "type": "string",
             "description": "One-line description of what this file does"
+          },
+          "test_file": {
+            "description": "Associated test file (heuristic, may be wrong for non-colocated test layouts)",
+            "type": "string"
           }
         },
         "required": [
@@ -257,6 +261,54 @@
         ],
         "additionalProperties": false
       }
+    },
+    "derived_fields": {
+      "description": "Field paths that were machine-derived (high confidence)",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "description": "Machine-collected code health evidence",
+      "type": "object",
+      "properties": {
+        "collected_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of evidence collection"
+        },
+        "test_status": {
+          "type": "string",
+          "enum": [
+            "passing",
+            "failing",
+            "unknown"
+          ]
+        },
+        "test_count": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "failing_tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "typecheck": {
+          "type": "string",
+          "enum": [
+            "clean",
+            "errors",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "collected_at"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
