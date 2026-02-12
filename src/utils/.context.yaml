@@ -1,0 +1,57 @@
+version: 1
+last_updated: 2026-02-12T00:53:11.550Z
+fingerprint: 051179d3
+scope: src/utils
+summary: Directory src/utils containing 4 files. Generated with static analysis.
+files:
+  - name: config.ts
+    purpose: "Exports: loadConfig, saveConfig, resolveApiKey"
+  - name: display.ts
+    purpose: "Exports: freshnessIcon, successMsg, warnMsg (+4 more)"
+  - name: ignore.ts
+    purpose: "Exports: addToIgnore"
+  - name: scan-options.ts
+    purpose: "Exports: loadScanOptions"
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: loadConfig
+    description: Exported from config.ts
+  - name: saveConfig
+    description: Exported from config.ts
+  - name: resolveApiKey
+    description: Exported from config.ts
+  - name: freshnessIcon
+    description: Exported from display.ts
+  - name: successMsg
+    description: Exported from display.ts
+  - name: warnMsg
+    description: Exported from display.ts
+  - name: errorMsg
+    description: Exported from display.ts
+  - name: heading
+    description: Exported from display.ts
+  - name: addToIgnore
+    description: Exported from ignore.ts
+  - name: loadScanOptions
+    description: Exported from scan-options.ts
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ./config.js
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - files
+  - interfaces
+  - dependencies.internal

@@ -1,0 +1,67 @@
+version: 1
+last_updated: 2026-02-12T00:53:11.534Z
+fingerprint: f2e12df5
+scope: src/generator
+summary: Directory src/generator containing 6 files. Generated with static analysis.
+files:
+  - name: ast.ts
+    purpose: "Exports: detectExportsAST, isTreeSitterAvailable"
+  - name: dependencies.ts
+    purpose: "Exports: detectExternalDeps, detectInternalDeps"
+  - name: evidence.ts
+    purpose: "Exports: collectBasicEvidence"
+  - name: llm.ts
+    purpose: "Exports: generateLLMContext"
+  - name: prompts.ts
+    purpose: "Exports: SYSTEM_PROMPT, buildUserPrompt"
+  - name: static.ts
+    purpose: "Exports: generateStaticContext, detectExportsWithFallback, collectBasicEvidence"
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: detectExportsAST
+    description: Exported from ast.ts
+  - name: isTreeSitterAvailable
+    description: Exported from ast.ts
+  - name: detectExternalDeps
+    description: Exported from dependencies.ts
+  - name: detectInternalDeps
+    description: Exported from dependencies.ts
+  - name: collectBasicEvidence
+    description: Exported from evidence.ts
+  - name: generateLLMContext
+    description: Exported from llm.ts
+  - name: SYSTEM_PROMPT
+    description: Exported from prompts.ts
+  - name: buildUserPrompt
+    description: Exported from prompts.ts
+  - name: generateStaticContext
+    description: Exported from static.ts
+  - name: detectExportsWithFallback
+    description: Exported from static.ts
+  - name: collectBasicEvidence
+    description: Exported from static.ts
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../providers/index.js
+    - ./...
+    - ./ast.js
+    - ./dependencies.js
+    - ./evidence.js
+    - ./prompts.js
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - files
+  - interfaces
+  - dependencies.internal

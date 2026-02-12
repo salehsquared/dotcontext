@@ -124,3 +124,4 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
   console.log(`\n\nDone. ${completed} .context.yaml files created.`);
   console.log('Run `context status` to check freshness.\n');
 }
+// test stale

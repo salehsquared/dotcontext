@@ -1,0 +1,56 @@
+version: 1
+last_updated: 2026-02-12T00:53:11.552Z
+fingerprint: 53aac834
+scope: src
+summary: Directory src containing 1 files and 6 subdirectories. Generated with static analysis.
+files:
+  - name: index.ts
+    purpose: "Exports: CommandHandlers, createProgram, runCli"
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+subdirectories:
+  - name: commands/
+    summary: Directory src/commands containing 9 files. Generated with static analysis.
+  - name: core/
+    summary: Directory src/core containing 4 files. Generated with static analysis.
+  - name: generator/
+    summary: Directory src/generator containing 6 files. Generated with static analysis.
+  - name: mcp/
+    summary: Directory src/mcp containing 2 files. Generated with static analysis.
+  - name: providers/
+    summary: Directory src/providers containing 5 files. Generated with static analysis.
+  - name: utils/
+    summary: Directory src/utils containing 4 files. Generated with static analysis.
+interfaces:
+  - name: CommandHandlers
+    description: Exported from index.ts
+  - name: createProgram
+    description: Exported from index.ts
+  - name: runCli
+    description: Exported from index.ts
+dependencies:
+  internal:
+    - ./commands/config.js
+    - ./commands/ignore.js
+    - ./commands/init.js
+    - ./commands/regen.js
+    - ./commands/rehash.js
+    - ./commands/show.js
+    - ./commands/status.js
+    - ./commands/validate.js
+    - ./commands/watch.js
+    - ./mcp/server.js
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - files
+  - interfaces
+  - dependencies.internal
+  - subdirectories

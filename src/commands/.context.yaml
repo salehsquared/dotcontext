@@ -1,0 +1,74 @@
+version: 1
+last_updated: 2026-02-12T00:53:57.610Z
+fingerprint: 711cf876
+scope: src/commands
+summary: Directory src/commands containing 9 files. Generated with static analysis.
+files:
+  - name: config.ts
+    purpose: "Exports: configCommand"
+  - name: ignore.ts
+    purpose: "Exports: ignoreCommand"
+  - name: init.ts
+    purpose: "Exports: initCommand"
+  - name: regen.ts
+    purpose: "Exports: regenCommand"
+  - name: rehash.ts
+    purpose: "Exports: rehashCommand"
+  - name: show.ts
+    purpose: "Exports: showCommand"
+  - name: status.ts
+    purpose: "Exports: statusCommand"
+  - name: validate.ts
+    purpose: "Exports: validateCommand"
+  - name: watch.ts
+    purpose: "Exports: findTrackedDirForFile, watchCommand"
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+interfaces:
+  - name: configCommand
+    description: Exported from config.ts
+  - name: ignoreCommand
+    description: Exported from ignore.ts
+  - name: initCommand
+    description: Exported from init.ts
+  - name: regenCommand
+    description: Exported from regen.ts
+  - name: rehashCommand
+    description: Exported from rehash.ts
+  - name: showCommand
+    description: Exported from show.ts
+  - name: statusCommand
+    description: Exported from status.ts
+  - name: validateCommand
+    description: Exported from validate.ts
+  - name: findTrackedDirForFile
+    description: Exported from watch.ts
+  - name: watchCommand
+    description: Exported from watch.ts
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ../generator/dependencies.js
+    - ../generator/llm.js
+    - ../generator/static.js
+    - ../providers/index.js
+    - ../utils/config.js
+    - ../utils/display.js
+    - ../utils/ignore.js
+    - ../utils/scan-options.js
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - files
+  - interfaces
+  - dependencies.internal

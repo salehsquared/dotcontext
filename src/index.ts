@@ -13,6 +13,7 @@ import { configCommand } from "./commands/config.js";
 import { ignoreCommand } from "./commands/ignore.js";
 import { watchCommand } from "./commands/watch.js";
 import { startMcpServer } from "./mcp/server.js";
+import { loadEnvForCli } from "./utils/env.js";
 
 export interface CommandHandlers {
   initCommand: typeof initCommand;
@@ -161,6 +162,7 @@ export async function runCli(
   argv: string[] = process.argv,
   handlers: CommandHandlers = defaultHandlers,
 ): Promise<void> {
+  await loadEnvForCli(argv);
   const program = createProgram(handlers);
   await program.parseAsync(argv);
 }

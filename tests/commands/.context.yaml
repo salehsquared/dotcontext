@@ -1,0 +1,60 @@
+version: 1
+last_updated: 2026-02-12T00:53:11.565Z
+fingerprint: a7f63b29
+scope: tests/commands
+summary: Directory tests/commands containing 11 files. Generated with static analysis.
+files:
+  - name: config.test.ts
+    purpose: Test file
+  - name: ignore.test.ts
+    purpose: Test file
+  - name: init.test.ts
+    purpose: Test file
+  - name: regen-provider.test.ts
+    purpose: Test file
+  - name: regen.test.ts
+    purpose: Test file
+  - name: rehash.test.ts
+    purpose: Test file
+  - name: show.test.ts
+    purpose: Test file
+  - name: status.test.ts
+    purpose: Test file
+  - name: validate.test.ts
+    purpose: Test file
+  - name: watch-command.test.ts
+    purpose: Test file
+  - name: watch.test.ts
+    purpose: Test file
+maintenance: |-
+  If you modify files in this directory, update this .context.yaml to reflect
+  your changes. Update the files list, interfaces, and current_state sections.
+  Do NOT update the fingerprint manually — run `context rehash` or it will be
+  updated automatically on the next `context status` check.
+  If you only read files in this directory, do not modify this file.
+  Do not include secrets, API keys, passwords, or PII in this file.
+dependencies:
+  internal:
+    - ../../src/commands/config.js
+    - ../../src/commands/ignore.js
+    - ../../src/commands/init.js
+    - ../../src/commands/regen.js
+    - ../../src/commands/rehash.js
+    - ../../src/commands/show.js
+    - ../../src/commands/status.js
+    - ../../src/commands/validate.js
+    - ../../src/commands/watch.js
+    - ../../src/core/fingerprint.js
+    - ../../src/core/schema.js
+    - ../../src/core/writer.js
+    - ../../src/utils/config.js
+    - ../helpers.js
+    - ../lib
+    - ../utils
+derived_fields:
+  - version
+  - last_updated
+  - fingerprint
+  - scope
+  - files
+  - dependencies.internal
