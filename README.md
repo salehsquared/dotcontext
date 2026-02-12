@@ -80,9 +80,10 @@ Every LLM coding tool — Claude Code, Cursor, Copilot, Windsurf, Aider — has 
 ```bash
 npm install -g dotcontext
 
-context init                # Generate .context.yaml files (static analysis, no API key)
+context init                # Generate .context.yaml files and AGENTS.md
 context status              # Check which files are fresh/stale
-context validate            # Schema compliance check
+context regen --all --stale # Regenerate only what changed
+context doctor              # Diagnose setup issues
 context show src/core       # Pretty-print a context file
 ```
 
@@ -92,11 +93,16 @@ Requires Node.js >= 18. No accounts, no cloud services, works fully offline. See
 
 | Command | Description |
 |---|---|
-| `context init` | Scan project, generate all `.context.yaml` files |
+| `context init` | Scan project, generate all `.context.yaml` and `AGENTS.md` |
 | `context init --llm` | Use LLM for richer summaries, decisions, constraints |
-| `context init --llm --evidence` | Also collect test evidence from artifacts |
 | `context status` | Check freshness of all context files |
+| `context status --json` | Machine-readable JSON output for CI |
 | `context regen [path]` | Regenerate context for a specific directory (or `--all`) |
+| `context regen --stale` | Only regenerate stale or missing directories |
+| `context regen --dry-run` | Preview what would be regenerated without changes |
+| `context regen --parallel <n>` | Process directories concurrently |
+| `context doctor` | Check project health: config, API keys, coverage, staleness, validation |
+| `context doctor --json` | Machine-readable diagnostics for CI |
 | `context rehash` | Recompute fingerprints without regenerating content |
 | `context validate` | Schema compliance check |
 | `context validate --strict` | Cross-reference against actual source code |
@@ -106,7 +112,30 @@ Requires Node.js >= 18. No accounts, no cloud services, works fully offline. See
 | `context ignore <path>` | Add directory to `.contextignore` |
 | `context serve` | Start MCP server for LLM tool integration |
 
-All commands accept `-p, --path <path>` to target a specific project root.
+All commands accept `-p, --path <path>` to target a specific project root. `init` and `regen` accept `--no-agents` to skip `AGENTS.md` generation, `--evidence` to collect test/typecheck signals, and `--parallel <n>` for concurrent processing.
+
+## Everyday Workflow
+
+```bash
+# First run — generate everything
+context init
+
+# After editing code — regenerate only what changed
+context regen --all --stale
+
+# Preview before regenerating
+context regen --all --stale --dry-run
+
+# Speed up with concurrency (especially useful with --llm)
+context regen --all --stale --parallel 4
+
+# Check project health in one command
+context doctor
+
+# CI: machine-readable output
+context status --json
+context doctor --json
+```
 
 ## Generation Modes
 
@@ -163,6 +192,8 @@ max_depth: 5
 **Fingerprinting** — 8-char SHA-256 from sorted `filename:mtime:size`. Cheap (`stat()` only, no file reads). Detects additions, deletions, and modifications.
 
 **Staleness** — `fresh` (fingerprint matches), `stale` (files changed), `missing` (no context file). `context status` checks all; `context watch` monitors live.
+
+**AGENTS.md** — `init` and full-tree `regen` generate an `AGENTS.md` at project root: a directory index derived from `.context.yaml` summaries. User content outside the managed section is preserved. Skip with `--no-agents`.
 
 **Self-maintenance** — every `.context.yaml` embeds a `maintenance` field instructing LLMs to update it after modifying files. Works across all tools.
 
