@@ -89,3 +89,106 @@ describe("statusCommand", () => {
     // Should not throw
   });
 });
+
+describe("statusCommand --json", () => {
+  let stdoutChunks: string[];
+
+  beforeEach(() => {
+    stdoutChunks = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
+      stdoutChunks.push(String(chunk));
+      return true;
+    });
+  });
+
+  it("outputs valid JSON", async () => {
+    await createFile(tmpDir, "index.ts", "export const x = 1;");
+    const fp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: fp }));
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const raw = stdoutChunks.join("");
+    const parsed = JSON.parse(raw);
+    expect(parsed).toBeDefined();
+  });
+
+  it("JSON contains directories array with required fields", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+    const fp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: fp }));
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const parsed = JSON.parse(stdoutChunks.join(""));
+    expect(parsed.directories).toBeInstanceOf(Array);
+    expect(parsed.directories.length).toBeGreaterThan(0);
+
+    const entry = parsed.directories[0];
+    expect(entry).toHaveProperty("scope");
+    expect(entry).toHaveProperty("state");
+    expect(entry).toHaveProperty("fingerprint");
+  });
+
+  it("JSON contains summary with correct counts", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const parsed = JSON.parse(stdoutChunks.join(""));
+    expect(parsed.summary).toHaveProperty("total");
+    expect(parsed.summary).toHaveProperty("tracked");
+    expect(parsed.summary).toHaveProperty("fresh");
+    expect(parsed.summary).toHaveProperty("stale");
+    expect(parsed.summary).toHaveProperty("missing");
+    expect(parsed.summary.missing).toBe(1);
+  });
+
+  it("JSON includes root path", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const parsed = JSON.parse(stdoutChunks.join(""));
+    expect(parsed.root).toBe(tmpDir);
+  });
+
+  it("reports fresh/stale/missing states correctly in JSON", async () => {
+    await createFile(tmpDir, "index.ts", "short");
+    const fp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: fp }));
+
+    // Make it stale
+    await createFile(tmpDir, "index.ts", "this is much longer content to make it stale");
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const parsed = JSON.parse(stdoutChunks.join(""));
+    const entry = parsed.directories.find((d: { scope: string }) => d.scope === ".");
+    expect(entry.state).toBe("stale");
+  });
+
+  it("emits no extra stdout noise (single JSON-parseable object)", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    // console.log should not be called in JSON mode
+    expect(logs).toHaveLength(0);
+
+    // stdout should contain exactly one valid JSON object
+    const raw = stdoutChunks.join("");
+    expect(() => JSON.parse(raw)).not.toThrow();
+  });
+
+  it("directories sorted deterministically by scope", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+
+    await statusCommand({ path: tmpDir, json: true });
+
+    const parsed = JSON.parse(stdoutChunks.join(""));
+    const scopes = parsed.directories.map((d: { scope: string }) => d.scope);
+    const sorted = [...scopes].sort();
+    expect(scopes).toEqual(sorted);
+  });
+});

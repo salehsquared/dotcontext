@@ -287,6 +287,35 @@ function parseIgnoreFile(content: string): string[] {
 }
 
 /**
+ * Group a ScanResult tree by depth, deepest-first (bottom-up).
+ * Within each layer, all directories are siblings — no parent-child dependencies.
+ * Safe for parallel processing within each layer.
+ */
+export function groupByDepth(root: ScanResult): ScanResult[][] {
+  const groups = new Map<number, ScanResult[]>();
+
+  function walk(node: ScanResult, depth: number) {
+    const group = groups.get(depth) ?? [];
+    group.push(node);
+    groups.set(depth, group);
+    for (const child of node.children) {
+      walk(child, depth + 1);
+    }
+  }
+
+  walk(root, 0);
+
+  if (groups.size === 0) return [];
+
+  const maxDepth = Math.max(...groups.keys());
+  const result: ScanResult[][] = [];
+  for (let d = maxDepth; d >= 0; d--) {
+    if (groups.has(d)) result.push(groups.get(d)!);
+  }
+  return result;
+}
+
+/**
  * Flatten a ScanResult tree into a list, bottom-up order
  * (children before parents, for generation ordering).
  */

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { scanProject, flattenBottomUp } from "../core/scanner.js";
+import { scanProject, flattenBottomUp, groupByDepth } from "../core/scanner.js";
 import { writeContext } from "../core/writer.js";
 import { generateStaticContext } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
@@ -9,6 +9,7 @@ import { loadConfig, saveConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
 import { successMsg, errorMsg, warnMsg, progressBar, heading } from "../utils/display.js";
 import { updateAgentsMd } from "../core/markdown-writer.js";
+import { poolMap } from "../utils/pool.js";
 import type { ContextFile, ConfigFile } from "../core/schema.js";
 
 function ask(question: string): Promise<string> {
@@ -21,7 +22,7 @@ function ask(question: string): Promise<string> {
   });
 }
 
-export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean }): Promise<void> {
+export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number }): Promise<void> {
   const rootPath = resolve(options.path ?? ".");
 
   console.log(heading("\nWelcome to context.\n"));
@@ -96,30 +97,54 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
 
   const childContexts = new Map<string, ContextFile>();
   let completed = 0;
+  const genOptions = { evidence: options.evidence };
 
-  for (const dir of dirs) {
-    process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
+  if (options.parallel && options.parallel > 1) {
+    // Parallel mode: process by depth layers
+    const depthGroups = groupByDepth(scanResult);
 
-    try {
-      let context: ContextFile;
-
-      const genOptions = { evidence: options.evidence };
-      if (provider) {
-        context = await generateLLMContext(provider, dir, childContexts, genOptions);
-      } else {
-        context = await generateStaticContext(dir, childContexts, genOptions);
-      }
-
-      await writeContext(dir.path, context);
-      childContexts.set(dir.path, context);
-
-      completed++;
+    for (const group of depthGroups) {
+      await poolMap(group, async (dir) => {
+        try {
+          const context = provider
+            ? await generateLLMContext(provider, dir, childContexts, genOptions)
+            : await generateStaticContext(dir, childContexts, genOptions);
+          await writeContext(dir.path, context);
+          childContexts.set(dir.path, context);
+          completed++;
+          console.log(successMsg(`.context.yaml  ${dir.relativePath === "." ? "(root)" : dir.relativePath}`));
+        } catch (err) {
+          completed++;
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(errorMsg(`${dir.relativePath}: ${msg}`));
+        }
+      }, options.parallel);
+    }
+  } else {
+    // Sequential mode (default)
+    for (const dir of dirs) {
       process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
-      console.log(`\n${successMsg(`.context.yaml  ${dir.relativePath === "." ? "(root)" : dir.relativePath}`)}`);
-    } catch (err) {
-      completed++;
-      const msg = err instanceof Error ? err.message : String(err);
-      console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+
+      try {
+        let context: ContextFile;
+
+        if (provider) {
+          context = await generateLLMContext(provider, dir, childContexts, genOptions);
+        } else {
+          context = await generateStaticContext(dir, childContexts, genOptions);
+        }
+
+        await writeContext(dir.path, context);
+        childContexts.set(dir.path, context);
+
+        completed++;
+        process.stdout.write(`\r${progressBar(completed, dirs.length)}`);
+        console.log(`\n${successMsg(`.context.yaml  ${dir.relativePath === "." ? "(root)" : dir.relativePath}`)}`);
+      } catch (err) {
+        completed++;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`\n${errorMsg(`${dir.relativePath}: ${msg}`)}`);
+      }
     }
   }
 
@@ -151,4 +176,3 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
   console.log(`\n\nDone. ${completed} .context.yaml files created.`);
   console.log('Run `context status` to check freshness.\n');
 }
-// test stale

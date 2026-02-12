@@ -13,6 +13,7 @@ function makeHandlers(): CommandHandlers {
     configCommand: vi.fn(async () => {}),
     ignoreCommand: vi.fn(async () => {}),
     watchCommand: vi.fn(async () => {}),
+    doctorCommand: vi.fn(async () => {}),
     startMcpServer: vi.fn(async () => {}),
   };
 }
@@ -27,31 +28,31 @@ describe("CLI wiring", () => {
   it("init defaults to noLlm true and noAgents false", async () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "init", "-p", "/tmp/project"], handlers);
-    expect(handlers.initCommand).toHaveBeenCalledWith({
+    expect(handlers.initCommand).toHaveBeenCalledWith(expect.objectContaining({
       noLlm: true,
       path: "/tmp/project",
       noAgents: false,
-    });
+    }));
   });
 
   it("init --llm flips noLlm to false", async () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "init", "--llm", "-p", "/tmp/project"], handlers);
-    expect(handlers.initCommand).toHaveBeenCalledWith({
+    expect(handlers.initCommand).toHaveBeenCalledWith(expect.objectContaining({
       noLlm: false,
       path: "/tmp/project",
       noAgents: false,
-    });
+    }));
   });
 
   it("init --no-agents sets noAgents to true", async () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "init", "--no-agents", "-p", "/tmp/project"], handlers);
-    expect(handlers.initCommand).toHaveBeenCalledWith({
+    expect(handlers.initCommand).toHaveBeenCalledWith(expect.objectContaining({
       noLlm: true,
       path: "/tmp/project",
       noAgents: true,
-    });
+    }));
   });
 
   it("regen --no-llm maps to noLlm true", async () => {
@@ -60,13 +61,13 @@ describe("CLI wiring", () => {
       ["node", "context", "regen", "src", "--no-llm", "--all", "--force", "-p", "/tmp/project"],
       handlers,
     );
-    expect(handlers.regenCommand).toHaveBeenCalledWith("src", {
+    expect(handlers.regenCommand).toHaveBeenCalledWith("src", expect.objectContaining({
       all: true,
       force: true,
       noLlm: true,
       path: "/tmp/project",
       noAgents: false,
-    });
+    }));
   });
 
   it("regen --no-agents sets noAgents to true", async () => {
@@ -125,5 +126,74 @@ describe("CLI wiring", () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "watch", "-p", "/tmp/project", "--interval", "250"], handlers);
     expect(handlers.watchCommand).toHaveBeenCalledWith({ path: "/tmp/project", interval: "250" });
+  });
+
+  it("regen --stale passes stale: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "regen", "--stale", "--all", "-p", "/tmp/project"], handlers);
+    expect(handlers.regenCommand).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      stale: true,
+      all: true,
+    }));
+  });
+
+  it("regen --dry-run passes dryRun: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "regen", "--dry-run", "--all", "-p", "/tmp/project"], handlers);
+    expect(handlers.regenCommand).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      dryRun: true,
+    }));
+  });
+
+  it("regen --parallel 4 passes parallel: 4", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "regen", "--parallel", "4", "--all", "-p", "/tmp/project"], handlers);
+    expect(handlers.regenCommand).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      parallel: 4,
+    }));
+  });
+
+  it("regen --parallel invalid (NaN) returns error", async () => {
+    const handlers = makeHandlers();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await parse(["node", "context", "regen", "--parallel", "abc", "--all", "-p", "/tmp/project"], handlers);
+    expect(handlers.regenCommand).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+    errorSpy.mockRestore();
+    process.exitCode = 0;
+  });
+
+  it("init --parallel 4 passes parallel: 4", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "init", "--parallel", "4", "-p", "/tmp/project"], handlers);
+    expect(handlers.initCommand).toHaveBeenCalledWith(expect.objectContaining({
+      parallel: 4,
+    }));
+  });
+
+  it("status --json passes json: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "status", "--json", "-p", "/tmp/project"], handlers);
+    expect(handlers.statusCommand).toHaveBeenCalledWith({
+      path: "/tmp/project",
+      json: true,
+    });
+  });
+
+  it("doctor command calls doctorCommand", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "doctor", "-p", "/tmp/project"], handlers);
+    expect(handlers.doctorCommand).toHaveBeenCalledWith({
+      path: "/tmp/project",
+    });
+  });
+
+  it("doctor --json passes json: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "doctor", "--json", "-p", "/tmp/project"], handlers);
+    expect(handlers.doctorCommand).toHaveBeenCalledWith({
+      path: "/tmp/project",
+      json: true,
+    });
   });
 });

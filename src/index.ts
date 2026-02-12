@@ -12,8 +12,10 @@ import { showCommand } from "./commands/show.js";
 import { configCommand } from "./commands/config.js";
 import { ignoreCommand } from "./commands/ignore.js";
 import { watchCommand } from "./commands/watch.js";
+import { doctorCommand } from "./commands/doctor.js";
 import { startMcpServer } from "./mcp/server.js";
 import { loadEnvForCli } from "./utils/env.js";
+import { errorMsg } from "./utils/display.js";
 
 export interface CommandHandlers {
   initCommand: typeof initCommand;
@@ -25,6 +27,7 @@ export interface CommandHandlers {
   configCommand: typeof configCommand;
   ignoreCommand: typeof ignoreCommand;
   watchCommand: typeof watchCommand;
+  doctorCommand: typeof doctorCommand;
   startMcpServer: typeof startMcpServer;
 }
 
@@ -38,6 +41,7 @@ const defaultHandlers: CommandHandlers = {
   configCommand,
   ignoreCommand,
   watchCommand,
+  doctorCommand,
   startMcpServer,
 };
 
@@ -55,22 +59,30 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--llm", "Use LLM provider for richer context generation")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
     .option("--no-agents", "Skip AGENTS.md generation")
+    .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
+      if (opts.parallel !== undefined && (!Number.isInteger(opts.parallel) || opts.parallel < 1)) {
+        console.error(errorMsg("--parallel must be a positive integer"));
+        process.exitCode = 1;
+        return;
+      }
       await handlers.initCommand({
         noLlm: !opts.llm,
         path: opts.path,
         evidence: opts.evidence,
         noAgents: opts.agents === false,
+        parallel: opts.parallel,
       });
     });
 
   program
     .command("status")
     .description("Check freshness of all .context.yaml files")
+    .option("--json", "Output machine-readable JSON")
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
-      await handlers.statusCommand({ path: opts.path });
+      await handlers.statusCommand({ path: opts.path, json: opts.json });
     });
 
   program
@@ -81,8 +93,16 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--no-llm", "Use static analysis only")
     .option("--evidence", "Collect test/typecheck evidence from existing artifacts")
     .option("--no-agents", "Skip AGENTS.md generation")
+    .option("--stale", "Only regenerate stale or missing contexts")
+    .option("--dry-run", "Preview what would be regenerated without changes")
+    .option("--parallel <n>", "Process directories in parallel (n = concurrency)", parseInt)
     .option("-p, --path <path>", "Project root path")
     .action(async (target, opts) => {
+      if (opts.parallel !== undefined && (!Number.isInteger(opts.parallel) || opts.parallel < 1)) {
+        console.error(errorMsg("--parallel must be a positive integer"));
+        process.exitCode = 1;
+        return;
+      }
       await handlers.regenCommand(target, {
         all: opts.all,
         force: opts.force,
@@ -90,6 +110,9 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
         path: opts.path,
         evidence: opts.evidence,
         noAgents: opts.agents === false,
+        stale: opts.stale,
+        dryRun: opts.dryRun,
+        parallel: opts.parallel,
       });
     });
 
@@ -152,6 +175,15 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("--interval <ms>", "Debounce interval in milliseconds", "500")
     .action(async (opts) => {
       await handlers.watchCommand({ path: opts.path, interval: opts.interval });
+    });
+
+  program
+    .command("doctor")
+    .description("Check project health: config, API keys, coverage, staleness, validation")
+    .option("--json", "Output machine-readable JSON")
+    .option("-p, --path <path>", "Project root path")
+    .action(async (opts) => {
+      await handlers.doctorCommand({ path: opts.path, json: opts.json });
     });
 
   program

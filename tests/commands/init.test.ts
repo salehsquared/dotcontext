@@ -233,3 +233,25 @@ describe("initCommand AGENTS.md generation", () => {
     expect(output).toContain("AGENTS.md created");
   });
 });
+
+describe("initCommand --parallel", () => {
+  it("produces same contexts as sequential mode", async () => {
+    await copyFixture("simple-project");
+    await initCommand({ noLlm: true, path: tmpDir, noAgents: true });
+
+    const seqRoot = parse(await readFile(join(tmpDir, CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+    const seqSrc = parse(await readFile(join(tmpDir, "src", CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+
+    // Strip context files and re-run with --parallel
+    await stripContextFiles(tmpDir);
+    await initCommand({ noLlm: true, path: tmpDir, noAgents: true, parallel: 4 });
+
+    const parRoot = parse(await readFile(join(tmpDir, CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+    const parSrc = parse(await readFile(join(tmpDir, "src", CONTEXT_FILENAME), "utf-8")) as Record<string, unknown>;
+
+    expect(parRoot.scope).toBe(seqRoot.scope);
+    expect(parRoot.summary).toBe(seqRoot.summary);
+    expect(parSrc.scope).toBe(seqSrc.scope);
+    expect(parSrc.summary).toBe(seqSrc.summary);
+  });
+});
