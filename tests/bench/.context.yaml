@@ -4,8 +4,9 @@ fingerprint: 97708f88
 scope: tests/bench
 summary: >
   This directory contains tests for the benchmarking and evaluation features of the codebase, validating the
-  functionality of various modules such as Git commit extraction, dependency building, task generation, and scoring
-  methods. The tests ensure reliability and correctness of the functions managing code analysis and reporting.
+  functionality of various modules such as Git commit extraction, dependency building, scoped prompt construction,
+  runtime token estimation, task generation, and scoring methods. The tests ensure reliability and correctness of the
+  benchmark reporting pipeline.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -31,6 +32,7 @@ dependencies:
     - ../../src/bench/runner.js
     - ../../src/bench/scorer.js
     - ../../src/bench/tasks.js
+    - ../../src/bench/token-estimator.js
     - ../../src/bench/types.js
     - ../../src/core/scanner.js
     - ../helpers.js

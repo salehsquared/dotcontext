@@ -9,6 +9,9 @@ import type {
 } from "./types.js";
 import { buildJudgePrompt } from "./prompts.js";
 
+export const JUDGE_SYSTEM_PROMPT =
+  "You are a precise evaluator. Respond with ONLY a single digit: 0, 1, 2, or 3.";
+
 const ABSTENTION_PATTERNS = [
   /\bi don'?t know\b/i,
   /\bnot sure\b/i,
@@ -108,10 +111,7 @@ export async function scoreLlmJudge(
 ): Promise<number> {
   const prompt = buildJudgePrompt(question, response, referenceFacts);
   try {
-    const result = await provider.generate(
-      "You are a precise evaluator. Respond with ONLY a single digit: 0, 1, 2, or 3.",
-      prompt,
-    );
+    const result = await provider.generate(JUDGE_SYSTEM_PROMPT, prompt);
     const digit = result.trim().match(/^[0-3]/);
     if (!digit) return 0.0;
     return parseInt(digit[0]) / 3.0;
@@ -165,10 +165,19 @@ function summarizeCondition(
     taskCount > 0 ? scores.reduce((a, b) => a + b, 0) / taskCount : 0;
   const abstentionCount = conditionResults.filter((r) => r.abstained).length;
   const totalLatency = conditionResults.reduce((a, r) => a + r.latency_ms, 0);
-  const totalTokens = conditionResults.reduce(
-    (a, r) => a + r.scope_tokens_est,
+  const totalAnswerTokens = conditionResults.reduce(
+    (a, r) => a + (r.answer_input_tokens_est ?? 0),
     0,
   );
+  const totalJudgeTokens = conditionResults.reduce(
+    (a, r) => a + (r.judge_input_tokens_est ?? 0),
+    0,
+  );
+  const totalTokens = conditionResults.reduce((a, r) => {
+    if (typeof r.total_input_tokens_est === "number") return a + r.total_input_tokens_est;
+    if (typeof r.scope_tokens_est === "number") return a + r.scope_tokens_est;
+    return a + (r.answer_input_tokens_est ?? 0) + (r.judge_input_tokens_est ?? 0);
+  }, 0);
   const correctCount = conditionResults.filter((r) => r.score >= 0.7).length;
 
   // Build category breakdown
@@ -199,6 +208,8 @@ function summarizeCondition(
     stddev_score: computeStddev(scores),
     abstention_rate: taskCount > 0 ? abstentionCount / taskCount : 0,
     mean_latency_ms: taskCount > 0 ? totalLatency / taskCount : 0,
+    total_answer_tokens_est: totalAnswerTokens,
+    total_judge_tokens_est: totalJudgeTokens,
     total_tokens_est: totalTokens,
     cost_per_correct: correctCount > 0 ? totalTokens / correctCount : Infinity,
     by_category: byCategory,

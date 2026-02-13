@@ -42,6 +42,23 @@ Every LLM coding tool — Claude Code, Cursor, Copilot, Windsurf, Aider — has 
 
 By default, context files focus on what LLMs actually find useful: **summaries** (what is this directory?), **decisions** (why was it built this way?), and **constraints** (what rules must I follow?). File listings, interfaces, and dependency graphs are omitted — LLMs can get those faster from the source code itself.
 
+### The real cost of file exploration
+
+The token cost of exploring code is worse than it looks. When Claude Code, Cursor, or Copilot reads files to understand a directory, each file read is a tool call — and every tool call replays the entire conversation history. An agent reading 5 files doesn't pay for 5 files. It pays for the first file, then the first *and* second, then all three, and so on:
+
+```
+Turn 1:  system + file₁                          →  1 file of context
+Turn 2:  system + file₁ + file₂                  →  2 files of context
+Turn 3:  system + file₁ + file₂ + file₃          →  3 files of context
+Turn 4:  system + file₁ + file₂ + file₃ + file₄  →  4 files of context
+Turn 5:  ...                                      →  5 files of context
+                                              Total: 15 file-reads of tokens
+```
+
+That's `N × (N + 1) / 2` — roughly **3x** the naive "just sum the file sizes" estimate. For a 10-file directory, it's closer to **5.5x**. And this doesn't count the files the agent opens that turn out to be irrelevant, or the imports it follows into other directories.
+
+With `.context.yaml`, the agent reads one small file (~25 lines), gets oriented, and either answers immediately or opens exactly the one file it needs. Two turns instead of ten. The token savings compound with every file the agent *doesn't* have to explore.
+
 ## Why `.context.yaml` Instead of `README.md`?
 
 `README.md` is still important, but it solves a different problem.

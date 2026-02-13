@@ -23,7 +23,6 @@ function makeInput(overrides: Record<string, unknown> = {}) {
     reverseDeps: new Map<string, string[]>(),
     fixCommits: [] as Commit[],
     featureCommits: [] as Commit[],
-    contextFileSizes: new Map<string, number>(),
     seed: 42,
     ...overrides,
   };

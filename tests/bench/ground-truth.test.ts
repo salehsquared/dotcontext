@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { createTmpDir, cleanupTmpDir, createFile, makeScanResult } from "../helpers.js";
 import {
   buildDepSets,
   buildReverseDeps,
   buildDirFacts,
   buildFileTree,
-  computeScopeTokens,
+  computeScopeWindow,
+  buildScopedFileTree,
 } from "../../src/bench/ground-truth.js";
-import type { ScanResult } from "../../src/core/scanner.js";
 
 let tmpDir: string;
 
@@ -173,47 +173,61 @@ describe("buildFileTree", () => {
   });
 });
 
-describe("computeScopeTokens", () => {
-  it("baseline includes source files in scope dir", async () => {
-    // Create files with known sizes
-    await createFile(tmpDir, "a.ts", "x".repeat(400)); // 400 bytes
-    await createFile(tmpDir, "b.ts", "y".repeat(400)); // 400 bytes
+describe("scoped context windows", () => {
+  it("includes root, parent, scope, and direct children", async () => {
+    const coreDir = join(tmpDir, "src/core");
+    const utilsDir = join(tmpDir, "src/utils");
+    await mkdir(coreDir, { recursive: true });
+    await mkdir(utilsDir, { recursive: true });
+    await createFile(tmpDir, "README.md", "root");
+    await createFile(join(tmpDir, "src"), "index.ts", "export {}");
+    await createFile(coreDir, "fingerprint.ts", "export {}");
+    await createFile(utilsDir, "pool.ts", "export {}");
 
-    const scan = makeScanResult(tmpDir, { files: ["a.ts", "b.ts"] });
-    const contextSizes = new Map<string, number>();
-    contextSizes.set(".", 100); // 100 byte context file
+    const coreScan = makeScanResult(coreDir, { relativePath: "src/core", files: ["fingerprint.ts"] });
+    const utilsScan = makeScanResult(utilsDir, { relativePath: "src/utils", files: ["pool.ts"] });
+    const srcScan = makeScanResult(join(tmpDir, "src"), {
+      relativePath: "src",
+      files: ["index.ts"],
+      children: [coreScan, utilsScan],
+    });
+    const scan = makeScanResult(tmpDir, { files: ["README.md"], children: [srcScan] });
 
-    const tokens = await computeScopeTokens(".", scan, contextSizes);
-    expect(tokens.baseline).toBe(200); // 800 bytes / 4
+    const window = computeScopeWindow("src", scan);
+    expect(window.resolvedScope).toBe("src");
+    expect(window.scopes).toEqual([".", "src", "src/core", "src/utils"]);
   });
 
-  it("context includes .context.yaml for scope + parent + children", async () => {
-    await createFile(tmpDir, "a.ts", "x".repeat(4000));
-    const childDir = join(tmpDir, "core");
-    await mkdir(childDir);
-    await createFile(childDir, "b.ts", "y".repeat(4000));
+  it("falls back to nearest tracked ancestor when scope is missing", () => {
+    const srcScan = makeScanResult(join(tmpDir, "src"), { relativePath: "src", files: ["index.ts"] });
+    const scan = makeScanResult(tmpDir, { files: [], children: [srcScan] });
 
-    const childScan = makeScanResult(childDir, { relativePath: "core", files: ["b.ts"] });
-    const scan = makeScanResult(tmpDir, { files: ["a.ts"], children: [childScan] });
-
-    const contextSizes = new Map<string, number>();
-    contextSizes.set(".", 200);
-    contextSizes.set("core", 100);
-
-    const tokens = await computeScopeTokens(".", scan, contextSizes);
-    // context = (200 + 100) / 4 = 75
-    expect(tokens.context).toBe(75);
+    const window = computeScopeWindow("src/unknown/deep", scan);
+    expect(window.resolvedScope).toBe("src");
+    expect(window.scopes).toContain("src");
   });
 
-  it("context tokens << baseline tokens for typical directories", async () => {
-    await createFile(tmpDir, "big.ts", "x".repeat(10000));
+  it("renders scoped file tree with relevant directories only", () => {
+    const coreScan = makeScanResult(join(tmpDir, "src/core"), {
+      relativePath: "src/core",
+      files: ["fingerprint.ts"],
+    });
+    const srcScan = makeScanResult(join(tmpDir, "src"), {
+      relativePath: "src",
+      files: ["index.ts"],
+      children: [coreScan],
+    });
+    const testsScan = makeScanResult(join(tmpDir, "tests"), {
+      relativePath: "tests",
+      files: ["runner.test.ts"],
+    });
+    const scan = makeScanResult(tmpDir, { files: ["README.md"], children: [srcScan, testsScan] });
 
-    const scan = makeScanResult(tmpDir, { files: ["big.ts"] });
-    const contextSizes = new Map<string, number>();
-    contextSizes.set(".", 200);
-
-    const tokens = await computeScopeTokens(".", scan, contextSizes);
-    expect(tokens.context).toBeLessThan(tokens.baseline);
-    expect(tokens.baseline / tokens.context).toBeGreaterThan(10);
+    const scoped = buildScopedFileTree("src", scan);
+    expect(scoped.tree).toContain("Target scope: src/");
+    expect(scoped.tree).toContain("- src/");
+    expect(scoped.tree).toContain("  - index.ts");
+    expect(scoped.tree).toContain("- src/core/");
+    expect(scoped.tree).not.toContain("- tests/");
   });
 });

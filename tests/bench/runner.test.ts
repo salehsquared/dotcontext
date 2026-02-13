@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { runBench } from "../../src/bench/runner.js";
-import { makeValidContext } from "../helpers.js";
+import { makeScanResult, makeValidContext } from "../helpers.js";
 import type { BenchTask } from "../../src/bench/types.js";
 
 describe("runBench", () => {
@@ -12,13 +12,27 @@ describe("runBench", () => {
       scoring: "llm_judge",
       expected: ["Files: a.ts"],
       source_scope: "src",
-      scope_tokens: { baseline: 500, context: 25 },
     },
   ];
 
   const contextFiles = new Map([
-    ["src", makeValidContext({ summary: "Main source" })],
+    [".", makeValidContext({ scope: ".", summary: "Project root" })],
+    ["src", makeValidContext({ scope: "src", summary: "Main source" })],
+    ["tests", makeValidContext({ scope: "tests", summary: "Unrelated tests" })],
   ]);
+
+  const srcScan = makeScanResult("/tmp/project/src", {
+    relativePath: "src",
+    files: ["index.ts", "core.ts"],
+  });
+  const testsScan = makeScanResult("/tmp/project/tests", {
+    relativePath: "tests",
+    files: ["runner.test.ts"],
+  });
+  const scanResult = makeScanResult("/tmp/project", {
+    files: ["README.md"],
+    children: [srcScan, testsScan],
+  });
 
   it("calls provider for each task x condition x iteration", async () => {
     const mockProvider = {
@@ -28,7 +42,9 @@ describe("runBench", () => {
     const results = await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "./\n  src/",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: "# Test",
       contextFiles,
       iterations: 1,
@@ -48,7 +64,9 @@ describe("runBench", () => {
     await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "my-tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: "My README content",
       contextFiles,
       iterations: 1,
@@ -57,7 +75,7 @@ describe("runBench", () => {
     // First call should be baseline
     const firstCallArgs = mockProvider.generate.mock.calls[0];
     const userPrompt = firstCallArgs[1];
-    expect(userPrompt).toContain("my-tree");
+    expect(userPrompt).toContain("Target scope: src/");
     expect(userPrompt).toContain("My README content");
   });
 
@@ -69,7 +87,9 @@ describe("runBench", () => {
     await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "my-tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: null,
       contextFiles,
       iterations: 1,
@@ -79,10 +99,11 @@ describe("runBench", () => {
     const contextCallArgs = mockProvider.generate.mock.calls[2];
     const userPrompt = contextCallArgs[1];
     expect(userPrompt).toContain("Main source");
-    expect(userPrompt).toContain("compressed directory documentation");
+    expect(userPrompt).toContain("scoped project documentation");
+    expect(userPrompt).not.toContain("Unrelated tests");
   });
 
-  it("records latency and token estimates", async () => {
+  it("records latency and prompt token estimates", async () => {
     const mockProvider = {
       generate: vi.fn().mockResolvedValue("2"),
     };
@@ -90,21 +111,48 @@ describe("runBench", () => {
     const results = await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "tree",
-      readme: null,
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
+      readme: "README section with enough content to inflate baseline prompt.\n".repeat(20),
       contextFiles,
       iterations: 1,
     });
 
     for (const r of results) {
       expect(r.latency_ms).toBeGreaterThanOrEqual(0);
-      expect(r.scope_tokens_est).toBeGreaterThan(0);
+      expect(r.answer_input_tokens_est).toBeGreaterThan(0);
+      expect(r.total_input_tokens_est).toBeGreaterThanOrEqual(r.answer_input_tokens_est);
     }
 
     // baseline should have higher token estimate than context
     const baselineResult = results.find(r => r.condition === "baseline")!;
     const contextResult = results.find(r => r.condition === "context")!;
-    expect(baselineResult.scope_tokens_est).toBeGreaterThan(contextResult.scope_tokens_est);
+    expect(baselineResult.total_input_tokens_est).toBeGreaterThan(contextResult.total_input_tokens_est);
+  });
+
+  it("includes judge token estimates for llm_judge tasks", async () => {
+    const mockProvider = {
+      generate: vi.fn().mockResolvedValue("2"),
+    };
+
+    const results = await runBench({
+      tasks,
+      provider: mockProvider,
+      providerName: "openai",
+      modelName: "gpt-4o-mini",
+      scanResult,
+      readme: null,
+      contextFiles,
+      iterations: 1,
+    });
+
+    for (const r of results) {
+      expect(r.judge_input_tokens_est).toBeGreaterThan(0);
+      expect(r.total_input_tokens_est).toBe(
+        r.answer_input_tokens_est + r.judge_input_tokens_est,
+      );
+    }
   });
 
   it("reports progress", async () => {
@@ -117,7 +165,9 @@ describe("runBench", () => {
     await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: null,
       contextFiles,
       iterations: 1,
@@ -142,7 +192,9 @@ describe("runBench", () => {
     const results = await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: null,
       contextFiles,
       iterations: 1,
@@ -161,7 +213,9 @@ describe("runBench", () => {
     const results = await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: null,
       contextFiles,
       iterations: 1,
@@ -179,7 +233,9 @@ describe("runBench", () => {
     const results = await runBench({
       tasks,
       provider: mockProvider,
-      fileTree: "tree",
+      providerName: "anthropic",
+      modelName: "claude-3-5-haiku-latest",
+      scanResult,
       readme: null,
       contextFiles,
       iterations: 2,

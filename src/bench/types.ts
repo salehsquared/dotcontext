@@ -23,10 +23,6 @@ export interface BenchTask {
   scoring: ScoringMethod;
   expected: string[];
   source_scope: string;
-  scope_tokens: {
-    baseline: number;
-    context: number;
-  };
 }
 
 export interface TaskResult {
@@ -37,7 +33,11 @@ export interface TaskResult {
   score: number;
   abstained: boolean;
   latency_ms: number;
-  scope_tokens_est: number;
+  answer_input_tokens_est: number;
+  judge_input_tokens_est: number;
+  total_input_tokens_est: number;
+  /** @deprecated legacy alias for total_input_tokens_est */
+  scope_tokens_est?: number;
 }
 
 export interface ConditionSummary {
@@ -47,6 +47,8 @@ export interface ConditionSummary {
   stddev_score: number;
   abstention_rate: number;
   mean_latency_ms: number;
+  total_answer_tokens_est: number;
+  total_judge_tokens_est: number;
   total_tokens_est: number;
   cost_per_correct: number;
   by_category: Record<string, { count: number; mean_score: number }>;

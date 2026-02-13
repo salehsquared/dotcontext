@@ -1,12 +1,9 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { detectExternalDeps, detectInternalDeps } from "../generator/dependencies.js";
 import { detectExportsWithFallback } from "../generator/static.js";
 import { flattenBottomUp, type ScanResult } from "../core/scanner.js";
-import { CONTEXT_FILENAME } from "../core/schema.js";
 import type { DirFacts } from "./types.js";
-
-const BYTES_PER_TOKEN = 4;
 
 export async function buildDepSets(
   scanResult: ScanResult,
@@ -187,60 +184,102 @@ export function buildFileTree(scanResult: ScanResult, indent = ""): string {
   return lines.join("\n");
 }
 
-export async function computeScopeTokens(
+function resolveTrackedScope(sourceScope: string, dirMap: Map<string, ScanResult>): string {
+  if (dirMap.has(sourceScope)) return sourceScope;
+
+  let candidate = sourceScope;
+  while (candidate.includes("/")) {
+    candidate = candidate.substring(0, candidate.lastIndexOf("/"));
+    if (dirMap.has(candidate)) return candidate;
+  }
+
+  if (dirMap.has(".")) return ".";
+  return dirMap.keys().next().value ?? sourceScope;
+}
+
+export interface ScopeWindow {
+  resolvedScope: string;
+  scopes: string[];
+}
+
+export function computeScopeWindow(
   sourceScope: string,
   scanResult: ScanResult,
-  contextFileSizes: Map<string, number>,
-): Promise<{ baseline: number; context: number }> {
+): ScopeWindow {
   const allDirs = flattenBottomUp(scanResult);
   const dirMap = new Map<string, ScanResult>();
   for (const dir of allDirs) {
     dirMap.set(dir.relativePath, dir);
   }
 
-  // Baseline: sum source file sizes in scope dir + 1 level of children
-  let baselineBytes = 0;
-  const scopeDir = dirMap.get(sourceScope);
+  const resolvedScope = resolveTrackedScope(sourceScope, dirMap);
+  const scopeDir = dirMap.get(resolvedScope);
+
+  const scopes: string[] = [];
+  const seen = new Set<string>();
+  const pushScope = (scope: string) => {
+    if (!scope || seen.has(scope) || !dirMap.has(scope)) return;
+    seen.add(scope);
+    scopes.push(scope);
+  };
+
+  // Always include root if available for orientation.
+  pushScope(".");
+
+  const parentScope = resolvedScope === "."
+    ? undefined
+    : resolvedScope.includes("/")
+      ? resolvedScope.substring(0, resolvedScope.lastIndexOf("/"))
+      : ".";
+  if (parentScope) pushScope(parentScope);
+
+  pushScope(resolvedScope);
   if (scopeDir) {
-    baselineBytes += await sumFileBytes(scopeDir);
-    // Include 1 level of subdirectories
     for (const child of scopeDir.children) {
-      baselineBytes += await sumFileBytes(child);
+      pushScope(child.relativePath);
     }
   }
 
-  // Context: sum .context.yaml sizes for scope + parent + children
-  let contextBytes = 0;
-  contextBytes += contextFileSizes.get(sourceScope) ?? 0;
+  return { resolvedScope, scopes };
+}
 
-  // Parent scope
-  const parentScope = sourceScope.includes("/")
-    ? sourceScope.substring(0, sourceScope.lastIndexOf("/"))
-    : sourceScope === "." ? "" : ".";
-  if (parentScope) {
-    contextBytes += contextFileSizes.get(parentScope) ?? 0;
+const MAX_FILES_PER_SCOPE = 30;
+
+export function buildScopedFileTree(
+  sourceScope: string,
+  scanResult: ScanResult,
+): { tree: string; scopes: string[]; resolvedScope: string } {
+  const allDirs = flattenBottomUp(scanResult);
+  const dirMap = new Map<string, ScanResult>();
+  for (const dir of allDirs) {
+    dirMap.set(dir.relativePath, dir);
   }
 
-  // Child scopes
-  if (scopeDir) {
-    for (const child of scopeDir.children) {
-      contextBytes += contextFileSizes.get(child.relativePath) ?? 0;
+  const window = computeScopeWindow(sourceScope, scanResult);
+  const lines: string[] = [];
+
+  lines.push(`Target scope: ${window.resolvedScope === "." ? "./" : `${window.resolvedScope}/`}`);
+  lines.push("Relevant directories:");
+
+  for (const scope of window.scopes) {
+    const dir = dirMap.get(scope);
+    if (!dir) continue;
+
+    const label = scope === "." ? "./" : `${scope}/`;
+    lines.push(`- ${label}`);
+
+    const files = [...dir.files].sort();
+    for (const file of files.slice(0, MAX_FILES_PER_SCOPE)) {
+      lines.push(`  - ${file}`);
+    }
+    if (files.length > MAX_FILES_PER_SCOPE) {
+      lines.push(`  - ... (+${files.length - MAX_FILES_PER_SCOPE} more files)`);
     }
   }
 
   return {
-    baseline: Math.ceil(baselineBytes / BYTES_PER_TOKEN),
-    context: Math.max(1, Math.ceil(contextBytes / BYTES_PER_TOKEN)),
+    tree: lines.join("\n"),
+    scopes: window.scopes,
+    resolvedScope: window.resolvedScope,
   };
-}
-
-async function sumFileBytes(dir: ScanResult): Promise<number> {
-  let total = 0;
-  for (const file of dir.files) {
-    try {
-      const s = await stat(join(dir.path, file));
-      total += s.size;
-    } catch { /* skip */ }
-  }
-  return total;
 }

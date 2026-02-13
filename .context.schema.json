@@ -25,6 +25,7 @@
       "description": "1-3 sentence description of this directory"
     },
     "files": {
+      "description": "Files in this directory",
       "type": "array",
       "items": {
         "type": "object",
@@ -47,8 +48,7 @@
           "purpose"
         ],
         "additionalProperties": false
-      },
-      "description": "Files in this directory"
+      }
     },
     "maintenance": {
       "type": "string",
@@ -210,6 +210,13 @@
         "type": "string"
       }
     },
+    "exports": {
+      "description": "Compact method signatures and API surface",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "project": {
       "type": "object",
       "properties": {
@@ -317,7 +324,6 @@
     "fingerprint",
     "scope",
     "summary",
-    "files",
     "maintenance"
   ],
   "additionalProperties": false

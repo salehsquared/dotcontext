@@ -1,80 +1,39 @@
 version: 1
-last_updated: 2026-02-12T04:46:38.438Z
-fingerprint: 1915b825
+last_updated: 2026-02-13T06:15:32.889Z
+fingerprint: be1ab5f4
 scope: .
 summary: >
-  This project contains structured documentation for a codebase using .context.yaml files for each directory, enabling
-  LLMs to understand the code structure and functionality without requiring direct access to the source files.
-files:
-  - name: .context.config.schema.json
-    purpose: Defines the JSON schema for .context configuration files.
-  - name: .context.schema.json
-    purpose: Defines the JSON schema for .context.yaml files.
-  - name: AGENTS.md
-    purpose: Instructions for AI coding agents working in this repository.
-  - name: PLAN.md
-    purpose: Project planning and rationale behind the .context documentation strategy.
-  - name: README.md
-    purpose: Overview and usage instructions for the dotcontext project.
-  - name: package-lock.json
-    purpose: Dependency lockfile for the project.
-  - name: package.json
-    purpose: Metadata and dependency management for the dotcontext project.
-  - name: tsconfig.json
-    purpose: TypeScript configuration for the project.
-  - name: vitest.config.ts
-    purpose: Configuration for running tests using Vitest.
+  The root directory provides folder-level documentation for LLMs, containing `.context.yaml` files for every
+  subdirectory to summarize their purpose and structure, as well as architectural decisions and constraints.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
-  your changes. Update the files list, interfaces, and current_state sections.
+  your changes. Update the summary, and any decisions or constraints that changed.
   Do NOT update the fingerprint manually — run `context rehash` or it will be
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-dependencies:
-  external:
-    - "@anthropic-ai/sdk ^0.74.0"
-    - "@modelcontextprotocol/sdk ^1.26.0"
-    - chalk ^5.6.2
-    - chokidar ^4.0.3
-    - commander ^14.0.3
-    - openai ^6.21.0
-    - web-tree-sitter ^0.26.5
-    - yaml ^2.8.2
-    - zod ^4.3.6
-    - "@types/node ^25.2.3 (dev)"
-    - tree-sitter-cli ^0.26.5 (dev)
-    - tree-sitter-go ^0.25.0 (dev)
-    - tree-sitter-javascript ^0.25.0 (dev)
-    - tree-sitter-python ^0.25.0 (dev)
-    - tree-sitter-rust ^0.24.0 (dev)
-    - tree-sitter-typescript ^0.23.2 (dev)
-    - typescript ^5.9.3 (dev)
-    - vitest ^4.0.18 (dev)
 subdirectories:
-  - name: OneContext_analysis/
-    summary: >
-      The OneContext_analysis directory contains documentation for the OneContext platform, which provides a unified
-      context for AI agents, allowing efficient management of agent sessions, context sharing, and collaborative
-      interaction.
   - name: docs/
     summary: >
-      This directory contains documentation for using dotcontext in CI/CD pipelines, integrations with LLM tools,
-      limitations, and troubleshooting common issues.
+      The `docs` directory provides comprehensive information and guidance on using the dotcontext tool, including CI/CD
+      integration, usage patterns, limitations, and quickstart instructions for generating and validating context files.
+      It serves as a resource for both new users and developers seeking to understand the architecture and operational
+      constraints of the tool.
   - name: scripts/
     summary: >
-      The scripts directory contains automation scripts to manage grammar files and generate JSON Schema files from Zod
-      schemas.
+      The scripts directory contains utility scripts for building grammars, generating JSON schemas from Zod schemas,
+      and managing local project context settings. These scripts automate essential tasks to facilitate project setup
+      and schema management.
   - name: src/
     summary: >
-      The src directory implements a command-line tool for generating, validating, and managing .context.yaml files for
-      projects, leveraging a variety of functionalities through commands for initialization, regeneration, and status
-      checks.
+      The src directory serves as the core implementation area for a command-line tool that generates and manages
+      `.context.yaml` documentation files for codebases. It encapsulates various functionalities including command
+      handling, context generation, and project health checks.
   - name: tests/
     summary: >
-      The tests directory contains unit tests for various modules within the application, ensuring proper functionality
-      and correctness of features such as dependency detection, environment variable management, file scanning, and
-      context generation.
+      The tests directory contains unit tests for various components of the application, ensuring functionality and
+      reliability through structured tests across modules including command execution, core markdown management,
+      generator validations, MCP protocol behaviors, utility functions, and benchmarking features.
 project:
   name: dotcontext
   description: Folder-level documentation for LLMs — .context.yaml files for every directory
@@ -83,28 +42,17 @@ project:
   package_manager: npm
 structure:
   - path: docs/
-    summary: This directory contains documentation for using dotcontext in CI/CD pipelines, integrations with LLM tools,
-      limitations, and troubleshooting common issues.
-  - path: OneContext_analysis/
-    summary: The OneContext_analysis directory contains documentation for the OneContext platform, which provides a unified
-      context for AI agents, allowing efficient management of agent sessions, context sharing, and collaborative
-      interaction.
+    summary: Comprehensive information and guidance on using the dotcontext tool.
   - path: scripts/
-    summary: The scripts directory contains automation scripts to manage grammar files and generate JSON Schema files from
-      Zod schemas.
+    summary: Utility scripts for building grammars and managing project context settings.
   - path: src/
-    summary: The src directory implements a command-line tool for generating, validating, and managing .context.yaml files
-      for projects, leveraging a variety of functionalities through commands for initialization, regeneration, and
-      status checks.
+    summary: Core implementation for generating and managing .context.yaml documentation files.
   - path: tests/
-    summary: The tests directory contains unit tests for various modules within the application, ensuring proper
-      functionality and correctness of features such as dependency detection, environment variable management, file
-      scanning, and context generation.
+    summary: Unit tests for various components of the application.
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.external
   - subdirectories
   - project

@@ -4,3 +4,4 @@ grammars/
 .context.config.yaml
 .env.local
 *.tsbuildinfo
+scripts/sync-context.local.sh

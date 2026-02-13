@@ -5,14 +5,26 @@ Answer questions precisely based ONLY on the information provided.
 If you don't have enough information to answer, say "I don't know".
 Be specific — include exact file paths, package names, or module names when relevant.`;
 
+const DEFAULT_README_SNIPPET_CHARS = 2_000;
+
+export function buildReadmeSnippet(readme: string | null, maxChars = DEFAULT_README_SNIPPET_CHARS): string | null {
+  if (!readme) return null;
+  const trimmed = readme.trim();
+  if (!trimmed) return null;
+  if (trimmed.length <= maxChars) return trimmed;
+  return `${trimmed.slice(0, maxChars)}\n... [truncated ${trimmed.length - maxChars} chars]`;
+}
+
 export function buildBaselinePrompt(
   fileTree: string,
   readme: string | null,
   question: string,
+  sourceScope?: string,
 ): string {
-  let prompt = `Here is the file tree of a project:\n\n${fileTree}\n`;
+  const scopeLine = sourceScope ? ` centered on \`${sourceScope}/\`` : "";
+  let prompt = `Here is scoped project information${scopeLine}:\n\nScoped file tree:\n${fileTree}\n`;
   if (readme) {
-    prompt += `\nREADME:\n${readme}\n`;
+    prompt += `\nREADME excerpt:\n${readme}\n`;
   }
   prompt += `\nBased on this information, answer the following question:\n${question}`;
   return prompt;
@@ -22,8 +34,10 @@ export function buildContextPrompt(
   fileTree: string,
   contextFiles: Map<string, ContextFile>,
   question: string,
+  sourceScope?: string,
 ): string {
-  let prompt = `Here is a project with compressed directory documentation:\n\nFile tree:\n${fileTree}\n\nDirectory documentation:\n`;
+  const scopeLine = sourceScope ? ` centered on \`${sourceScope}/\`` : "";
+  let prompt = `Here is scoped project documentation${scopeLine}:\n\nScoped file tree:\n${fileTree}\n\nDirectory documentation:\n`;
 
   for (const [scope, ctx] of contextFiles) {
     prompt += `\n## ${scope}/\n`;

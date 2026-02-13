@@ -1,5 +1,5 @@
 import { resolve, join } from "node:path";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { readContext } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
@@ -7,14 +7,12 @@ import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
 import { heading, dim, errorMsg, progressBar } from "../utils/display.js";
-import { CONTEXT_FILENAME } from "../core/schema.js";
 import type { ContextFile } from "../core/schema.js";
 import type { BenchOptions, BenchReport, MultiRepoReport } from "../bench/types.js";
 import {
   buildDepSets,
   buildReverseDeps,
   buildDirFacts,
-  buildFileTree,
 } from "../bench/ground-truth.js";
 import { isGitRepo, getFixCommits, getFeatureCommits } from "../bench/git.js";
 import { generateTasks } from "../bench/tasks.js";
@@ -102,17 +100,12 @@ async function runSingleBench(
 
   // Collect context files and check freshness
   const contextFiles = new Map<string, ContextFile>();
-  const contextFileSizes = new Map<string, number>();
   let staleCount = 0;
 
   for (const dir of allDirs) {
     const ctx = await readContext(dir.path);
     if (ctx) {
       contextFiles.set(dir.relativePath, ctx);
-      try {
-        const s = await stat(join(dir.path, CONTEXT_FILENAME));
-        contextFileSizes.set(dir.relativePath, s.size);
-      } catch { /* skip */ }
 
       if (!options.allowStale) {
         const { state } = await checkFreshness(dir.path, ctx.fingerprint);
@@ -159,7 +152,6 @@ async function runSingleBench(
     reverseDeps,
     fixCommits,
     featureCommits,
-    contextFileSizes,
     maxTasks: options.maxTasks,
     category: options.category,
     seed,
@@ -171,8 +163,7 @@ async function runSingleBench(
     throw new Error("No tasks");
   }
 
-  // Build file tree and read README
-  const fileTree = buildFileTree(scanResult);
+  // Read README for baseline context
   let readme: string | null = null;
   try {
     readme = await readFile(join(rootPath, "README.md"), "utf-8");
@@ -183,15 +174,16 @@ async function runSingleBench(
     console.log("");
     console.log(`  provider: ${config.provider} (${modelName})`);
     console.log(`  tasks: ${tasks.length}  iterations: ${iterations}  seed: ${seed}`);
-    console.log(`  conditions: baseline (tree + README) vs context (.context.yaml)\n`);
+    console.log("  conditions: baseline (scoped tree + README excerpt) vs context (scoped .context.yaml)\n");
   }
 
   // Run benchmark
-  const totalCalls = tasks.length * iterations * 2;
   const results = await runBench({
     tasks,
     provider,
-    fileTree,
+    providerName: config.provider,
+    modelName,
+    scanResult,
     readme,
     contextFiles,
     iterations,
@@ -326,6 +318,10 @@ function printReport(report: BenchReport): void {
     `${n >= 0 ? "+" : ""}${(n * 100).toFixed(1)}%`;
   const fmtDeltaPp = (n: number) =>
     `${n >= 0 ? "-" : "+"}${(Math.abs(n) * 100).toFixed(1)}pp`;
+  const fmtTokenDelta = (baseline: number, context: number) => {
+    if (baseline <= 0) return "n/a".padStart(10);
+    return pad(fmtDeltaPct(context / baseline - 1), 10);
+  };
 
   const pad = (s: string, w: number) => s.padStart(w);
 
@@ -339,7 +335,15 @@ function printReport(report: BenchReport): void {
     `  ${"abstentions".padEnd(20)}${pad(fmtPct(b.abstention_rate), 12)}${pad(fmtPct(c.abstention_rate), 12)}${pad(fmtDeltaPp(d.abstention_reduction), 10)}`,
   );
   console.log(
-    `  ${"tokens (est)".padEnd(20)}${pad(fmtTokens(b.total_tokens_est), 12)}${pad(fmtTokens(c.total_tokens_est), 12)}${pad(fmtDeltaPct(-d.token_reduction), 10)}`,
+    `  ${"answer in (est)".padEnd(20)}${pad(fmtTokens(b.total_answer_tokens_est), 12)}${pad(fmtTokens(c.total_answer_tokens_est), 12)}${fmtTokenDelta(b.total_answer_tokens_est, c.total_answer_tokens_est)}`,
+  );
+  if (b.total_judge_tokens_est > 0 || c.total_judge_tokens_est > 0) {
+    console.log(
+      `  ${"judge in (est)".padEnd(20)}${pad(fmtTokens(b.total_judge_tokens_est), 12)}${pad(fmtTokens(c.total_judge_tokens_est), 12)}${fmtTokenDelta(b.total_judge_tokens_est, c.total_judge_tokens_est)}`,
+    );
+  }
+  console.log(
+    `  ${"total in (est)".padEnd(20)}${pad(fmtTokens(b.total_tokens_est), 12)}${pad(fmtTokens(c.total_tokens_est), 12)}${pad(fmtDeltaPct(-d.token_reduction), 10)}`,
   );
   console.log(
     `  ${"avg latency".padEnd(20)}${pad(`${(b.mean_latency_ms / 1000).toFixed(1)}s`, 12)}${pad(`${(c.mean_latency_ms / 1000).toFixed(1)}s`, 12)}`,

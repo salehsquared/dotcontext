@@ -3,6 +3,7 @@ import {
   buildBaselinePrompt,
   buildContextPrompt,
   buildJudgePrompt,
+  buildReadmeSnippet,
 } from "../../src/bench/prompts.js";
 import { makeValidContext } from "../helpers.js";
 
@@ -16,18 +17,23 @@ describe("buildBaselinePrompt", () => {
 
   it("includes README when available", () => {
     const prompt = buildBaselinePrompt(tree, "# My Project\nA great tool.", "q?");
-    expect(prompt).toContain("README:");
+    expect(prompt).toContain("README excerpt:");
     expect(prompt).toContain("A great tool.");
   });
 
   it("omits README section when not available", () => {
     const prompt = buildBaselinePrompt(tree, null, "q?");
-    expect(prompt).not.toContain("README:");
+    expect(prompt).not.toContain("README excerpt:");
   });
 
   it("includes the question", () => {
     const prompt = buildBaselinePrompt(tree, null, "What does src do?");
     expect(prompt).toContain("What does src do?");
+  });
+
+  it("includes source scope label when provided", () => {
+    const prompt = buildBaselinePrompt(tree, null, "q?", "src");
+    expect(prompt).toContain("centered on `src/`");
   });
 });
 
@@ -64,6 +70,24 @@ describe("buildContextPrompt", () => {
     const ctxFiles = new Map([["src", makeValidContext({ summary: "x" })]]);
     const prompt = buildContextPrompt(tree, ctxFiles, "What does this project do?");
     expect(prompt).toContain("What does this project do?");
+  });
+});
+
+describe("buildReadmeSnippet", () => {
+  it("returns null for empty input", () => {
+    expect(buildReadmeSnippet(null)).toBeNull();
+    expect(buildReadmeSnippet("   ")).toBeNull();
+  });
+
+  it("returns full content when below threshold", () => {
+    const text = "# Readme\nShort";
+    expect(buildReadmeSnippet(text, 100)).toBe(text);
+  });
+
+  it("truncates and annotates long content", () => {
+    const text = "x".repeat(200);
+    const snippet = buildReadmeSnippet(text, 50);
+    expect(snippet).toContain("... [truncated 150 chars]");
   });
 });
 

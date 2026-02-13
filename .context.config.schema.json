@@ -32,6 +32,20 @@
       "type": "integer",
       "minimum": -9007199254740991,
       "maximum": 9007199254740991
+    },
+    "mode": {
+      "description": "Default generation mode (lean omits files/interfaces)",
+      "type": "string",
+      "enum": [
+        "lean",
+        "full"
+      ]
+    },
+    "min_tokens": {
+      "description": "Minimum estimated tokens for a directory to get a .context.yaml (default: 4096)",
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
     }
   },
   "required": [

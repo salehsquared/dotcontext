@@ -1,7 +1,5 @@
 import type { ScanResult } from "../core/scanner.js";
-import type { ContextFile } from "../core/schema.js";
 import type { BenchTask, Commit, DirFacts, TaskCategory } from "./types.js";
-import { computeScopeTokens } from "./ground-truth.js";
 
 interface GenerateTasksInput {
   scanResult: ScanResult;
@@ -10,7 +8,6 @@ interface GenerateTasksInput {
   reverseDeps: Map<string, string[]>;
   fixCommits: Commit[];
   featureCommits: Commit[];
-  contextFileSizes: Map<string, number>;
   maxTasks?: number;
   category?: TaskCategory;
   seed?: number;
@@ -103,7 +100,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
     reverseDeps,
     fixCommits,
     featureCommits,
-    contextFileSizes,
     maxTasks,
     category,
     seed = 42,
@@ -123,7 +119,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
           ? [`Exports: ${facts.exports.join(", ")}`]
           : []),
       ];
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("comp"),
         category: "comprehension",
@@ -131,7 +126,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "llm_judge",
         expected: referenceFacts,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
   }
@@ -140,7 +134,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
   if (!category || category === "dependency") {
     for (const [scope, deps] of depSets.external) {
       if (deps.length < 3) continue;
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("dep-ext"),
         category: "dependency",
@@ -148,14 +141,12 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "list_coverage",
         expected: deps,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
 
     // Dependency tasks — internal
     for (const [scope, deps] of depSets.internal) {
       if (deps.length < 2) continue;
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("dep-int"),
         category: "dependency",
@@ -163,7 +154,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "list_coverage",
         expected: deps,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
   }
@@ -175,7 +165,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
       const scope = filePath.includes("/")
         ? filePath.substring(0, filePath.lastIndexOf("/"))
         : ".";
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("impact"),
         category: "change_impact",
@@ -183,7 +172,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "topk_recall",
         expected: dependents,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
   }
@@ -194,7 +182,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
       const dirName = scope.split("/").pop() ?? scope;
       for (const pattern of ROUTING_PATTERNS) {
         if (pattern.dirPattern.test(dirName)) {
-          const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
           allTasks.push({
             id: nextId("route"),
             category: "task_routing",
@@ -202,7 +189,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
             scoring: "target_hit",
             expected: [scope],
             source_scope: scope,
-            scope_tokens: tokens,
           });
           break;
         }
@@ -216,7 +202,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
       const scope = commit.files[0]?.includes("/")
         ? commit.files[0].substring(0, commit.files[0].lastIndexOf("/"))
         : ".";
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("bug"),
         category: "bug_localization",
@@ -224,7 +209,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "mrr",
         expected: commit.files,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
   }
@@ -235,7 +219,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
       const scope = commit.files[0]?.includes("/")
         ? commit.files[0].substring(0, commit.files[0].lastIndexOf("/"))
         : ".";
-      const tokens = await computeScopeTokens(scope, scanResult, contextFileSizes);
       allTasks.push({
         id: nextId("patch"),
         category: "patch_planning",
@@ -243,7 +226,6 @@ export async function generateTasks(input: GenerateTasksInput): Promise<BenchTas
         scoring: "file_set_f1",
         expected: commit.files,
         source_scope: scope,
-        scope_tokens: tokens,
       });
     }
   }

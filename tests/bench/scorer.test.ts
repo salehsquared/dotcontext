@@ -171,20 +171,30 @@ describe("aggregateResults", () => {
     {
       id: "t1", category: "comprehension", question: "q1",
       scoring: "llm_judge", expected: [], source_scope: "src",
-      scope_tokens: { baseline: 1000, context: 50 },
     },
     {
       id: "t2", category: "dependency", question: "q2",
       scoring: "list_coverage", expected: ["a"], source_scope: "src",
-      scope_tokens: { baseline: 800, context: 40 },
     },
   ];
 
   const results: TaskResult[] = [
-    { task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.3, abstained: false, latency_ms: 500, scope_tokens_est: 1000 },
-    { task_id: "t2", condition: "baseline", iteration: 0, response: "r", score: 0.5, abstained: false, latency_ms: 600, scope_tokens_est: 800 },
-    { task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 700, scope_tokens_est: 50 },
-    { task_id: "t2", condition: "context", iteration: 0, response: "r", score: 0.9, abstained: false, latency_ms: 800, scope_tokens_est: 40 },
+    {
+      task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.3, abstained: false, latency_ms: 500,
+      answer_input_tokens_est: 900, judge_input_tokens_est: 100, total_input_tokens_est: 1000,
+    },
+    {
+      task_id: "t2", condition: "baseline", iteration: 0, response: "r", score: 0.5, abstained: false, latency_ms: 600,
+      answer_input_tokens_est: 800, judge_input_tokens_est: 0, total_input_tokens_est: 800,
+    },
+    {
+      task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 700,
+      answer_input_tokens_est: 40, judge_input_tokens_est: 10, total_input_tokens_est: 50,
+    },
+    {
+      task_id: "t2", condition: "context", iteration: 0, response: "r", score: 0.9, abstained: false, latency_ms: 800,
+      answer_input_tokens_est: 40, judge_input_tokens_est: 0, total_input_tokens_est: 40,
+    },
   ];
 
   it("correct mean score", () => {
@@ -196,6 +206,14 @@ describe("aggregateResults", () => {
   it("correct stddev", () => {
     const report = aggregateResults("/root", "anthropic", "haiku", 1, 42, tasks, results);
     expect(report.baseline.stddev_score).toBeCloseTo(0.1);
+  });
+
+  it("tracks answer and judge token totals", () => {
+    const report = aggregateResults("/root", "anthropic", "haiku", 1, 42, tasks, results);
+    expect(report.baseline.total_answer_tokens_est).toBe(1700);
+    expect(report.baseline.total_judge_tokens_est).toBe(100);
+    expect(report.context.total_answer_tokens_est).toBe(80);
+    expect(report.context.total_judge_tokens_est).toBe(10);
   });
 
   it("correct abstention_rate", () => {
@@ -233,15 +251,26 @@ describe("aggregateMultiRepo", () => {
     const tasks: BenchTask[] = [{
       id: "t1", category: "comprehension", question: "q",
       scoring: "llm_judge", expected: [], source_scope: ".",
-      scope_tokens: { baseline: 100, context: 10 },
     }];
     const report1 = aggregateResults("/r1", "anthropic", "haiku", 1, 42, tasks, [
-      { task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.3, abstained: false, latency_ms: 100, scope_tokens_est: 100 },
-      { task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 100, scope_tokens_est: 10 },
+      {
+        task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.3, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 90, judge_input_tokens_est: 10, total_input_tokens_est: 100,
+      },
+      {
+        task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 8, judge_input_tokens_est: 2, total_input_tokens_est: 10,
+      },
     ]);
     const report2 = aggregateResults("/r2", "anthropic", "haiku", 1, 42, tasks, [
-      { task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.5, abstained: false, latency_ms: 100, scope_tokens_est: 100 },
-      { task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.9, abstained: false, latency_ms: 100, scope_tokens_est: 10 },
+      {
+        task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.5, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 90, judge_input_tokens_est: 10, total_input_tokens_est: 100,
+      },
+      {
+        task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.9, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 8, judge_input_tokens_est: 2, total_input_tokens_est: 10,
+      },
     ]);
 
     const multi = aggregateMultiRepo([report1, report2], "anthropic", "haiku");
@@ -254,11 +283,16 @@ describe("aggregateMultiRepo", () => {
     const tasks: BenchTask[] = [{
       id: "t1", category: "comprehension", question: "q",
       scoring: "llm_judge", expected: [], source_scope: ".",
-      scope_tokens: { baseline: 100, context: 10 },
     }];
     const report1 = aggregateResults("/r1", "anthropic", "haiku", 1, 42, tasks, [
-      { task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.4, abstained: false, latency_ms: 100, scope_tokens_est: 100 },
-      { task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 100, scope_tokens_est: 10 },
+      {
+        task_id: "t1", condition: "baseline", iteration: 0, response: "r", score: 0.4, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 90, judge_input_tokens_est: 10, total_input_tokens_est: 100,
+      },
+      {
+        task_id: "t1", condition: "context", iteration: 0, response: "r", score: 0.8, abstained: false, latency_ms: 100,
+        answer_input_tokens_est: 8, judge_input_tokens_est: 2, total_input_tokens_est: 10,
+      },
     ]);
 
     const multi = aggregateMultiRepo([report1], "anthropic", "haiku");
