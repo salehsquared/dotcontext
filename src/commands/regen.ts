@@ -10,7 +10,7 @@ import { loadScanOptions } from "../utils/scan-options.js";
 import { successMsg, errorMsg, warnMsg, progressBar, freshnessIcon, dim } from "../utils/display.js";
 import { updateAgentsMd } from "../core/markdown-writer.js";
 import { poolMap } from "../utils/pool.js";
-import { filterByMinTokens } from "../utils/tokens.js";
+import { filterByMinTokens, estimateDirectoryTokens, estimateContextFileTokens } from "../utils/tokens.js";
 import type { ContextFile } from "../core/schema.js";
 import type { ScanResult } from "../core/scanner.js";
 
@@ -25,6 +25,9 @@ interface GenerationMetrics {
   summary_from_pattern: number;
   summary_from_project: number;
   summary_fallback: number;
+  total_source_tokens: number;
+  total_context_tokens: number;
+  generation_start_ms: number;
 }
 
 function trackSummarySource(metrics: GenerationMetrics, source: SummarySource): void {
@@ -46,6 +49,14 @@ function printMetrics(metrics: GenerationMetrics): void {
   if (metrics.summary_from_pattern > 0) parts.push(`${metrics.summary_from_pattern} from file patterns`);
   if (metrics.summary_fallback > 0) parts.push(`${metrics.summary_fallback} fallback`);
   console.log(dim(`    summaries: ${parts.join(", ")}`));
+  if (metrics.total_source_tokens > 0 && metrics.total_context_tokens > 0) {
+    const pct = ((1 - metrics.total_context_tokens / metrics.total_source_tokens) * 100).toFixed(1);
+    const ratio = Math.round(metrics.total_source_tokens / metrics.total_context_tokens);
+    const saved = (metrics.total_source_tokens - metrics.total_context_tokens).toLocaleString("en-US");
+    console.log(dim(`    token reduction: ${pct}% (${ratio}x) \u2014 ${saved} tokens saved`));
+  }
+  const elapsed = ((Date.now() - metrics.generation_start_ms) / 1000).toFixed(1);
+  console.log(dim(`    completed in ${elapsed}s`));
 }
 
 export async function regenCommand(
@@ -173,6 +184,9 @@ export async function regenCommand(
     summary_from_pattern: 0,
     summary_from_project: 0,
     summary_fallback: 0,
+    total_source_tokens: 0,
+    total_context_tokens: 0,
+    generation_start_ms: Date.now(),
   };
 
   if (options.parallel && options.parallel > 1) {
@@ -198,6 +212,8 @@ export async function regenCommand(
           childContexts.set(dir.path, context);
           completed++;
           metrics.generated++;
+          metrics.total_source_tokens += await estimateDirectoryTokens(dir);
+          metrics.total_context_tokens += await estimateContextFileTokens(dir.path);
           if (context.exports && context.exports.length > 0) {
             metrics.exports_extracted++;
             metrics.exports_total += context.exports.length;
@@ -230,6 +246,8 @@ export async function regenCommand(
 
         completed++;
         metrics.generated++;
+        metrics.total_source_tokens += await estimateDirectoryTokens(dir);
+        metrics.total_context_tokens += await estimateContextFileTokens(dir.path);
         if (context.exports && context.exports.length > 0) {
           metrics.exports_extracted++;
           metrics.exports_total += context.exports.length;

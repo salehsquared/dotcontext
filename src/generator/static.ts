@@ -94,9 +94,9 @@ export async function generateStaticContext(
     }
   }
 
-  // Detect dependencies
-  const externalDeps = await detectExternalDeps(scanResult.path);
-  const internalDeps = isFull ? await detectInternalDeps(scanResult) : [];
+  // Detect dependencies (internal always, external full-only)
+  const internalDeps = await detectInternalDeps(scanResult);
+  const externalDeps = isFull ? await detectExternalDeps(scanResult.path) : [];
   if (externalDeps.length > 0 || internalDeps.length > 0) {
     context.dependencies = {};
     if (externalDeps.length > 0) context.dependencies.external = externalDeps;

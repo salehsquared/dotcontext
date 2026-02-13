@@ -137,6 +137,7 @@ describe("buildUserPrompt", () => {
 describe("SYSTEM_PROMPT derived fields guidance", () => {
   it("tells LLM not to generate machine-derived fields", () => {
     expect(SYSTEM_PROMPT).toContain("dependencies.external");
+    expect(SYSTEM_PROMPT).toContain("dependencies.internal");
     expect(SYSTEM_PROMPT).toContain("derived_fields");
     expect(SYSTEM_PROMPT).toContain("Do NOT generate them");
   });

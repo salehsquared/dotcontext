@@ -61,7 +61,7 @@ describe("generateStaticContext", () => {
     expect(result.files).toHaveLength(1);
   });
 
-  it("lean mode omits files, interfaces, dependencies.internal", async () => {
+  it("lean mode omits files, interfaces, dependencies.external", async () => {
     const exports = Array.from({ length: 5 }, (_, i) => `export function fn${i}() {}`).join("\n");
     await createFile(tmpDir, "mod.ts", exports);
 
@@ -73,8 +73,8 @@ describe("generateStaticContext", () => {
     expect(contextSchema.safeParse(result).success).toBe(true);
   });
 
-  it("lean mode still includes subdirectories and external deps", async () => {
-    await createFile(tmpDir, "index.ts", "code");
+  it("lean mode still includes subdirectories and internal deps", async () => {
+    await createFile(tmpDir, "index.ts", 'import { helper } from "./utils.js";\nexport const x = helper();');
     await createFile(tmpDir, "package.json", JSON.stringify({ name: "test", dependencies: { chalk: "^5" } }));
     const childPath = join(tmpDir, "core");
     await mkdir(childPath);
@@ -87,8 +87,8 @@ describe("generateStaticContext", () => {
     const { context: result } = await generateStaticContext(scan, childContexts);
 
     expect(result.subdirectories).toBeDefined();
-    expect(result.dependencies?.external).toBeDefined();
-    expect(result.dependencies?.internal).toBeUndefined();
+    expect(result.dependencies?.internal).toBeDefined();
+    expect(result.dependencies?.external).toBeUndefined();
   });
 
   it("lists all files with purposes (full mode)", async () => {
@@ -582,7 +582,7 @@ describe("generateStaticContext golden shape", () => {
     expect(contextSchema.safeParse(result).success).toBe(true);
   });
 
-  it("lean mode golden shape — no files, interfaces, or internal deps", async () => {
+  it("lean mode golden shape — no files, interfaces, or external deps", async () => {
     await createFile(tmpDir, "index.ts", "export function main() {}");
     await createFile(tmpDir, "package.json", JSON.stringify({ name: "test-project", description: "A test" }));
 

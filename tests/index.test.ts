@@ -14,6 +14,7 @@ function makeHandlers(): CommandHandlers {
     ignoreCommand: vi.fn(async () => {}),
     watchCommand: vi.fn(async () => {}),
     doctorCommand: vi.fn(async () => {}),
+    statsCommand: vi.fn(async () => {}),
     startMcpServer: vi.fn(async () => {}),
   };
 }
@@ -206,6 +207,23 @@ describe("CLI wiring", () => {
     const handlers = makeHandlers();
     await parse(["node", "context", "doctor", "--json", "-p", "/tmp/project"], handlers);
     expect(handlers.doctorCommand).toHaveBeenCalledWith({
+      path: "/tmp/project",
+      json: true,
+    });
+  });
+
+  it("stats command calls statsCommand with path", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "stats", "-p", "/tmp/project"], handlers);
+    expect(handlers.statsCommand).toHaveBeenCalledWith({
+      path: "/tmp/project",
+    });
+  });
+
+  it("stats --json passes json: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "stats", "--json", "-p", "/tmp/project"], handlers);
+    expect(handlers.statsCommand).toHaveBeenCalledWith({
       path: "/tmp/project",
       json: true,
     });

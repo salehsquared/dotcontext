@@ -37,7 +37,7 @@ export async function generateLLMContext(
   }
 
   const isRoot = scanResult.relativePath === ".";
-  const preDetectedDeps = await detectExternalDeps(scanResult.path);
+  const preDetectedDeps = isFull ? await detectExternalDeps(scanResult.path) : [];
   const userPrompt = buildUserPrompt(scanResult, fileContents, childContexts, isRoot, preDetectedDeps, mode);
 
   // Call LLM
@@ -111,7 +111,7 @@ export async function generateLLMContext(
   }
 
   // Overlay machine-derived dependencies (more reliable than LLM guessing)
-  const internalDeps = isFull ? await detectInternalDeps(scanResult) : [];
+  const internalDeps = await detectInternalDeps(scanResult);
 
   if (preDetectedDeps.length > 0) {
     context.dependencies = context.dependencies ?? {};

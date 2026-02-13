@@ -10,7 +10,7 @@ import { loadScanOptions } from "../utils/scan-options.js";
 import { successMsg, errorMsg, warnMsg, progressBar, heading, dim } from "../utils/display.js";
 import { updateAgentsMd } from "../core/markdown-writer.js";
 import { poolMap } from "../utils/pool.js";
-import { filterByMinTokens, DEFAULT_MIN_TOKENS } from "../utils/tokens.js";
+import { filterByMinTokens, estimateDirectoryTokens, estimateContextFileTokens, DEFAULT_MIN_TOKENS } from "../utils/tokens.js";
 import type { ContextFile, ConfigFile } from "../core/schema.js";
 
 function ask(question: string): Promise<string> {
@@ -34,6 +34,9 @@ interface GenerationMetrics {
   summary_from_pattern: number;
   summary_from_project: number;
   summary_fallback: number;
+  total_source_tokens: number;
+  total_context_tokens: number;
+  generation_start_ms: number;
 }
 
 function trackSummarySource(metrics: GenerationMetrics, source: SummarySource): void {
@@ -55,6 +58,14 @@ function printMetrics(metrics: GenerationMetrics): void {
   if (metrics.summary_from_pattern > 0) parts.push(`${metrics.summary_from_pattern} from file patterns`);
   if (metrics.summary_fallback > 0) parts.push(`${metrics.summary_fallback} fallback`);
   console.log(dim(`    summaries: ${parts.join(", ")}`));
+  if (metrics.total_source_tokens > 0 && metrics.total_context_tokens > 0) {
+    const pct = ((1 - metrics.total_context_tokens / metrics.total_source_tokens) * 100).toFixed(1);
+    const ratio = Math.round(metrics.total_source_tokens / metrics.total_context_tokens);
+    const saved = (metrics.total_source_tokens - metrics.total_context_tokens).toLocaleString("en-US");
+    console.log(dim(`    token reduction: ${pct}% (${ratio}x) \u2014 ${saved} tokens saved`));
+  }
+  const elapsed = ((Date.now() - metrics.generation_start_ms) / 1000).toFixed(1);
+  console.log(dim(`    completed in ${elapsed}s`));
 }
 
 export async function initCommand(options: { noLlm?: boolean; path?: string; evidence?: boolean; noAgents?: boolean; parallel?: number; full?: boolean }): Promise<void> {
@@ -159,6 +170,9 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
     summary_from_pattern: 0,
     summary_from_project: 0,
     summary_fallback: 0,
+    total_source_tokens: 0,
+    total_context_tokens: 0,
+    generation_start_ms: Date.now(),
   };
 
   if (options.parallel && options.parallel > 1) {
@@ -184,6 +198,8 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
           childContexts.set(dir.path, context);
           completed++;
           metrics.generated++;
+          metrics.total_source_tokens += await estimateDirectoryTokens(dir);
+          metrics.total_context_tokens += await estimateContextFileTokens(dir.path);
           if (context.exports && context.exports.length > 0) {
             metrics.exports_extracted++;
             metrics.exports_total += context.exports.length;
@@ -217,6 +233,8 @@ export async function initCommand(options: { noLlm?: boolean; path?: string; evi
 
         completed++;
         metrics.generated++;
+        metrics.total_source_tokens += await estimateDirectoryTokens(dir);
+        metrics.total_context_tokens += await estimateContextFileTokens(dir.path);
         if (context.exports && context.exports.length > 0) {
           metrics.exports_extracted++;
           metrics.exports_total += context.exports.length;

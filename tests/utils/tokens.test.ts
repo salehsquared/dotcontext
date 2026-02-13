@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { estimateDirectoryTokens, filterByMinTokens, DEFAULT_MIN_TOKENS } from "../../src/utils/tokens.js";
+import { estimateDirectoryTokens, estimateContextFileTokens, filterByMinTokens, DEFAULT_MIN_TOKENS } from "../../src/utils/tokens.js";
 import { createTmpDir, cleanupTmpDir, createFile, makeScanResult } from "../helpers.js";
 
 let tmpDir: string;
@@ -54,6 +54,20 @@ describe("estimateDirectoryTokens", () => {
 
     const tokens = await estimateDirectoryTokens(scan);
     expect(tokens).toBe(2);
+  });
+});
+
+describe("estimateContextFileTokens", () => {
+  it("returns token count for existing .context.yaml", async () => {
+    // Write 400 bytes to .context.yaml
+    await createFile(tmpDir, ".context.yaml", "x".repeat(400));
+    const tokens = await estimateContextFileTokens(tmpDir);
+    expect(tokens).toBe(100); // 400 / 4
+  });
+
+  it("returns 0 for missing .context.yaml", async () => {
+    const tokens = await estimateContextFileTokens(tmpDir);
+    expect(tokens).toBe(0);
   });
 });
 

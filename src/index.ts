@@ -13,6 +13,7 @@ import { configCommand } from "./commands/config.js";
 import { ignoreCommand } from "./commands/ignore.js";
 import { watchCommand } from "./commands/watch.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { statsCommand } from "./commands/stats.js";
 import { startMcpServer } from "./mcp/server.js";
 import { loadEnvForCli } from "./utils/env.js";
 import { errorMsg } from "./utils/display.js";
@@ -28,6 +29,7 @@ export interface CommandHandlers {
   ignoreCommand: typeof ignoreCommand;
   watchCommand: typeof watchCommand;
   doctorCommand: typeof doctorCommand;
+  statsCommand: typeof statsCommand;
   startMcpServer: typeof startMcpServer;
 }
 
@@ -42,6 +44,7 @@ const defaultHandlers: CommandHandlers = {
   ignoreCommand,
   watchCommand,
   doctorCommand,
+  statsCommand,
   startMcpServer,
 };
 
@@ -190,6 +193,15 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
       await handlers.doctorCommand({ path: opts.path, json: opts.json });
+    });
+
+  program
+    .command("stats")
+    .description("Show project statistics and token reduction metrics")
+    .option("--json", "Output as JSON")
+    .option("-p, --path <path>", "Project root path")
+    .action(async (opts) => {
+      await handlers.statsCommand({ path: opts.path, json: opts.json });
     });
 
   program

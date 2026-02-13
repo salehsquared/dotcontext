@@ -1,6 +1,7 @@
 import { stat } from "node:fs/promises";
-import { join, dirname } from "node:path";
+import { join, dirname, extname } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
+import { CONTEXT_FILENAME } from "../core/schema.js";
 
 const BYTES_PER_TOKEN = 4;
 export const DEFAULT_MIN_TOKENS = 4096;
@@ -14,6 +15,28 @@ export async function estimateDirectoryTokens(dir: ScanResult): Promise<number> 
     } catch { /* skip */ }
   }
   return Math.ceil(totalBytes / BYTES_PER_TOKEN);
+}
+
+export async function estimateContextFileTokens(dirPath: string): Promise<number> {
+  try {
+    const s = await stat(join(dirPath, CONTEXT_FILENAME));
+    return Math.ceil(s.size / BYTES_PER_TOKEN);
+  } catch {
+    return 0;
+  }
+}
+
+export function collectExtensions(dirs: ScanResult[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const dir of dirs) {
+    for (const file of dir.files) {
+      const ext = extname(file);
+      if (ext) {
+        counts[ext] = (counts[ext] ?? 0) + 1;
+      }
+    }
+  }
+  return counts;
 }
 
 export async function filterByMinTokens(
