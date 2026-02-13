@@ -23,14 +23,16 @@ import { cloneRepo } from "../bench/git.js";
 import { initCommand } from "./init.js";
 
 export async function benchCommand(options: BenchOptions): Promise<void> {
+  const configRootPath = resolve(options.path ?? ".");
+
   // Multi-repo mode
   if (options.defaultRepos) {
-    await runMultiRepo(options);
+    await runMultiRepo(options, configRootPath);
     return;
   }
 
   // Single repo mode (local or --repo)
-  let rootPath = resolve(options.path ?? ".");
+  let rootPath = configRootPath;
   let tempDir: string | null = null;
 
   if (options.repo) {
@@ -42,11 +44,11 @@ export async function benchCommand(options: BenchOptions): Promise<void> {
     rootPath = tempDir;
 
     console.log(dim("  running context init..."));
-    await initCommand({ path: rootPath, noLlm: true });
+    await initCommand({ path: rootPath, noLlm: true, noAgents: true });
   }
 
   try {
-    const report = await runSingleBench(rootPath, options);
+    const report = await runSingleBench(rootPath, options, configRootPath);
 
     if (options.json) {
       const json = JSON.stringify(report, null, 2) + "\n";
@@ -75,8 +77,9 @@ export async function benchCommand(options: BenchOptions): Promise<void> {
 async function runSingleBench(
   rootPath: string,
   options: BenchOptions,
+  configRootPath: string = rootPath,
 ): Promise<BenchReport> {
-  const config = await loadConfig(rootPath);
+  const config = await loadConfig(configRootPath);
   if (!config?.provider) {
     console.error(errorMsg("No provider configured. Run `context config --provider <name>` first."));
     process.exitCode = 1;
@@ -210,8 +213,8 @@ async function runSingleBench(
   );
 }
 
-async function runMultiRepo(options: BenchOptions): Promise<void> {
-  const config = await loadConfig(resolve(options.path ?? "."));
+async function runMultiRepo(options: BenchOptions, configRootPath: string): Promise<void> {
+  const config = await loadConfig(configRootPath);
   if (!config?.provider) {
     console.error(errorMsg("No provider configured. Run `context config --provider <name>` first."));
     process.exitCode = 1;
@@ -251,7 +254,7 @@ async function runMultiRepo(options: BenchOptions): Promise<void> {
       await cloneRepo(repo.url, tempDir, 100);
 
       if (!options.json) process.stdout.write("init... ");
-      await initCommand({ path: tempDir, noLlm: true });
+      await initCommand({ path: tempDir, noLlm: true, noAgents: true });
 
       if (!options.json) process.stdout.write("benchmarking...\n");
       const report = await runSingleBench(tempDir, {
@@ -259,7 +262,7 @@ async function runMultiRepo(options: BenchOptions): Promise<void> {
         path: tempDir,
         json: true, // suppress inner output
         repo: repo.url,
-      });
+      }, configRootPath);
       reports.push(report);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -18,9 +18,17 @@ decisions:
     why: This flexibility allows users to benchmark contexts for either a specific repository or multiple default
       repositories without changing the underlying architecture.
     tradeoff: This increases complexity in command handling and requires careful management of temporary directories.
+  - what: Bench provider credentials are resolved from the invoking project config path, not cloned benchmark targets.
+    why: Remote/default repo benchmarks clone into temporary directories that do not contain the caller's
+      `.context.config.yaml`.
+    tradeoff: Benchmarking and provider configuration are decoupled, so users must keep the invoking config valid.
+  - what: Temporary benchmark repo initialization skips AGENTS.md generation.
+    why: AGENTS.md creation after context generation can immediately invalidate fresh fingerprints in cloned repos.
+    tradeoff: Temporary benchmark clones do not get AGENTS.md output, but benchmark behavior is unaffected.
 constraints:
   - Commands must ensure that a valid provider configuration exists before proceeding with operations.
   - Context files must follow the defined schema, and any deviations will affect the commands' executions.
+  - Bench runs against `--repo` or `--default-repos` must still load provider settings from the original command path.
 dependencies:
   internal:
     - ../bench/git.js
