@@ -12,7 +12,7 @@ The MCP server exposes three tools via stdio transport (JSON-RPC over stdin/stdo
 context serve --path /path/to/project
 ```
 
-The server runs until terminated. It does not produce terminal output — all communication happens via the MCP protocol on stdin/stdout.
+The server runs until terminated. Protocol traffic uses stdin/stdout; startup logs are written to stderr.
 
 ### Tools
 
@@ -39,7 +39,7 @@ The server runs until terminated. It does not produce terminal output — all co
 }
 ```
 
-Metadata fields (`version`, `scope`, `fingerprint`, `last_updated`) are always included regardless of filter. Filterable fields: `summary`, `files`, `interfaces`, `decisions`, `constraints`, `dependencies`, `current_state`, `subdirectories`, `environment`, `testing`, `todos`, `data_models`, `events`, `config`, `project`, `structure`, `maintenance`.
+Metadata fields (`version`, `scope`, `fingerprint`, `last_updated`) are always included regardless of filter. Filterable fields: `summary`, `files`, `interfaces`, `decisions`, `constraints`, `dependencies`, `current_state`, `subdirectories`, `environment`, `testing`, `todos`, `data_models`, `events`, `config`, `project`, `structure`, `maintenance`, `exports`.
 
 **`check_freshness`** — Check if context is current.
 
@@ -65,6 +65,7 @@ States: `fresh`, `stale`, `missing`.
 {
   "root": "/path/to/project",
   "total_directories": 6,
+  "skipped_directories": 12,
   "tracked": 6,
   "entries": [
     { "scope": ".", "state": "fresh", "has_context": true, "summary": "Project root..." },

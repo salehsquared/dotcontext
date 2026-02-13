@@ -36,11 +36,11 @@
 - Verify API key is set: check the environment variable shown in config
 - Try a different provider or model via `context config --provider <name> --model <model>`
 
-### `context serve` produces no terminal output
+### `context serve` appears to hang
 
-**Symptom:** Running `context serve` appears to hang with no output.
+**Symptom:** Running `context serve` keeps running and does not return to the prompt.
 
-**Cause:** This is expected. The MCP server communicates via stdio (JSON-RPC on stdin/stdout). Terminal output would corrupt the protocol.
+**Cause:** This is expected. The MCP server is long-lived and communicates via stdio (JSON-RPC on stdin/stdout). You may see startup logs on stderr only.
 
 **Fix:** Connect an MCP client. See [integrations.md](integrations.md) for setup.
 
@@ -93,6 +93,42 @@
 - Use `context init --llm --evidence` or `context regen --all --evidence`
 - Run your tests first to generate artifacts (`test-results.json`, `.vitest-results.json`, or `junit.xml`)
 - Evidence only appears in the root `.context.yaml`
+
+### `bench` says "No provider configured"
+
+**Symptom:** `context bench` exits with `No provider configured. Run context config --provider <name> first.`
+
+**Cause:** Bench uses your local `.context.config.yaml` for provider credentials, even when benchmarking a cloned `--repo`.
+
+**Fixes:**
+- Set provider/model in your current project: `context config --provider openai --model gpt-4o-mini`
+- Export the matching API key env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
+
+### `bench` says contexts are stale
+
+**Symptom:** `context bench` exits with `N context file(s) are stale`.
+
+**Cause:** Bench requires fresh context by default for fair comparisons.
+
+**Fixes:**
+- Regenerate first: `context regen --all --stale`
+- Or allow stale contexts explicitly: `context bench --allow-stale`
+
+### `context regen --force` does nothing
+
+**Symptom:** Running with `--force` produces the same behavior as without it.
+
+**Cause:** `--force` is currently accepted for forward compatibility and is a no-op in current releases.
+
+**Fix:** Omit `--force` for now; behavior is unchanged.
+
+### `context bench --tasks <file>` has no effect
+
+**Symptom:** Passing `--tasks` does not change generated tasks.
+
+**Cause:** The flag is currently reserved for future manual task-file support and is not wired yet.
+
+**Fix:** Use `--max-tasks`, `--seed`, and `--category` for current task control.
 
 ## Provider-Specific Issues
 

@@ -144,6 +144,7 @@ Requires Node.js >= 18. No accounts, no cloud services, works fully offline. See
 | `context regen --dry-run` | Preview what would be regenerated without changes |
 | `context regen --full` | Include files, interfaces, dependencies in output |
 | `context regen --parallel <n>` | Process directories concurrently |
+| `context regen --force` | Accepted for forward compatibility (currently no behavior change) |
 | `context doctor` | Check project health: config, API keys, coverage, staleness, validation |
 | `context doctor --json` | Machine-readable diagnostics for CI |
 | `context rehash` | Recompute fingerprints without regenerating content |
@@ -154,9 +155,11 @@ Requires Node.js >= 18. No accounts, no cloud services, works fully offline. See
 | `context config` | View/edit provider settings |
 | `context config --mode <lean\|full>` | Set default generation mode |
 | `context ignore <path>` | Add directory to `.contextignore` |
+| `context bench` | Benchmark baseline prompts vs `.context.yaml` prompts |
+| `context bench --repo <url>` | Clone and benchmark another repository |
 | `context serve` | Start MCP server for LLM tool integration |
 
-All commands accept `-p, --path <path>` to target a specific project root. `init` and `regen` accept `--no-agents` to skip `AGENTS.md` generation, `--evidence` to collect test/typecheck signals, and `--parallel <n>` for concurrent processing.
+Most commands accept `-p, --path <path>` to target a specific project root. `context show <target>` is the exception and resolves from the current working directory. `init` and `regen` accept `--no-agents` to skip `AGENTS.md` generation, `--evidence` to collect test/typecheck signals, and `--parallel <n>` for concurrent processing. `bench --tasks <path>` is currently reserved for future task-file support and has no effect yet.
 
 ## Everyday Workflow
 
@@ -197,7 +200,8 @@ By default, dotcontext generates **lean** context files — a routing layer that
 - `decisions` — architectural choices that can't be inferred from code
 - `constraints` — hard rules a developer must follow
 - `subdirectories` — routing to child directories with summaries
-- `dependencies.internal` — cross-directory import relationships (cheap, high signal for navigation)
+- `dependencies.internal` — cross-directory import relationships (when detected; high signal for navigation)
+- `exports` — compact API/method signatures for routing
 - Metadata: `version`, `fingerprint`, `scope`, `maintenance`, `derived_fields`
 - Root only: `project`, `structure`
 
@@ -213,8 +217,9 @@ A typical lean `.context.yaml` is ~20-25 lines vs ~60-80 lines in full mode. The
 
 **Static analysis** (default) — no API key, works offline:
 - Auto-detected summaries from file structure
-- AST-based export detection via tree-sitter (TypeScript, JavaScript, Python, Go, Rust) in full mode
-- Dependencies from package.json, requirements.txt, Cargo.toml, go.mod
+- AST-based export/signature detection via tree-sitter (TypeScript, JavaScript, Python, Go, Rust) with regex fallback
+- Internal dependencies from source imports (all modes when detected)
+- External dependencies from package manifests in full mode
 - Test evidence from existing artifacts (opt-in, `--evidence`)
 
 **LLM-enhanced** (`--llm`) — richer output via configured provider:
@@ -249,6 +254,7 @@ model: claude-3-5-haiku-latest
 mode: lean          # or "full" for verbose output
 ignore: [tmp, scratch]
 max_depth: 5
+min_tokens: 4096  # skip tiny directories unless they are needed for routing
 ```
 
 | Setting | Values | Description |
@@ -258,6 +264,7 @@ max_depth: 5
 | `mode` | `lean` (default), `full` | Default generation mode |
 | `ignore` | directory list | Additional directories to skip |
 | `max_depth` | integer | Maximum scan depth |
+| `min_tokens` | integer (default `4096`) | Minimum estimated directory size to track |
 | `api_key_env` | env var name | Custom env var for API key |
 
 | Provider | Default Model | Env Var |
@@ -277,7 +284,7 @@ context config              # View current settings
 
 ## How It Works
 
-**Scanning** — walks the directory tree, finds directories with source files. Skips `node_modules`, `.git`, `dist`, `build`, and 15+ other non-source directories. Respects `.gitignore` and `.contextignore` patterns (exact names, globs, path rules, negation).
+**Scanning** — walks the directory tree, finds directories with source files. Skips `node_modules`, `.git`, `dist`, `build`, and 15+ other non-source directories. Respects `.gitignore` and `.contextignore` patterns (exact names, globs, path rules, negation). A token threshold filter (`min_tokens`, default `4096`) excludes very small directories unless they are required for parent-child routing.
 
 **Fingerprinting** — 8-char SHA-256 from sorted `filename:mtime:size`. Cheap (`stat()` only, no file reads). Detects additions, deletions, and modifications.
 
@@ -295,6 +302,7 @@ context config              # View current settings
 | [Schema Reference](docs/schema.md) | Full `.context.yaml` field reference with examples |
 | [Trust Model](docs/trust-model.md) | Machine-derived vs LLM-generated fields, freshness guarantees |
 | [Validation](docs/validation.md) | Standard and strict mode semantics |
+| [Bench](docs/bench.md) | Benchmark command options, outputs, and current caveats |
 | [Integrations](docs/integrations.md) | Claude Code, Cursor, Windsurf, Continue, non-MCP, CI/CD |
 | [CI/CD Guide](docs/ci.md) | GitHub Actions, GitLab CI, fail policies |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues with fixes |

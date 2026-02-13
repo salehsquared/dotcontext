@@ -118,12 +118,11 @@ Every `.context.yaml` must include these fields. The CLI will refuse to write a 
 
 | Field | Type | Description |
 |---|---|---|
-| `version` | `integer` | Schema version. Always `1`. |
+| `version` | `integer` | Schema version. The CLI currently writes `1` (`SCHEMA_VERSION`), and validation currently accepts any integer. |
 | `last_updated` | `string` | ISO 8601 timestamp of when this context was generated or updated. |
 | `fingerprint` | `string` | 8-character hex SHA-256 hash of directory contents (`filename:mtime:size`). See [trust-model.md](trust-model.md). |
 | `scope` | `string` | Relative path from project root. Root is `"."`. |
 | `summary` | `string` | 1-3 sentence description of what this directory does. |
-| `files` | `array` | Every source file in the directory. Each entry has `name` (string) and `purpose` (string). Optional `test_file` (string) for associated test file. |
 | `maintenance` | `string` | Self-describing instruction telling LLMs how to update this file. Embedded in every context file so it works across all tools. |
 
 ## Optional Fields
@@ -132,6 +131,7 @@ Include these when there's something meaningful to document. Empty arrays are om
 
 | Field | Type | Description |
 |---|---|---|
+| `files` | `array of {name, purpose, test_file?}` | File list (full mode). In lean mode this is usually omitted. |
 | `interfaces` | `array of {name, description}` | Public APIs, exported functions, CLI commands, HTTP endpoints. `name` can be a function signature (`verifyToken(token): User`) or an endpoint (`POST /login`). |
 | `decisions` | `array of {what, why, tradeoff?}` | Architectural choices. `tradeoff` is optional. |
 | `constraints` | `array of string` | Hard rules the code must follow. |
@@ -144,6 +144,7 @@ Include these when there's something meaningful to document. Empty arrays are om
 | `data_models` | `array of string` | Key data structures or schemas. |
 | `events` | `array of string` | Events emitted or consumed. |
 | `config` | `array of string` | Config files or feature flags. |
+| `exports` | `array of string` | Compact method/API signatures generated from source for routing. |
 
 ## Root-Only Fields
 
@@ -173,6 +174,8 @@ ignore:                       # additional directories to ignore
   - tmp
   - scratch
 max_depth: 5                  # max directory scan depth
+mode: lean                    # lean | full
+min_tokens: 4096              # skip tiny directories unless needed for routing
 ```
 
 | Field | Type | Required | Description |
@@ -182,3 +185,5 @@ max_depth: 5                  # max directory scan depth
 | `api_key_env` | `string` | no | Environment variable name for API key. Overrides the provider default. |
 | `ignore` | `string[]` | no | Additional directory patterns to ignore during scanning. |
 | `max_depth` | `integer` | no | Maximum directory depth for scanning. Must be >= 1. |
+| `mode` | `enum` | no | `"lean"` or `"full"` default generation mode. |
+| `min_tokens` | `integer` | no | Minimum estimated token size for a directory to be tracked. Default is `4096`; set `0` to disable threshold filtering. |

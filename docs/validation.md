@@ -19,7 +19,7 @@ Checks every `.context.yaml` in the project:
   ✓ src
   ✓ src/core
   ✗ src/commands
-       files: Required
+       summary: Required
 
 3 valid, 1 invalid, 0 missing.
 ```
@@ -33,6 +33,8 @@ context validate --strict
 ```
 
 Runs standard validation plus four cross-reference checks that compare context content against actual source code.
+
+Note: file list cross-checks only run when a context has a `files` field. Lean contexts often omit `files`, so strict mode reports that this specific check was skipped.
 
 ### 1. Phantom Files
 
@@ -97,12 +99,13 @@ Compares declared `dependencies.internal` against import statements detected in 
 | Unlisted files | Info | New file not yet documented — expected during development |
 | Undeclared deps | Info | Import exists but isn't declared — context is incomplete |
 | Declared dep not found | Info | Declared dep not detected in imports — may have been removed |
+| File cross-ref skipped (lean) | Info summary | `files` field was absent, so file list checks were skipped |
 
 ## Summary Output
 
 ```
 3 valid, 1 invalid, 0 missing.
-strict: 2 warnings, 3 info across 4 directories
+strict: 2 warnings, 3 info; 5 lean contexts (file cross-ref skipped) across 8 directories
 ```
 
 Exit code is `1` only for schema validation failures (invalid files), not for strict findings. Strict findings are reported but don't change the exit code. To fail CI on strict findings, parse the output or use a wrapper script.

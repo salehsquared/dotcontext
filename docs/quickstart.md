@@ -33,7 +33,7 @@ Generating structural context (no LLM)...
 Done. 6 .context.yaml files created.
 ```
 
-This uses static analysis by default — no API key, no cloud calls, fully offline. It detects file purposes, exports, dependencies, and project structure automatically.
+This uses static analysis by default — no API key, no cloud calls, fully offline. By default (lean mode), it generates routing-focused fields like `summary`, `subdirectories`, and compact `exports` signatures. Use `--full` when you want verbose `files` and `interfaces`.
 
 ## 3. Check Freshness
 
@@ -57,23 +57,24 @@ context show src/core
 ```
 
 ```yaml
+version: 1
+last_updated: "2026-02-10T14:30:00Z"
+fingerprint: "a3f8b2c1"
 scope: src/core
 summary: |
   Core scanning, fingerprinting, and schema validation.
-files:
-  - name: scanner.ts
-    purpose: Recursive directory walker with gitignore support
-  - name: fingerprint.ts
-    purpose: SHA-256 content hashing for staleness detection
-  - name: schema.ts
-    purpose: Zod schemas for .context.yaml and .context.config.yaml
-interfaces:
-  - name: scanProject(rootPath, options)
-    description: Walk directory tree, return ScanResult with files and children
-dependencies:
-  external:
-    - yaml ^2.8
-    - zod ^4.3
+exports:
+  - scanProject(rootPath: string): Promise<ScanResult>
+maintenance: |
+  If you modify files in this directory, update this .context.yaml...
+```
+
+If you want `files`, `interfaces`, and richer dependency detail in generated output:
+
+```bash
+context init --full
+# or
+context regen --all --full
 ```
 
 ## 5. Validate
@@ -83,7 +84,7 @@ context validate              # Schema compliance check
 context validate --strict     # Cross-reference against actual source code
 ```
 
-Strict mode catches phantom files (listed but missing), unlisted files (on disk but not in context), and phantom interfaces (declared but not found in code exports).
+Strict mode catches phantom files, unlisted files, and phantom interfaces when those fields are present. In lean contexts (no `files` field), file-list checks are skipped by design.
 
 ## 6. Connect to Your LLM Tool
 

@@ -1,6 +1,6 @@
 version: 1
-last_updated: 2026-02-13T17:43:07.159Z
-fingerprint: f05b3539
+last_updated: 2026-02-13T18:00:21.312Z
+fingerprint: a46a29b7
 scope: .
 summary: Folder-level documentation for LLMs — .context.yaml files for every directory
 maintenance: |-
@@ -12,10 +12,7 @@ maintenance: |-
   Do not include secrets, API keys, passwords, or PII in this file.
 subdirectories:
   - name: docs/
-    summary: >
-      This directory contains documentation for using and integrating dotcontext within projects, including CI/CD
-      pipeline implementations, integration setups, and user guides. It provides essential guidelines for maintaining
-      context quality and leveraging the MCP server functionalities.
+    summary: Documentation.
   - name: scripts/
     summary: >
       The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
@@ -38,10 +35,7 @@ project:
   package_manager: npm
 structure:
   - path: docs
-    summary: >
-      This directory contains documentation for using and integrating dotcontext within projects, including CI/CD
-      pipeline implementations, integration setups, and user guides. It provides essential guidelines for maintaining
-      context quality and leveraging the MCP server functionalities.
+    summary: Documentation.
   - path: scripts
     summary: >
       The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
