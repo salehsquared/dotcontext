@@ -5,3 +5,12 @@ grammars/
 .env.local
 *.tsbuildinfo
 scripts/sync-context.local.sh
+
+# Release artifacts
+*.tgz
+
+# IDE / tool settings
+.claude/
+
+# Planning docs (not shipped)
+PLAN.md

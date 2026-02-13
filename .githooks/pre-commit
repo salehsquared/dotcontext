@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SKIP_CONTEXT_SYNC:-0}" == "1" ]]; then
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if [[ ! -f "dist/index.js" ]]; then
+  echo "[dotcontext] dist/index.js not found; skipping context sync hook."
+  echo "[dotcontext] Run 'npm run build' once to enable hook-based context sync."
+  exit 0
+fi
+
+node scripts/sync-context-staged.mjs
