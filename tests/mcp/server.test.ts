@@ -43,6 +43,13 @@ describe("startMcpServer", () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
+  it("logs startup message and root path on success", async () => {
+    await startMcpServer("/tmp/project");
+
+    expect(console.error).toHaveBeenCalledWith("[dotcontext] MCP server started");
+    expect(console.error).toHaveBeenCalledWith("[dotcontext] Project root: /tmp/project");
+  });
+
   it("propagates connection failures", async () => {
     connect.mockRejectedValueOnce(new Error("connect failed"));
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
+import { stringify } from "yaml";
 import {
   handleQueryContext,
   handleCheckFreshness,
@@ -145,6 +146,32 @@ describe("handleQueryContext", () => {
     expect(result.found).toBe(false);
     expect(result.error).toContain("path traversal");
   });
+
+  it("returns error for unsupported schema version (soft-fail)", async () => {
+    const v2Context = { ...makeValidContext(), version: 2 };
+    await writeFile(join(tmpDir, CONTEXT_FILENAME), stringify(v2Context));
+
+    const result = await handleQueryContext({ scope: "." }, tmpDir);
+    expect(result.found).toBe(false);
+    expect(result.error).toContain("Unsupported schema version");
+    expect(result.error).toContain("2");
+  });
+
+  it("uses path override instead of defaultRoot", async () => {
+    const altRoot = await createTmpDir();
+    try {
+      await createFile(altRoot, "index.ts", "code");
+      const fp = await computeFingerprint(altRoot);
+      await writeContext(altRoot, makeValidContext({ fingerprint: fp, summary: "Alt root" }));
+
+      // defaultRoot has no context, but path override points to altRoot
+      const result = await handleQueryContext({ scope: ".", path: altRoot }, tmpDir);
+      expect(result.found).toBe(true);
+      expect(result.context!.summary).toBe("Alt root");
+    } finally {
+      await cleanupTmpDir(altRoot);
+    }
+  });
 });
 
 // --- handleCheckFreshness ---
@@ -209,6 +236,51 @@ describe("handleCheckFreshness", () => {
     const result = await handleCheckFreshness({ scope: "src\\core" }, tmpDir);
     expect(result.state).toBe("fresh");
     expect(result.fingerprint?.stored).toBe(fp);
+  });
+
+  it("returns error for unsupported schema version (soft-fail)", async () => {
+    const v2Context = { ...makeValidContext(), version: 2 };
+    await writeFile(join(tmpDir, CONTEXT_FILENAME), stringify(v2Context));
+
+    const result = await handleCheckFreshness({ scope: "." }, tmpDir);
+    expect(result.state).toBe("missing");
+    expect(result.error).toContain("Unsupported schema version");
+    expect(result.error).toContain("2");
+  });
+
+  it("returns error for invalid/corrupt .context.yaml", async () => {
+    await writeFile(join(tmpDir, CONTEXT_FILENAME), "not: valid\ncontext: file\n");
+
+    const result = await handleCheckFreshness({ scope: "." }, tmpDir);
+    expect(result.state).toBe("missing");
+    expect(result.error).toContain("Invalid or corrupt");
+  });
+
+  it("rejects path traversal", async () => {
+    const result = await handleCheckFreshness({ scope: "../../etc" }, tmpDir);
+    expect(result.state).toBe("missing");
+    expect(result.error).toContain("path traversal");
+  });
+
+  it("rejects backslash path traversal", async () => {
+    const result = await handleCheckFreshness({ scope: "..\\..\\etc" }, tmpDir);
+    expect(result.state).toBe("missing");
+    expect(result.error).toContain("path traversal");
+  });
+
+  it("uses path override instead of defaultRoot", async () => {
+    const altRoot = await createTmpDir();
+    try {
+      await createFile(altRoot, "index.ts", "code");
+      const fp = await computeFingerprint(altRoot);
+      await writeContext(altRoot, makeValidContext({ fingerprint: fp }));
+
+      const result = await handleCheckFreshness({ scope: ".", path: altRoot }, tmpDir);
+      expect(result.state).toBe("fresh");
+      expect(result.fingerprint!.stored).toBe(fp);
+    } finally {
+      await cleanupTmpDir(altRoot);
+    }
   });
 });
 
@@ -297,6 +369,60 @@ describe("handleListContexts", () => {
     // Should be lexicographically sorted
     const sorted = [...scopes].sort();
     expect(scopes).toEqual(sorted);
+  });
+
+  it("skips unsupported-version directories without crashing (mixed repo)", async () => {
+    // Root: valid context
+    await createFile(tmpDir, "index.ts", "root code");
+    const rootFp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: rootFp, scope: ".", summary: "Root" }));
+
+    // Subdirectory: unsupported version 2 context
+    const subDir = join(tmpDir, "src");
+    await mkdir(subDir, { recursive: true });
+    await createFile(subDir, "app.ts", "app code");
+    const v2Context = { ...makeValidContext({ scope: "src" }), version: 2 };
+    await writeFile(join(subDir, CONTEXT_FILENAME), stringify(v2Context));
+
+    const result = await handleListContexts({}, tmpDir);
+    expect(result.total_directories).toBe(2);
+    // Only the valid root is tracked; v2 dir is treated as missing
+    expect(result.tracked).toBe(1);
+    expect(result.entries).toHaveLength(2);
+
+    const rootEntry = result.entries.find((e) => e.scope === ".");
+    expect(rootEntry!.has_context).toBe(true);
+    expect(rootEntry!.summary).toBe("Root");
+
+    const srcEntry = result.entries.find((e) => e.scope === "src");
+    expect(srcEntry!.has_context).toBe(false);
+    expect(srcEntry!.state).toBe("missing");
+  });
+
+  it("returns error structure for non-existent root (global failure)", async () => {
+    const result = await handleListContexts({}, "/nonexistent/path/that/does/not/exist");
+    expect(result.error).toBeDefined();
+    expect(result.entries).toEqual([]);
+    expect(result.tracked).toBe(0);
+    expect(result.total_directories).toBe(0);
+  });
+
+  it("uses path override instead of defaultRoot", async () => {
+    const altRoot = await createTmpDir();
+    try {
+      await saveConfig(altRoot, { provider: "anthropic", min_tokens: 0 });
+      await createFile(altRoot, "index.ts", "alt code");
+      const fp = await computeFingerprint(altRoot);
+      await writeContext(altRoot, makeValidContext({ fingerprint: fp, summary: "Alt" }));
+
+      // defaultRoot is tmpDir (no context), path override points to altRoot
+      const result = await handleListContexts({ path: altRoot }, tmpDir);
+      expect(result.tracked).toBe(1);
+      const root = result.entries.find((e) => e.scope === ".");
+      expect(root!.summary).toBe("Alt");
+    } finally {
+      await cleanupTmpDir(altRoot);
+    }
   });
 });
 

@@ -51,5 +51,8 @@
   "required": [
     "provider"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$id": "https://dotcontext.dev/schema/v1/config.json",
+  "title": ".context.config.yaml",
+  "description": "Schema for dotcontext project configuration files (v1)"
 }

@@ -3,10 +3,9 @@
   "type": "object",
   "properties": {
     "version": {
-      "type": "integer",
-      "minimum": -9007199254740991,
-      "maximum": 9007199254740991,
-      "description": "Schema version"
+      "type": "number",
+      "const": 1,
+      "description": "Schema version (must be 1)"
     },
     "last_updated": {
       "type": "string",
@@ -326,5 +325,8 @@
     "summary",
     "maintenance"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$id": "https://dotcontext.dev/schema/v1/context.json",
+  "title": ".context.yaml",
+  "description": "Schema for dotcontext directory-level context files (v1)"
 }
