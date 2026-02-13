@@ -1,0 +1,6 @@
+{
+  "description": "Decision entry missing required 'what' field",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "what"
+}

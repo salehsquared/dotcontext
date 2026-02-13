@@ -1,0 +1,6 @@
+{
+  "description": "Evidence object missing required 'collected_at' field",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "collected_at"
+}

@@ -84,6 +84,15 @@ Why `.context.yaml` helps where README alone does not:
 - **`derived_fields` provenance tracking** — machine-derived fields are explicitly marked so agents can distinguish high-confidence facts from narrative.
 - **Strict cross-check validation** — `context validate --strict` can detect drift between declared context and actual code.
 
+## Schema
+
+dotcontext files are validated against a [JSON Schema (Draft 2020-12)](https://json-schema.org/draft/2020-12/schema):
+
+- **`.context.yaml`** — [`.context.schema.json`](.context.schema.json)
+- **`.context.config.yaml`** — [`.context.config.schema.json`](.context.config.schema.json)
+
+The schemas are published in the npm package and can be used for editor autocompletion (via YAML language server) or custom validation in any language. See [docs/schema.md](docs/schema.md) for the full field reference.
+
 ## How It Compares
 
 | Capability | dotcontext | CLAUDE.md / .cursorrules | Tool-native indexes | Memory tools |
@@ -305,6 +314,7 @@ context config              # View current settings
 | [Bench](docs/bench.md) | Benchmark command options, outputs, and current caveats |
 | [Integrations](docs/integrations.md) | Claude Code, Cursor, Windsurf, Continue, non-MCP, CI/CD |
 | [CI/CD Guide](docs/ci.md) | GitHub Actions, GitLab CI, fail policies |
+| [Versioning](docs/versioning.md) | Schema version policy and compatibility guarantees |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues with fixes |
 | [Limitations](docs/limitations.md) | What dotcontext does not guarantee |
 

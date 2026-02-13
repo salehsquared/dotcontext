@@ -60,11 +60,15 @@ const evidenceSchema = z.object({
   typecheck: z.enum(["clean", "errors", "unknown"]).optional(),
 });
 
+// --- Constants (must precede schema definitions that reference them) ---
+
+export const SCHEMA_VERSION = 1;
+
 // --- Main .context.yaml schema (directory-level) ---
 
 export const contextSchema = z.object({
   // Required fields
-  version: z.number().int().describe("Schema version"),
+  version: z.literal(SCHEMA_VERSION).describe("Schema version (must be 1)"),
   last_updated: z.string().describe("ISO 8601 timestamp"),
   fingerprint: z.string().describe("Short hash of directory contents"),
   scope: z.string().describe("Relative path from project root"),
@@ -97,7 +101,7 @@ export const contextSchema = z.object({
     .describe("Field paths that were machine-derived (high confidence)"),
   evidence: evidenceSchema.optional()
     .describe("Machine-collected code health evidence"),
-});
+}).strict();
 
 // --- Config file schema (.context.config.yaml) ---
 
@@ -128,7 +132,6 @@ export type Evidence = z.infer<typeof evidenceSchema>;
 
 export const CONTEXT_FILENAME = ".context.yaml";
 export const CONFIG_FILENAME = ".context.config.yaml";
-export const SCHEMA_VERSION = 1;
 
 // --- Default maintenance instruction ---
 

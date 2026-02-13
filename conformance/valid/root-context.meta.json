@@ -1,0 +1,5 @@
+{
+  "description": "Root-level context with project and structure fields",
+  "expected": "valid",
+  "category": "root-fields"
+}

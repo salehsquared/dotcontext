@@ -1,0 +1,6 @@
+{
+  "description": "Version 2 is not a supported schema version",
+  "expected": "invalid",
+  "category": "version-guard",
+  "error_field": "version"
+}

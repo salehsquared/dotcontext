@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { estimateDirectoryTokens, estimateContextFileTokens, filterByMinTokens, DEFAULT_MIN_TOKENS } from "../../src/utils/tokens.js";
+import {
+  estimateDirectoryTokens,
+  estimateContextFileTokens,
+  collectExtensions,
+  filterByMinTokens,
+  DEFAULT_MIN_TOKENS,
+} from "../../src/utils/tokens.js";
 import { createTmpDir, cleanupTmpDir, createFile, makeScanResult } from "../helpers.js";
 
 let tmpDir: string;
@@ -173,5 +179,31 @@ describe("filterByMinTokens", () => {
     const { dirs, skipped } = await filterByMinTokens([leafScan, midScan, topScan]);
     expect(dirs).toHaveLength(3); // all kept via chain
     expect(skipped).toBe(0);
+  });
+});
+
+describe("collectExtensions", () => {
+  it("counts extensions across all directories", () => {
+    const a = makeScanResult("/tmp/a", {
+      files: ["index.ts", "utils.ts", "runtime.js", "README"],
+    });
+    const b = makeScanResult("/tmp/b", {
+      files: ["view.tsx", "settings.json", "Dockerfile"],
+    });
+
+    expect(collectExtensions([a, b])).toEqual({
+      ".ts": 2,
+      ".js": 1,
+      ".tsx": 1,
+      ".json": 1,
+    });
+  });
+
+  it("returns an empty map when there are no extension-bearing files", () => {
+    const scan = makeScanResult("/tmp/a", {
+      files: ["README", "Dockerfile", "Makefile"],
+    });
+
+    expect(collectExtensions([scan])).toEqual({});
   });
 });

@@ -1,11 +1,8 @@
 version: 1
-last_updated: 2026-02-13T17:38:57.605Z
-fingerprint: 62e496b4
+last_updated: 2026-02-13T18:47:48.234Z
+fingerprint: bda6241d
 scope: tests/utils
-summary: >
-  This directory contains unit tests for utility functions in the codebase, ensuring correctness and performance of
-  functionalities such as pool processing and token estimation. It leverages the Vitest framework for running
-  asynchronous tests with various scenarios.
+summary: Utility functions.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,15 +10,9 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-decisions:
-  - what: Use of concurrency control in poolMap
-    why: To manage the execution of multiple asynchronous operations efficiently, limiting the number of concurrent
-      executions to avoid overwhelming resources.
-    tradeoff: While this improves performance, it introduces complexity in managing the concurrency and possible race conditions.
-constraints:
-  - All tests must clean up temporary directories after execution to avoid side effects on subsequent tests.
 dependencies:
   internal:
+    - ../../src/utils/ignore.js
     - ../../src/utils/pool.js
     - ../../src/utils/tokens.js
     - ../helpers.js

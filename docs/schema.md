@@ -118,7 +118,7 @@ Every `.context.yaml` must include these fields. The CLI will refuse to write a 
 
 | Field | Type | Description |
 |---|---|---|
-| `version` | `integer` | Schema version. The CLI currently writes `1` (`SCHEMA_VERSION`), and validation currently accepts any integer. |
+| `version` | `integer` | Schema version. Must be `1`. See [versioning.md](versioning.md). |
 | `last_updated` | `string` | ISO 8601 timestamp of when this context was generated or updated. |
 | `fingerprint` | `string` | 8-character hex SHA-256 hash of directory contents (`filename:mtime:size`). See [trust-model.md](trust-model.md). |
 | `scope` | `string` | Relative path from project root. Root is `"."`. |

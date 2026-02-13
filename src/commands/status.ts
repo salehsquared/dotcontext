@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
-import { readContext } from "../core/writer.js";
+import { readContext, UnsupportedVersionError } from "../core/writer.js";
 import { checkFreshness, type FreshnessState } from "../core/fingerprint.js";
-import { freshnessIcon, heading, dim } from "../utils/display.js";
+import { freshnessIcon, heading, dim, warnMsg } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
 import { loadConfig } from "../utils/config.js";
 import { filterByMinTokens } from "../utils/tokens.js";
@@ -32,7 +32,18 @@ export async function statusCommand(options: { path?: string; json?: boolean }):
   const missingPaths: string[] = [];
 
   for (const dir of dirs) {
-    const context = await readContext(dir.path);
+    let context;
+    try {
+      context = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        const label = dir.relativePath === "." ? "(root)" : dir.relativePath;
+        console.error(warnMsg(`${label}: ${err.message}`));
+        context = null;
+      } else {
+        throw err;
+      }
+    }
 
     if (context) {
       tracked++;

@@ -1,7 +1,7 @@
 import { resolve, posix } from "node:path";
 import { watch as chokidarWatch } from "chokidar";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
-import { readContext } from "../core/writer.js";
+import { readContext, UnsupportedVersionError } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
 import { freshnessIcon, heading, dim } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
@@ -71,7 +71,17 @@ export async function watchCommand(
   console.log(`  Press Ctrl+C to stop.\n`);
 
   for (const dir of dirs) {
-    const context = await readContext(dir.path);
+    let context;
+    try {
+      context = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        console.log(dim(`  ${dir.relativePath}: ${err.message} (skipped)`));
+        context = null;
+      } else {
+        throw err;
+      }
+    }
     let state: FreshnessState;
 
     if (context) {
@@ -104,7 +114,16 @@ export async function watchCommand(
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
   async function recheckDir(dir: ScanResult): Promise<void> {
-    const context = await readContext(dir.path);
+    let context;
+    try {
+      context = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        context = null;
+      } else {
+        throw err;
+      }
+    }
     let newState: FreshnessState;
 
     if (context) {

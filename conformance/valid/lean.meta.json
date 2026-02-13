@@ -1,0 +1,5 @@
+{
+  "description": "Lean context with no files or interfaces (both are optional)",
+  "expected": "valid",
+  "category": "optional-fields"
+}

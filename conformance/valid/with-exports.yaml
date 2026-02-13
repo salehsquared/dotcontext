@@ -1,0 +1,10 @@
+version: 1
+last_updated: "2026-02-11T10:00:00Z"
+fingerprint: "c2d3e4f5"
+scope: "src/utils"
+summary: "Utility functions with exports for routing"
+maintenance: "Keep updated"
+exports:
+  - "formatDate(date: Date): string"
+  - "parseConfig(path: string): Config"
+  - "hashFile(path: string): Promise<string>"

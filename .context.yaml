@@ -1,6 +1,6 @@
 version: 1
-last_updated: 2026-02-13T18:00:21.312Z
-fingerprint: a46a29b7
+last_updated: 2026-02-13T18:47:48.262Z
+fingerprint: 2deb7438
 scope: .
 summary: Folder-level documentation for LLMs — .context.yaml files for every directory
 maintenance: |-
@@ -11,46 +11,38 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 subdirectories:
+  - name: conformance/
+    summary: Documentation.
   - name: docs/
     summary: Documentation.
   - name: scripts/
-    summary: >
-      The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
-      generating schemas, and configuring git hooks. These scripts automate essential tasks to ensure smooth development
-      and maintenance of the project.
+    summary: Build and utility scripts.
   - name: src/
     summary: >
       The `src` directory is responsible for implementing the core functionalities and command-line interface for
       managing context generation and diagnostics in a project. It provides various commands for initializing
       configurations, validating context files, and monitoring their freshness.
   - name: tests/
-    summary: >
-      The tests directory contains unit tests for various components of the project, ensuring functionality and
-      correctness of features including command handling, generator processes, and utility functions. It uses the Vitest
-      framework for structured testing across different modules.
+    summary: Test suite.
 project:
   name: dotcontext
   description: Folder-level documentation for LLMs — .context.yaml files for every directory
   language: typescript
   package_manager: npm
 structure:
+  - path: conformance
+    summary: Documentation.
   - path: docs
     summary: Documentation.
   - path: scripts
-    summary: >
-      The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
-      generating schemas, and configuring git hooks. These scripts automate essential tasks to ensure smooth development
-      and maintenance of the project.
+    summary: Build and utility scripts.
   - path: src
     summary: >
       The `src` directory is responsible for implementing the core functionalities and command-line interface for
       managing context generation and diagnostics in a project. It provides various commands for initializing
       configurations, validating context files, and monitoring their freshness.
   - path: tests
-    summary: >
-      The tests directory contains unit tests for various components of the project, ensuring functionality and
-      correctness of features including command handling, generator processes, and utility functions. It uses the Vitest
-      framework for structured testing across different modules.
+    summary: Test suite.
 derived_fields:
   - version
   - last_updated

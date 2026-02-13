@@ -1,0 +1,5 @@
+{
+  "description": "Minimal valid .context.yaml with only required fields and a files entry",
+  "expected": "valid",
+  "category": "required-fields"
+}

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
-import { readContext, writeContext } from "../core/writer.js";
+import { readContext, writeContext, UnsupportedVersionError } from "../core/writer.js";
 import { computeFingerprint } from "../core/fingerprint.js";
 import { loadScanOptions } from "../utils/scan-options.js";
 import { loadConfig } from "../utils/config.js";
@@ -19,7 +19,16 @@ export async function rehashCommand(options: { path?: string }): Promise<void> {
   let stale = 0;
 
   for (const dir of dirs) {
-    const context = await readContext(dir.path);
+    let context;
+    try {
+      context = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        console.log(`  ${dir.relativePath}: ${err.message} (skipped)`);
+        continue;
+      }
+      throw err;
+    }
     if (!context) continue;
 
     const newFingerprint = await computeFingerprint(dir.path);

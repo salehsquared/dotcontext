@@ -1,12 +1,12 @@
 import { resolve, join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
-import { readContext } from "../core/writer.js";
+import { readContext, UnsupportedVersionError } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
 import { createProvider } from "../providers/index.js";
 import { loadConfig, resolveApiKey } from "../utils/config.js";
 import { loadScanOptions } from "../utils/scan-options.js";
-import { heading, dim, errorMsg, progressBar } from "../utils/display.js";
+import { heading, dim, errorMsg, warnMsg, progressBar } from "../utils/display.js";
 import type { ContextFile } from "../core/schema.js";
 import type { BenchOptions, BenchReport, MultiRepoReport } from "../bench/types.js";
 import {
@@ -106,7 +106,17 @@ async function runSingleBench(
   let staleCount = 0;
 
   for (const dir of allDirs) {
-    const ctx = await readContext(dir.path);
+    let ctx;
+    try {
+      ctx = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        if (!options.json) console.error(warnMsg(`${dir.relativePath}: ${err.message}`));
+        ctx = null;
+      } else {
+        throw err;
+      }
+    }
     if (ctx) {
       contextFiles.set(dir.relativePath, ctx);
 

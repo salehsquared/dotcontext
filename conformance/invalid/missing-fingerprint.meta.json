@@ -1,0 +1,6 @@
+{
+  "description": "Missing required field: fingerprint",
+  "expected": "invalid",
+  "category": "required-fields",
+  "error_field": "fingerprint"
+}

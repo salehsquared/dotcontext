@@ -1,0 +1,6 @@
+{
+  "description": "Interface entry missing required 'description' field",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "description"
+}

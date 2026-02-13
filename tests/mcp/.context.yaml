@@ -1,11 +1,8 @@
 version: 1
-last_updated: 2026-02-13T17:38:54.804Z
-fingerprint: 570d3896
+last_updated: 2026-02-13T18:47:48.229Z
+fingerprint: 7ff49885
 scope: tests/mcp
-summary: >
-  This directory contains tests for the Model Context Protocol (MCP) server and tools, ensuring proper functionality and
-  behavior through various unit tests. It verifies server startup, tools registration, context handling, and transport
-  connections.
+summary: MCP server integration.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,13 +10,6 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-decisions:
-  - what: Using Vitest for testing framework
-    why: Vitest provides a fast and flexible testing environment suitable for modern JavaScript applications.
-    tradeoff: Potential need for developers to familiarize themselves with Vitest if accustomed to other testing frameworks.
-constraints:
-  - Tests must ensure that no path traversal vulnerabilities are present.
-  - Tests must clean up any temporary directories created during execution.
 dependencies:
   internal:
     - ../../src/core/fingerprint.js

@@ -1,0 +1,6 @@
+{
+  "description": "Missing required field: scope",
+  "expected": "invalid",
+  "category": "required-fields",
+  "error_field": "scope"
+}

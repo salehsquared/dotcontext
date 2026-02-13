@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const registerTools = vi.fn();
 const connect = vi.fn(async () => {});
@@ -27,6 +27,11 @@ const { startMcpServer } = await import("../../src/mcp/server.js");
 describe("startMcpServer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("creates server, registers tools, and connects stdio transport", async () => {
@@ -36,5 +41,12 @@ describe("startMcpServer", () => {
     expect(registerTools).toHaveBeenCalledWith(mockServer, "/tmp/project");
     expect(StdioServerTransport).toHaveBeenCalledTimes(1);
     expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates connection failures", async () => {
+    connect.mockRejectedValueOnce(new Error("connect failed"));
+
+    await expect(startMcpServer("/tmp/project")).rejects.toThrow("connect failed");
+    expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining("MCP server started"));
   });
 });

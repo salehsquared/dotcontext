@@ -1,11 +1,8 @@
 version: 1
-last_updated: 2026-02-13T17:38:44.872Z
-fingerprint: 0dcdbf1c
+last_updated: 2026-02-13T18:47:48.203Z
+fingerprint: 48e93efe
 scope: src/mcp
-summary: >
-  The `src/mcp` directory implements the Model Context Protocol (MCP) server functionality, providing tools for managing
-  and querying context information in a structured manner. It facilitates the registration of tools that allow
-  interactions with `.context.yaml` files throughout a project structure.
+summary: MCP server integration.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,23 +10,6 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-decisions:
-  - what: The MCP server uses StdioServerTransport for communication.
-    why: This choice enables a straightforward method of input/output handling suitable for local development and testing.
-    tradeoff: Using StdioServerTransport may not be optimal for production environments where more robust transport methods
-      are required.
-constraints:
-  - Path traversal detection is enforced to prevent unauthorized access to directory structures.
-dependencies:
-  internal:
-    - ../core/fingerprint.js
-    - ../core/scanner.js
-    - ../core/schema.js
-    - ../core/writer.js
-    - ../utils/config.js
-    - ../utils/scan-options.js
-    - ../utils/tokens.js
-    - ./tools.js
 exports:
   - "async function startMcpServer(rootPath: string): Promise<void>"
   - interface QueryContextInput
@@ -44,10 +24,20 @@ exports:
     Promise<CheckFreshnessResult>"
   - "async function handleListContexts( input: ListContextsInput, defaultRoot: string, ): Promise<ListContextsResult>"
   - "function registerTools(server: McpServer, defaultRoot: string): void"
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ../utils/config.js
+    - ../utils/scan-options.js
+    - ../utils/tokens.js
+    - ./tools.js
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal
   - exports
+  - dependencies.internal

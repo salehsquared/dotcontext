@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createTmpDir, cleanupTmpDir, createFile } from "./helpers.js";
-import { loadEnvLocal, parseEnvLine, resolvePathFromArgv } from "../src/utils/env.js";
+import { loadEnvForCli, loadEnvLocal, parseEnvLine, resolvePathFromArgv } from "../src/utils/env.js";
 
 const TEST_ENV_KEYS = [
   "OPENAI_API_KEY",
@@ -111,5 +111,53 @@ describe("loadEnvLocal", () => {
   it("is a no-op when .env.local does not exist", async () => {
     await expect(loadEnvLocal(tmpDir)).resolves.toBeUndefined();
     expect(process.env.OPENAI_API_KEY).toBeUndefined();
+  });
+});
+
+describe("loadEnvForCli", () => {
+  it("loads cwd first, then --path without overriding existing env vars", async () => {
+    const cwdDir = await createTmpDir();
+    const pathDir = await createTmpDir();
+
+    try {
+      await createFile(cwdDir, ".env.local", [
+        "OPENAI_API_KEY=cwd-openai",
+        "CUSTOM_LLM_KEY=cwd-custom",
+        "",
+      ].join("\n"));
+      await createFile(pathDir, ".env.local", [
+        "OPENAI_API_KEY=path-openai",
+        "ANTHROPIC_API_KEY=path-anthropic",
+        "CUSTOM_LLM_KEY=path-custom",
+        "",
+      ].join("\n"));
+
+      const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(cwdDir);
+      await loadEnvForCli(["node", "context", "status", "--path", pathDir]);
+      cwdSpy.mockRestore();
+
+      expect(process.env.OPENAI_API_KEY).toBe("cwd-openai");
+      expect(process.env.ANTHROPIC_API_KEY).toBe("path-anthropic");
+      expect(process.env.CUSTOM_LLM_KEY).toBe("cwd-custom");
+    } finally {
+      await cleanupTmpDir(cwdDir);
+      await cleanupTmpDir(pathDir);
+    }
+  });
+
+  it("loads only cwd when no --path is provided", async () => {
+    const cwdDir = await createTmpDir();
+
+    try {
+      await createFile(cwdDir, ".env.local", "OPENAI_API_KEY=cwd-only\n");
+      const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(cwdDir);
+      await loadEnvForCli(["node", "context", "status"]);
+      cwdSpy.mockRestore();
+
+      expect(process.env.OPENAI_API_KEY).toBe("cwd-only");
+      expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+    } finally {
+      await cleanupTmpDir(cwdDir);
+    }
   });
 });

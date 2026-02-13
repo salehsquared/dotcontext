@@ -1,0 +1,6 @@
+{
+  "description": "Version field is a string instead of integer",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "version"
+}

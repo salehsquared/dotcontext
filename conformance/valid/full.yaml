@@ -1,0 +1,54 @@
+version: 1
+last_updated: "2026-02-10T14:30:00Z"
+fingerprint: "a3f8b2c1"
+scope: "src/auth"
+summary: "Handles user authentication and session management."
+files:
+  - name: "handler.py"
+    purpose: "FastAPI route handlers for /login, /register, /refresh"
+  - name: "tokens.py"
+    purpose: "JWT creation, validation, and expiry logic"
+  - name: "middleware.py"
+    purpose: "Auth middleware for protected routes"
+    test_file: "tests/test_middleware.py"
+maintenance: "If you modify files in this directory, update this .context.yaml."
+interfaces:
+  - name: "POST /login"
+    description: "Authenticates user, returns JWT token pair"
+  - name: "verifyToken(token): User"
+    description: "Validates JWT and returns decoded user"
+decisions:
+  - what: "JWT over server-side sessions"
+    why: "Stateless, scales horizontally"
+    tradeoff: "Revocation requires a blocklist table"
+constraints:
+  - "All endpoints except /health require authentication"
+dependencies:
+  internal:
+    - "src/db"
+  external:
+    - "pyjwt ^2.8"
+    - "fastapi ^0.110"
+current_state:
+  working:
+    - "Login and register endpoints fully tested"
+  broken:
+    - "Refresh endpoint has race condition (#14)"
+  in_progress:
+    - "Adding rate limiting to login endpoint"
+subdirectories:
+  - name: "tests/"
+    summary: "Unit and integration tests for auth module"
+environment:
+  - "JWT_SECRET"
+  - "TOKEN_EXPIRY"
+testing:
+  - "pytest tests/"
+todos:
+  - "Add rate limiting to login endpoint"
+data_models:
+  - "User — id, email, hashed_password, created_at"
+events:
+  - "user.login"
+config:
+  - "auth.yaml"

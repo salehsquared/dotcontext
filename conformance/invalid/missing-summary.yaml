@@ -1,0 +1,8 @@
+version: 1
+last_updated: "2025-01-01T00:00:00.000Z"
+fingerprint: "abc12345"
+scope: "."
+files:
+  - name: "index.ts"
+    purpose: "Entry point"
+maintenance: "Keep updated"

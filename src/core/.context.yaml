@@ -1,11 +1,8 @@
 version: 1
-last_updated: 2026-02-13T17:38:41.588Z
-fingerprint: e4bf9b11
+last_updated: 2026-02-13T18:47:48.194Z
+fingerprint: d229f6d8
 scope: src/core
-summary: >
-  The `src/core` directory contains core functionalities for computing file fingerprints, managing markdown files
-  related to agents, and scanning project directories for context files. It serves as the backbone for context
-  management within the project.
+summary: Core functionality.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,17 +10,6 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-decisions:
-  - what: File scanning excludes certain directories and file types.
-    why: To avoid unnecessary processing and focus on relevant source and configuration files.
-    tradeoff: Might miss newly added source files if they don't follow existing patterns or criteria.
-constraints:
-  - Do not modify the .context.yaml file manually; use provided commands for updates.
-  - Keep the fingerprint computation consistent by excluding certain files and directories from the hashing process.
-dependencies:
-  internal:
-    - ../generator/markdown.js
-    - ./schema.js
 exports:
   - "async function computeFingerprint(dirPath: string, ignorePatterns: string[] = []): Promise<string>"
   - type FreshnessState
@@ -39,6 +25,7 @@ exports:
   - "async function scanProject( rootPath: string, options: ScanOptions ="
   - "function groupByDepth(root: ScanResult): ScanResult[][]"
   - "function flattenBottomUp(result: ScanResult): ScanResult[]"
+  - SCHEMA_VERSION
   - contextSchema
   - configSchema
   - type ContextFile
@@ -51,11 +38,14 @@ exports:
   - type StructureEntry
   - type Evidence
   - CONTEXT_FILENAME
-  - CONFIG_FILENAME
+dependencies:
+  internal:
+    - ../generator/markdown.js
+    - ./schema.js
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
-  - dependencies.internal
   - exports
+  - dependencies.internal

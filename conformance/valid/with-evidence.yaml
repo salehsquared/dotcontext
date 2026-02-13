@@ -1,0 +1,17 @@
+version: 1
+last_updated: "2026-02-11T10:00:00Z"
+fingerprint: "e8f9a0b1"
+scope: "src/core"
+summary: "Core module with evidence and derived_fields"
+maintenance: "Keep updated"
+derived_fields:
+  - "version"
+  - "fingerprint"
+  - "files"
+  - "dependencies.external"
+  - "evidence"
+evidence:
+  collected_at: "2026-02-11T10:00:00Z"
+  test_status: "passing"
+  test_count: 42
+  typecheck: "clean"

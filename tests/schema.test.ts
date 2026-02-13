@@ -239,6 +239,13 @@ describe("contextSchema", () => {
       const data = { ...makeValidContext(), subdirectories: [{ name: "src/" }] };
       expect(contextSchema.safeParse(data).success).toBe(false);
     });
+
+    it("rejects version !== 1", () => {
+      const v2 = { ...makeValidContext(), version: 2 };
+      expect(contextSchema.safeParse(v2).success).toBe(false);
+      const v0 = { ...makeValidContext(), version: 0 };
+      expect(contextSchema.safeParse(v0).success).toBe(false);
+    });
   });
 });
 

@@ -1,6 +1,6 @@
 import { resolve, relative, isAbsolute } from "node:path";
 import { scanProject, flattenBottomUp, groupByDepth } from "../core/scanner.js";
-import { readContext, writeContext } from "../core/writer.js";
+import { readContext, writeContext, UnsupportedVersionError } from "../core/writer.js";
 import { checkFreshness } from "../core/fingerprint.js";
 import { generateStaticContext, type SummarySource } from "../generator/static.js";
 import { generateLLMContext } from "../generator/llm.js";
@@ -121,7 +121,17 @@ export async function regenCommand(
 
   // Pre-populate child contexts from existing files
   for (const dir of allDirs) {
-    const existing = await readContext(dir.path);
+    let existing;
+    try {
+      existing = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        console.log(warnMsg(`${dir.relativePath}: ${err.message} (will regenerate)`));
+        existing = null;
+      } else {
+        throw err;
+      }
+    }
     if (existing) childContexts.set(dir.path, existing);
   }
 

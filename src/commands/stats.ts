@@ -1,9 +1,9 @@
 import { resolve, join } from "node:path";
 import { stat } from "node:fs/promises";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
-import { readContext } from "../core/writer.js";
+import { readContext, UnsupportedVersionError } from "../core/writer.js";
 import { checkFreshness, type FreshnessState } from "../core/fingerprint.js";
-import { heading, dim } from "../utils/display.js";
+import { heading, dim, warnMsg } from "../utils/display.js";
 import { loadScanOptions } from "../utils/scan-options.js";
 import { loadConfig } from "../utils/config.js";
 import {
@@ -140,7 +140,17 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
   for (const dir of dirs) {
     const sourceTokens = await estimateDirectoryTokens(dir);
     const contextTokens = await estimateContextFileTokens(dir.path);
-    const context = await readContext(dir.path);
+    let context;
+    try {
+      context = await readContext(dir.path);
+    } catch (err) {
+      if (err instanceof UnsupportedVersionError) {
+        console.error(warnMsg(`${dir.relativePath}: ${err.message}`));
+        context = null;
+      } else {
+        throw err;
+      }
+    }
     totalSourceTokens += sourceTokens;
     totalFileCount += dir.files.length;
 

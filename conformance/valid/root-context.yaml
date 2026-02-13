@@ -1,0 +1,17 @@
+version: 1
+last_updated: "2026-02-10T14:30:00Z"
+fingerprint: "b4c5d6e7"
+scope: "."
+summary: "Project root with project metadata and structure"
+maintenance: "Keep updated"
+project:
+  name: "myapp"
+  description: "REST API for task management"
+  language: "python"
+  framework: "fastapi"
+  package_manager: "pip"
+structure:
+  - path: "src/auth"
+    summary: "Authentication and JWT handling"
+  - path: "src/api"
+    summary: "REST endpoint handlers"

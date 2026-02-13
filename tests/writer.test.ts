@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { writeContext, readContext, writeConfig, readConfig } from "../src/core/writer.js";
+import { writeContext, readContext, writeConfig, readConfig, UnsupportedVersionError } from "../src/core/writer.js";
 import { CONTEXT_FILENAME, CONFIG_FILENAME } from "../src/core/schema.js";
 import type { ContextFile, ConfigFile } from "../src/core/schema.js";
+import { stringify } from "yaml";
 import { createTmpDir, cleanupTmpDir, makeValidContext } from "./helpers.js";
 
 let tmpDir: string;
@@ -83,6 +84,17 @@ describe("writeContext / readContext", () => {
   it("writeContext throws on invalid data - wrong type", async () => {
     const bad = { ...makeValidContext(), version: "1" } as unknown as ContextFile;
     await expect(writeContext(tmpDir, bad)).rejects.toThrow();
+  });
+
+  it("throws UnsupportedVersionError for version > SCHEMA_VERSION", async () => {
+    await writeFile(join(tmpDir, ".context.yaml"), stringify({ ...makeValidContext(), version: 99 }), "utf-8");
+    await expect(readContext(tmpDir)).rejects.toThrow(UnsupportedVersionError);
+  });
+
+  it("returns null for version < 1 (schema validation failure, not UnsupportedVersionError)", async () => {
+    await writeFile(join(tmpDir, ".context.yaml"), stringify({ ...makeValidContext(), version: 0 }), "utf-8");
+    const result = await readContext(tmpDir);
+    expect(result).toBeNull();
   });
 });
 

@@ -1,0 +1,5 @@
+{
+  "description": "Lean context with exports field for routing",
+  "expected": "valid",
+  "category": "optional-fields"
+}

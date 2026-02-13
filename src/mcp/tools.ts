@@ -2,7 +2,7 @@ import { resolve, join, relative, isAbsolute } from "node:path";
 import { stat } from "node:fs/promises";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { readContext } from "../core/writer.js";
+import { readContext, UnsupportedVersionError } from "../core/writer.js";
 import { scanProject, flattenBottomUp } from "../core/scanner.js";
 import { checkFreshness, computeFingerprint } from "../core/fingerprint.js";
 import { CONTEXT_FILENAME } from "../core/schema.js";
@@ -123,7 +123,15 @@ export async function handleQueryContext(
     };
   }
 
-  const context = await readContext(targetDir);
+  let context;
+  try {
+    context = await readContext(targetDir);
+  } catch (err) {
+    if (err instanceof UnsupportedVersionError) {
+      return { found: false, scope: input.scope, error: err.message };
+    }
+    throw err;
+  }
   if (!context) {
     return { found: false, scope: input.scope, error: `Invalid or corrupt .context.yaml at scope "${input.scope}"` };
   }
@@ -172,7 +180,15 @@ export async function handleCheckFreshness(
     };
   }
 
-  const context = await readContext(targetDir);
+  let context;
+  try {
+    context = await readContext(targetDir);
+  } catch (err) {
+    if (err instanceof UnsupportedVersionError) {
+      return { scope: input.scope, state: "missing" as FreshnessState, error: err.message };
+    }
+    throw err;
+  }
   if (!context) {
     return { scope: input.scope, state: "missing", error: `Invalid or corrupt .context.yaml at scope "${input.scope}"` };
   }
@@ -207,7 +223,16 @@ export async function handleListContexts(
     let tracked = 0;
 
     for (const dir of dirs) {
-      const context = await readContext(dir.path);
+      let context;
+      try {
+        context = await readContext(dir.path);
+      } catch (err) {
+        if (err instanceof UnsupportedVersionError) {
+          context = null;
+        } else {
+          throw err;
+        }
+      }
       const scope = dir.relativePath;
 
       if (context) {

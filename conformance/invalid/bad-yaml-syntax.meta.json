@@ -1,0 +1,5 @@
+{
+  "description": "Malformed YAML syntax (unclosed quotes)",
+  "expected": "invalid",
+  "category": "syntax"
+}

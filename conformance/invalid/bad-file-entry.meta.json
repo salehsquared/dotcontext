@@ -1,0 +1,6 @@
+{
+  "description": "File entry missing required 'purpose' field",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "purpose"
+}

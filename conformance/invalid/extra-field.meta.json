@@ -1,0 +1,6 @@
+{
+  "description": "Unknown top-level field (additionalProperties: false)",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "unknown_field"
+}

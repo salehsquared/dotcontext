@@ -1,0 +1,5 @@
+{
+  "description": "Full .context.yaml with all optional fields populated",
+  "expected": "valid",
+  "category": "optional-fields"
+}
