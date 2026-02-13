@@ -1,10 +1,8 @@
 version: 1
-last_updated: 2026-02-13T06:15:32.889Z
-fingerprint: be1ab5f4
+last_updated: 2026-02-13T17:43:07.159Z
+fingerprint: f05b3539
 scope: .
-summary: >
-  The root directory provides folder-level documentation for LLMs, containing `.context.yaml` files for every
-  subdirectory to summarize their purpose and structure, as well as architectural decisions and constraints.
+summary: Folder-level documentation for LLMs — .context.yaml files for every directory
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -15,40 +13,50 @@ maintenance: |-
 subdirectories:
   - name: docs/
     summary: >
-      The `docs` directory provides comprehensive information and guidance on using the dotcontext tool, including CI/CD
-      integration, usage patterns, limitations, and quickstart instructions for generating and validating context files.
-      It serves as a resource for both new users and developers seeking to understand the architecture and operational
-      constraints of the tool.
+      This directory contains documentation for using and integrating dotcontext within projects, including CI/CD
+      pipeline implementations, integration setups, and user guides. It provides essential guidelines for maintaining
+      context quality and leveraging the MCP server functionalities.
   - name: scripts/
     summary: >
-      The scripts directory contains utility scripts for building grammars, generating JSON schemas from Zod schemas,
-      and managing local project context settings. These scripts automate essential tasks to facilitate project setup
-      and schema management.
+      The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
+      generating schemas, and configuring git hooks. These scripts automate essential tasks to ensure smooth development
+      and maintenance of the project.
   - name: src/
     summary: >
-      The src directory serves as the core implementation area for a command-line tool that generates and manages
-      `.context.yaml` documentation files for codebases. It encapsulates various functionalities including command
-      handling, context generation, and project health checks.
+      The `src` directory is responsible for implementing the core functionalities and command-line interface for
+      managing context generation and diagnostics in a project. It provides various commands for initializing
+      configurations, validating context files, and monitoring their freshness.
   - name: tests/
     summary: >
-      The tests directory contains unit tests for various components of the application, ensuring functionality and
-      reliability through structured tests across modules including command execution, core markdown management,
-      generator validations, MCP protocol behaviors, utility functions, and benchmarking features.
+      The tests directory contains unit tests for various components of the project, ensuring functionality and
+      correctness of features including command handling, generator processes, and utility functions. It uses the Vitest
+      framework for structured testing across different modules.
 project:
   name: dotcontext
   description: Folder-level documentation for LLMs — .context.yaml files for every directory
-  language: TypeScript
-  framework: Node.js
+  language: typescript
   package_manager: npm
 structure:
-  - path: docs/
-    summary: Comprehensive information and guidance on using the dotcontext tool.
-  - path: scripts/
-    summary: Utility scripts for building grammars and managing project context settings.
-  - path: src/
-    summary: Core implementation for generating and managing .context.yaml documentation files.
-  - path: tests/
-    summary: Unit tests for various components of the application.
+  - path: docs
+    summary: >
+      This directory contains documentation for using and integrating dotcontext within projects, including CI/CD
+      pipeline implementations, integration setups, and user guides. It provides essential guidelines for maintaining
+      context quality and leveraging the MCP server functionalities.
+  - path: scripts
+    summary: >
+      The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
+      generating schemas, and configuring git hooks. These scripts automate essential tasks to ensure smooth development
+      and maintenance of the project.
+  - path: src
+    summary: >
+      The `src` directory is responsible for implementing the core functionalities and command-line interface for
+      managing context generation and diagnostics in a project. It provides various commands for initializing
+      configurations, validating context files, and monitoring their freshness.
+  - path: tests
+    summary: >
+      The tests directory contains unit tests for various components of the project, ensuring functionality and
+      correctness of features including command handling, generator processes, and utility functions. It uses the Vitest
+      framework for structured testing across different modules.
 derived_fields:
   - version
   - last_updated
@@ -56,3 +64,4 @@ derived_fields:
   - scope
   - subdirectories
   - project
+  - structure

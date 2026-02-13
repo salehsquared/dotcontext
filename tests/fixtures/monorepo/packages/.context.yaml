@@ -1,10 +1,10 @@
 version: 1
-last_updated: 2026-02-12T22:23:39.290Z
+last_updated: 2026-02-13T17:38:35.036Z
 fingerprint: e3b0c442
 scope: tests/fixtures/monorepo/packages
 summary: >
-  This directory contains fixtures used for testing within a monorepo structure. It includes specific packages like the
-  API server and shared TypeScript types, facilitating organized testing across the services.
+  This directory contains the packages of a monorepo, including the API package and shared type definitions. It serves
+  to encapsulate the API functionality and provide consistent typing across various components of the monorepo.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,21 +13,22 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Shared TypeScript types should be centralized in the shared/ directory.
-    why: This promotes type consistency and reduces duplication across various packages in the monorepo.
-    tradeoff: Requires all packages to depend on the shared types, which may introduce overhead if not managed properly.
+  - what: The API package is structured to handle incoming requests and manage server startup.
+    why: This design centralizes API-related functionality, allowing for easier maintenance and clearer separation of
+      concerns.
+    tradeoff: This may lead to additional complexity in managing server configurations across different environments.
 constraints:
-  - Each package must adhere to the defined TypeScript types in the shared/ directory to prevent type discrepancies.
+  - The shared types must be used consistently across all packages to avoid type mismatches.
 subdirectories:
   - name: api/
     summary: >
-      This directory contains the API package for a monorepo, implementing the API server responsible for handling
-      incoming requests. It plays a central role in the service architecture by coordinating interactions between
-      services.
+      This directory contains the API package of the monorepo, providing the source code necessary for the API server
+      implementation. It handles incoming requests and manages server startup on a designated port.
   - name: shared/
     summary: >
-      This directory contains shared TypeScript types used across various packages in a monorepo setup, centralizing
-      type definitions to promote consistency and reduce duplication.
+      This directory hosts shared type definitions for a monorepo, ensuring consistent structure and typing across
+      multiple packages. It standardizes configuration interfaces to facilitate better collaboration and
+      maintainability.
 derived_fields:
   - version
   - last_updated

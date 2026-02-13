@@ -6,14 +6,32 @@
   "bin": {
     "context": "./dist/index.js"
   },
+  "author": "Saleh Mostafa",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salehsquared/dotcontext.git"
+  },
+  "homepage": "https://github.com/salehsquared/dotcontext",
+  "bugs": {
+    "url": "https://github.com/salehsquared/dotcontext/issues"
+  },
+  "files": [
+    "dist",
+    "grammars",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsc && npm run generate:schemas",
+    "build": "tsc && npm run generate:schemas && npm run build:grammars",
     "build:grammars": "node scripts/build-grammars.mjs",
     "generate:schemas": "node scripts/generate-schemas.mjs",
+    "context:sync": "node scripts/sync-context-staged.mjs",
+    "hooks:install": "node scripts/install-hooks.mjs",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "llm",

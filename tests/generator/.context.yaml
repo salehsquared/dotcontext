@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:50.543Z
+last_updated: 2026-02-13T17:38:54.803Z
 fingerprint: 78f64214
 scope: tests/generator
 summary: >
-  The tests/generator directory contains unit tests for validating the functionality of Markdown generation and
-  manipulation specific to agent entries in the project. It ensures that generated content adheres to defined markers
-  and formats correctly.
+  This directory contains unit tests for the markdown generation functionality used in the project. It validates the
+  correctness of various methods that handle the creation and manipulation of markdown content related to agents and
+  their actions.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +14,19 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using Vitest for testing framework
-    why: Vitest is designed for speed and efficiency, particularly for projects using Vite, providing a streamlined
-      experience.
-    tradeoff: Potential learning curve for developers unfamiliar with Vitest compared to more established frameworks.
+  - what: The tests cover various edge cases and expected behaviors for markdown generation functions.
+    why: To ensure robustness and correctness in generating markdown output, especially regarding escaping characters and
+      handling different input scenarios.
+    tradeoff: Increased complexity in test cases may lead to longer execution times but provides better assurance of
+      functionality.
 constraints:
-  - Tests must cover all functions in the markdown.js module, ensuring complete validation of Markdown generation logic.
+  - Tests must pass for all cases to ensure that changes to the markdown generation logic do not introduce regressions.
+dependencies:
+  internal:
+    - ../../src/generator/markdown.js
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal

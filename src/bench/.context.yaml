@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:14:48.428Z
-fingerprint: 80c2bdd0
+last_updated: 2026-02-13T17:38:42.176Z
+fingerprint: 4d62be17
 scope: src/bench
 summary: >
-  The `src/bench` directory implements benchmark generation, execution, and scoring for measuring whether
-  `.context.yaml` improves LLM performance versus baseline prompts. It builds tasks from static code and git signals,
-  runs scoped baseline/context prompts, and reports quality and token-efficiency metrics.
+  The `src/bench` directory provides a framework for benchmarking the performance of AI models using structured tasks.
+  It includes the setup for cloning repositories, generating tasks based on code structure, and scoring the results of
+  model responses.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,19 +14,14 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The directory utilizes a specific scoring system for task evaluation.
-    why: This allows for consistent and structured results across varying task types.
-    tradeoff: The complexity of managing multiple scoring methods may introduce overhead in task definition.
-  - what: Token estimation is computed from the actual benchmark prompts at runtime.
-    why: This keeps token metrics aligned with what the model actually receives, including judge prompts.
-    tradeoff: Estimates are still approximate unless provider usage metadata is exposed.
-  - what: Benchmark prompts are scoped to the task source directory window (root/parent/scope/children).
-    why: This better matches realistic retrieval behavior and avoids full-project prompt inflation.
-    tradeoff: Very cross-cutting questions may need broader context than the default scope window.
+  - what: Tasks are categorized into specific types (e.g., comprehension, dependency, change impact).
+    why: This allows for targeted evaluation and deeper insights into AI model performance across various aspects of the
+      codebase.
+    tradeoff: While this increases complexity in task generation, it enables more nuanced evaluations.
 constraints:
-  - Dependencies must be synchronized with the task definitions and given the correct criteria for evaluation.
-  - Git operations must handle failures gracefully to avoid breaking the benchmarking process.
-  - Scoped prompt construction must preserve deterministic ordering for stable benchmark comparisons.
+  - All tasks must adhere to the defined scoring methods and follow the expected output format.
+  - Task generation is based on existing file structure and commit history; tasks cannot be generated for directories
+    with insufficient files or dependencies.
 dependencies:
   internal:
     - ../core/scanner.js
@@ -49,10 +44,11 @@ exports:
   - "async function buildReverseDeps( scanResult: ScanResult, ): Promise<Map<string, string[]>>"
   - "async function buildDirFacts( scanResult: ScanResult, ): Promise<Map<string, DirFacts>>"
   - 'function buildFileTree(scanResult: ScanResult, indent = ""): string'
+  - interface ScopeWindow
   - "function computeScopeWindow( sourceScope: string, scanResult: ScanResult, ): ScopeWindow"
   - "function buildScopedFileTree( sourceScope: string, scanResult: ScanResult, ):"
   - BENCH_SYSTEM_PROMPT
-  - "function buildReadmeSnippet(readme: string | null, maxChars?: number): string | null"
+  - "function buildReadmeSnippet(readme: string | null, maxChars = DEFAULT_README_SNIPPET_CHARS): string | null"
   - "function buildBaselinePrompt( fileTree: string, readme: string | null, question: string, sourceScope?: string, ):
     string"
   - "function buildContextPrompt( fileTree: string, contextFiles: Map<string, ContextFile>, question: string,
@@ -67,12 +63,6 @@ exports:
   - JUDGE_SYSTEM_PROMPT
   - "function detectAbstention(response: string): boolean"
   - "function scoreListCoverage(response: string, expected: string[]): number"
-  - "function scoreTopkRecall(response: string, expected: string[]): number"
-  - "function scoreTargetHit(response: string, expected: string[]): number"
-  - "function scoreMrr(response: string, expected: string[]): number"
-  - "function scoreFileSetF1(response: string, expected: string[]): number"
-  - "function resolveTokenProfile(provider: string, model: string):"
-  - "function estimateInputTokens(options:"
 derived_fields:
   - version
   - last_updated

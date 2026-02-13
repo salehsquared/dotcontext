@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:14:54.652Z
-fingerprint: 759fc19e
+last_updated: 2026-02-13T17:38:51.648Z
+fingerprint: 5e8b4dc6
 scope: src/commands
 summary: >
-  The src/commands directory contains various command implementations that manage project initialization, configuration,
-  benchmarking, and context file handling in a structured manner. Each command handles specific functionalities related
-  to the project's context management lifecycle.
+  The `src/commands` directory contains various command implementations for managing context generation, configuration,
+  and diagnostics for a project. Each file provides a specific functionality such as initializing configurations,
+  running benchmarks, validating context files, and monitoring their freshness.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,21 +14,15 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The commands can operate in both single-repo and multi-repo modes.
-    why: This flexibility allows users to benchmark contexts for either a specific repository or multiple default
-      repositories without changing the underlying architecture.
-    tradeoff: This increases complexity in command handling and requires careful management of temporary directories.
-  - what: Bench provider credentials are resolved from the invoking project config path, not cloned benchmark targets.
-    why: Remote/default repo benchmarks clone into temporary directories that do not contain the caller's
-      `.context.config.yaml`.
-    tradeoff: Benchmarking and provider configuration are decoupled, so users must keep the invoking config valid.
-  - what: Temporary benchmark repo initialization skips AGENTS.md generation.
-    why: AGENTS.md creation after context generation can immediately invalidate fresh fingerprints in cloned repos.
-    tradeoff: Temporary benchmark clones do not get AGENTS.md output, but benchmark behavior is unaffected.
+  - what: Use a single command pattern for each functionality.
+    why: To maintain consistency and ease of use across all commands.
+    tradeoff: May lead to a larger number of files, but allows for clearer separation of concerns.
+  - what: Default tokens filtering based on a minimum threshold.
+    why: To optimize performance and focus on relevant directories.
+    tradeoff: Can skip some valid directories if their token counts do not meet the threshold.
 constraints:
-  - Commands must ensure that a valid provider configuration exists before proceeding with operations.
-  - Context files must follow the defined schema, and any deviations will affect the commands' executions.
-  - Bench runs against `--repo` or `--default-repos` must still load provider settings from the original command path.
+  - All commands must handle configuration loading and error management consistently.
+  - JSON output mode must avoid any additional console output.
 dependencies:
   internal:
     - ../bench/git.js

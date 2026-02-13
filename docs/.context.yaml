@@ -1,12 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:24:10.153Z
+last_updated: 2026-02-13T17:39:01.048Z
 fingerprint: e13ad0c8
 scope: docs
 summary: >
-  The `docs` directory provides comprehensive information and guidance on using the dotcontext tool, including CI/CD
-  integration, usage patterns, limitations, and quickstart instructions for generating and validating context files. It
-  serves as a resource for both new users and developers seeking to understand the architecture and operational
-  constraints of the tool.
+  This directory contains documentation for using and integrating dotcontext within projects, including CI/CD pipeline
+  implementations, integration setups, and user guides. It provides essential guidelines for maintaining context quality
+  and leveraging the MCP server functionalities.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -15,12 +14,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: CI/CD integration should prioritize context validation on pull requests.
-    why: To maintain context quality and prevent schema violations before code changes are merged.
-    tradeoff: Requires developers to ensure context files are consistently updated, potentially increasing PR complexity.
+  - what: The MCP server operates as a read-only service.
+    why: To ensure that context files remain unchanged by external interactions, preserving data integrity.
+    tradeoff: Clients cannot modify context directly, which may require additional regeneration steps.
 constraints:
-  - Run `context validate` in CI to catch invalid YAML and schema violations for every pull request.
-  - Context files must not contain secrets, API keys, passwords, or PII.
+  - The MCP server validation must occur with validated paths to avoid security issues related to path traversal.
+  - Only recognized file types as defined in the documentation will be acknowledged during the context file generation.
 derived_fields:
   - version
   - last_updated

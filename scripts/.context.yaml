@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:59.565Z
-fingerprint: bf53d0b8
+last_updated: 2026-02-13T17:39:00.329Z
+fingerprint: ad410aca
 scope: scripts
 summary: >
-  The scripts directory contains utility scripts for building grammars, generating JSON schemas from Zod schemas, and
-  managing local project context settings. These scripts automate essential tasks to facilitate project setup and schema
-  management.
+  The 'scripts' directory contains utility scripts for managing project workflows, including building grammar files,
+  generating schemas, and configuring git hooks. These scripts automate essential tasks to ensure smooth development and
+  maintenance of the project.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +14,14 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The build-grammars script directly copies pre-built WASM grammar files from node_modules.
-    why: This choice simplifies the setup by avoiding the need to compile grammars, ensuring they are readily available for
-      use.
-    tradeoff: While this approach reduces build times, it assumes that the necessary grammar packages are always present in
-      node_modules.
+  - what: Use of Zod for JSON schema generation
+    why: Zod offers a straightforward and dependency-free way to create JSON schemas directly from existing validation
+      schemas.
+    tradeoff: This choice ties the schema generation process to Zod, which may limit flexibility if a different validation
+      library is preferred in the future.
 constraints:
-  - The sync-context.local.sh script requires a project root to function correctly and can only operate within its
-    intended context.
+  - Scripts must be executed from the project root directory to function correctly.
+  - The .githooks directory must be configured to ensure that the pre-commit hook is installed properly.
 derived_fields:
   - version
   - last_updated

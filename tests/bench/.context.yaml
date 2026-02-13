@@ -1,12 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:15:15.716Z
-fingerprint: 97708f88
+last_updated: 2026-02-13T17:38:56.335Z
+fingerprint: 630f3442
 scope: tests/bench
 summary: >
-  This directory contains tests for the benchmarking and evaluation features of the codebase, validating the
-  functionality of various modules such as Git commit extraction, dependency building, scoped prompt construction,
-  runtime token estimation, task generation, and scoring methods. The tests ensure reliability and correctness of the
-  benchmark reporting pipeline.
+  The tests/bench directory contains unit tests that evaluate the functionality and performance of the components in the
+  bench module. It ensures that features related to git operations, task generation, scoring, and prompt building work
+  as intended and meet specified requirements.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -15,14 +14,13 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use of Vitest for testing framework
-    why: Vitest offers a fast testing experience with a familiar API for developers already acquainted with Jest, making it
-      easy to write and maintain tests.
-    tradeoff: While Vitest is performant, it may have some limitations in terms of ecosystem maturity compared to other
-      established frameworks.
+  - what: Use Vitest as the testing framework
+    why: Vitest is designed for Vite and provides fast and efficient testing capabilities for modern JavaScript projects.
+    tradeoff: It may require developers to learn its specific syntax and features compared to more commonly used frameworks
+      like Jest.
 constraints:
-  - Tests must be isolated and not depend on the state of the filesystem outside of created temporary directories.
-  - All tests must clean up after execution, ensuring no side effects impact subsequent tests.
+  - Tests must clean up any temporary resources created during execution to avoid side effects.
+  - Each test should run independently to ensure no shared state interferes with test outcomes.
 dependencies:
   internal:
     - ../../src/bench/git.js
@@ -34,7 +32,6 @@ dependencies:
     - ../../src/bench/tasks.js
     - ../../src/bench/token-estimator.js
     - ../../src/bench/types.js
-    - ../../src/core/scanner.js
     - ../helpers.js
     - ./b.js
     - ./core.js

@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:15:06.842Z
+last_updated: 2026-02-13T17:38:45.743Z
 fingerprint: 2b109cff
 scope: src/utils
 summary: >
-  The src/utils directory provides utility functions for managing configurations, environment variables, and displaying
-  messages. It facilitates tasks such as loading configuration files, managing environment settings, processing items in
-  parallel, and estimating tokens in directory structures.
+  The src/utils directory provides utility functions for managing configuration, environment variables, and processing
+  tasks with bounded concurrency. It contains functionalities for loading and saving configurations, handling
+  environment variables, and displaying messages. Additionally, it includes methods for token estimation and filtering.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,12 +14,13 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using a work-stealing pattern in the poolMap function
-    why: This allows for efficient parallel processing of items without blocking, maximizing resource utilization.
-    tradeoff: The implementation complexity increases due to the need to manage concurrency and state.
+  - what: Workers in poolMap adopt a work-stealing pattern.
+    why: This allows for efficient parallel processing by enabling free workers to pick up new tasks as they become
+      available.
+    tradeoff: While this approach can improve performance, it may introduce complexity in managing concurrent tasks.
 constraints:
-  - "The environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/u."
-  - The maximum concurrency value in poolMap must be at least 1 and not exceed the number of items being processed.
+  - Environmental variables must be defined correctly in .env.local files for proper functionality.
+  - Paths must be managed and utilized consistently to prevent issues in file reading and writing operations.
 dependencies:
   internal:
     - ../core/fingerprint.js

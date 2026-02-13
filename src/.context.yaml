@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:15:09.209Z
+last_updated: 2026-02-13T17:39:00.363Z
 fingerprint: 0ea3ec25
 scope: src
 summary: >
-  The src directory serves as the core implementation area for a command-line tool that generates and manages
-  `.context.yaml` documentation files for codebases. It encapsulates various functionalities including command handling,
-  context generation, and project health checks.
+  The `src` directory is responsible for implementing the core functionalities and command-line interface for managing
+  context generation and diagnostics in a project. It provides various commands for initializing configurations,
+  validating context files, and monitoring their freshness.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,11 +14,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Commands are implemented in separate modules within the commands/ directory.
-    why: This promotes separation of concerns, making it easier to manage and extend individual command functionalities.
-    tradeoff: It may lead to more files and initial setup complexity but enhances maintainability.
+  - what: Using the Commander library to manage command-line interactions
+    why: It provides a structured and user-friendly way to define commands and options for the CLI
+    tradeoff: Introduces a dependency on an external library for command management
 constraints:
-  - All commands must adhere to the specified options and action handling defined in index.ts.
+  - Commands must adhere to proper validation and error handling for user inputs.
+  - All directory paths specified in commands should be valid and accessible within the project structure.
 dependencies:
   internal:
     - ./commands/bench.js
@@ -39,39 +40,40 @@ dependencies:
 subdirectories:
   - name: bench/
     summary: >
-      The `src/bench` directory contains functionalities for benchmarking code understanding using a set of tasks,
-      scoring methods, and various prompts. It integrates git operations for commit analysis and computes dependency
-      structures, guiding task generation and evaluation for AI-assisted code comprehension.
+      The `src/bench` directory provides a framework for benchmarking the performance of AI models using structured
+      tasks. It includes the setup for cloning repositories, generating tasks based on code structure, and scoring the
+      results of model responses.
   - name: commands/
     summary: >
-      The src/commands directory contains various command implementations that manage project initialization,
-      configuration, benchmarking, and context file handling in a structured manner. Each command handles specific
-      functionalities related to the project's context management lifecycle.
+      The `src/commands` directory contains various command implementations for managing context generation,
+      configuration, and diagnostics for a project. Each file provides a specific functionality such as initializing
+      configurations, running benchmarks, validating context files, and monitoring their freshness.
   - name: core/
     summary: >
-      The `src/core` directory provides utilities for managing directory fingerprints, updating markdown files related
-      to agents, and scanning project directories to detect context requirements. It encapsulates functionalities for
-      file management, ignoring patterns, and maintaining state information.
+      The `src/core` directory contains core functionalities for computing file fingerprints, managing markdown files
+      related to agents, and scanning project directories for context files. It serves as the backbone for context
+      management within the project.
   - name: generator/
     summary: >
-      This directory is responsible for generating contextual YAML documentation for codebases by analyzing source files
-      and extracting relevant metadata such as exports and dependencies. It supports functionalities like detecting
-      external dependencies, collecting evidence from test artifacts, and leveraging AST parsing for code analysis.
+      The `src/generator` directory contains code for generating structured documentation and managing code analysis
+      tasks, including AST parsing for exports and dependency detection. It facilitates the generation of context files
+      based on various programming languages and gathers evidence from existing artifacts for documentation purposes.
   - name: mcp/
     summary: >
-      The `src/mcp` directory implements the Model Context Protocol (MCP) server, providing functionality to manage and
-      query project context stored in `.context.yaml` files. It establishes a connection via standard I/O and allows
-      interaction with the context through various tools.
+      The `src/mcp` directory implements the Model Context Protocol (MCP) server functionality, providing tools for
+      managing and querying context information in a structured manner. It facilitates the registration of tools that
+      allow interactions with `.context.yaml` files throughout a project structure.
   - name: providers/
     summary: >
-      This directory implements various LLM provider classes that adhere to a common interface, allowing for the
-      generation of text responses from different language models. Each provider encapsulates the specifics of
-      interacting with an external API or SDK. 
+      This directory contains implementations of different LLM (Large Language Model) providers that adhere to a common
+      interface. Each provider class is responsible for generating responses from its respective model using either SDKs
+      or direct API calls.
   - name: utils/
     summary: >
-      The src/utils directory provides utility functions for managing configurations, environment variables, and
-      displaying messages. It facilitates tasks such as loading configuration files, managing environment settings,
-      processing items in parallel, and estimating tokens in directory structures.
+      The src/utils directory provides utility functions for managing configuration, environment variables, and
+      processing tasks with bounded concurrency. It contains functionalities for loading and saving configurations,
+      handling environment variables, and displaying messages. Additionally, it includes methods for token estimation
+      and filtering.
 exports:
   - interface CommandHandlers
   - "function createProgram(handlers: CommandHandlers = defaultHandlers): Command"

@@ -1,11 +1,10 @@
 version: 1
-last_updated: 2026-02-12T22:23:46.466Z
+last_updated: 2026-02-13T17:38:48.966Z
 fingerprint: "06795230"
 scope: tests/core
 summary: >
-  The tests/core directory contains unit tests for the markdown-writer functionalities, ensuring that the management of
-  AGENTS.md files behaves as expected. It validates reading, writing, and updating operations related to markdown files
-  in a structured manner.
+  This directory contains unit tests for the core functionality of the markdown writer. It focuses on reading, writing,
+  and updating agent-related markdown files, ensuring proper handling of file operations and content management.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +13,20 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use of Vitest for testing
-    why: Vitest provides a fast and efficient testing framework compatible with Vite projects.
-    tradeoff: Choosing Vitest ties the testing framework closely to the Vite ecosystem, which may limit flexibility if
-      project requirements change.
+  - what: Using temporary directories for tests
+    why: To isolate tests from each other and ensure a clean environment for each test case.
+    tradeoff: Increased complexity in test setup and teardown.
 constraints:
-  - Tests must clean up any temporary directories created during execution to avoid pollution of the testing environment.
+  - Tests must clean up any temporary files created to avoid polluting the filesystem.
+  - All test files should follow the naming convention '*.test.ts'.
+dependencies:
+  internal:
+    - ../../src/core/markdown-writer.js
+    - ../../src/generator/markdown.js
+    - ../helpers.js
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal

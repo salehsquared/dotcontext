@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:15:29.145Z
+last_updated: 2026-02-13T17:39:03.402Z
 fingerprint: 94f0a7ff
 scope: tests
 summary: >
-  The tests directory contains unit tests for various components of the application, ensuring functionality and
-  reliability through structured tests across modules including command execution, core markdown management, generator
-  validations, MCP protocol behaviors, utility functions, and benchmarking features.
+  The tests directory contains unit tests for various components of the project, ensuring functionality and correctness
+  of features including command handling, generator processes, and utility functions. It uses the Vitest framework for
+  structured testing across different modules.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,11 +14,11 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Utilizing Vitest for testing framework
-    why: To enable a modern and efficient testing environment with fast execution and a rich set of features.
-    tradeoff: Requires developers to be familiar with Vitest syntax and behavior.
+  - what: Use of Vitest for testing framework
+    why: It provides a simple and fast testing environment integrated with TypeScript.
+    tradeoff: May have a learning curve for developers unfamiliar with the framework.
 constraints:
-  - Tests must be isolated and not depend on shared state to ensure reliability and repeatability.
+  - Tests must be written following the structure established in each module's test file.
 dependencies:
   internal:
     - ../core/scanner.js
@@ -44,39 +44,39 @@ dependencies:
 subdirectories:
   - name: bench/
     summary: >
-      This directory contains tests for the benchmarking and evaluation features of the codebase, validating the
-      functionality of various modules such as Git commit extraction, dependency building, task generation, and scoring
-      methods. The tests ensure reliability and correctness of the functions managing code analysis and reporting.
+      The tests/bench directory contains unit tests that evaluate the functionality and performance of the components in
+      the bench module. It ensures that features related to git operations, task generation, scoring, and prompt
+      building work as intended and meet specified requirements.
   - name: commands/
     summary: >
-      This directory contains unit tests for command functionalities within the application, ensuring that commands
-      execute correctly and handle various scenarios as expected. It promotes code reliability and helps catch
-      regressions early in the development process.
+      This directory contains test cases for various command functionalities, ensuring the accuracy and reliability of
+      commands related to configuration, initialization, status checking, and regeneration within the project. It
+      encompasses unit tests using Vitest to validate individual command behaviors in isolation.
   - name: core/
     summary: >
-      The tests/core directory contains unit tests for the markdown-writer functionalities, ensuring that the management
-      of AGENTS.md files behaves as expected. It validates reading, writing, and updating operations related to markdown
-      files in a structured manner.
+      This directory contains unit tests for the core functionality of the markdown writer. It focuses on reading,
+      writing, and updating agent-related markdown files, ensuring proper handling of file operations and content
+      management.
   - name: fixtures/
     summary: >
-      The tests/fixtures directory contains structured test fixtures to support unit testing across various projects. It
-      includes a monorepo structure, a simple project demonstration, and specific test sources to organize and isolate
-      test data from application code.
+      The tests/fixtures directory provides test fixtures for various scenarios, including a monorepo setup, a simple
+      TypeScript project, and files designated to be ignored during testing. It serves to facilitate organized testing
+      across different project configurations.
   - name: generator/
     summary: >
-      The tests/generator directory contains unit tests for validating the functionality of Markdown generation and
-      manipulation specific to agent entries in the project. It ensures that generated content adheres to defined
-      markers and formats correctly.
+      This directory contains unit tests for the markdown generation functionality used in the project. It validates the
+      correctness of various methods that handle the creation and manipulation of markdown content related to agents and
+      their actions.
   - name: mcp/
     summary: >
-      This directory contains tests for the MCP (Model Context Protocol) components, including server initialization and
-      tool functionality. It ensures that the behavior of the MCP server and associated tools meet the expected outcomes
-      defined in the specifications.
+      This directory contains tests for the Model Context Protocol (MCP) server and tools, ensuring proper functionality
+      and behavior through various unit tests. It verifies server startup, tools registration, context handling, and
+      transport connections.
   - name: utils/
     summary: >
-      The tests/utils directory contains utility test cases for functions related to concurrency management and token
-      estimation within files and directories. It aims to ensure that utility functions behave as expected under various
-      conditions.
+      This directory contains unit tests for utility functions in the codebase, ensuring correctness and performance of
+      functionalities such as pool processing and token estimation. It leverages the Vitest framework for running
+      asynchronous tests with various scenarios.
 exports:
   - "async function createTmpDir(): Promise<string>"
   - "async function cleanupTmpDir(dir: string): Promise<void>"

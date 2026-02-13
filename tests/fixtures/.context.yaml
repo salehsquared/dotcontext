@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:49.357Z
+last_updated: 2026-02-13T17:38:52.047Z
 fingerprint: e3b0c442
 scope: tests/fixtures
 summary: >
-  The tests/fixtures directory contains structured test fixtures to support unit testing across various projects. It
-  includes a monorepo structure, a simple project demonstration, and specific test sources to organize and isolate test
-  data from application code.
+  The tests/fixtures directory provides test fixtures for various scenarios, including a monorepo setup, a simple
+  TypeScript project, and files designated to be ignored during testing. It serves to facilitate organized testing
+  across different project configurations.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,27 +14,25 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The directory is organized into subdirectories for different types of projects (monorepo, simple, with context
-      ignores).
-    why: This separation enhances maintainability and clarity, allowing developers to easily find relevant test fixtures for
-      different contexts.
-    tradeoff: While this adds directory depth, it can also lead to more complexity in navigating the project structure.
+  - what: Using a directory structure that organizes different project scenarios
+    why: To streamline the development and testing processes by clearly separating different project configurations and
+      their associated test fixtures.
+    tradeoff: Potential for increased complexity in navigation if too many scenarios are added.
 constraints:
-  - Test fixtures must not interfere with the main application codebase.
+  - Files under with-contextignore should be deliberately ignored during tests to ensure accurate testing outcomes.
 subdirectories:
   - name: monorepo/
     summary: >
-      This directory contains fixtures for testing within a monorepo structure, facilitating organized testing across
-      multiple services by including specific packages like the API server and shared TypeScript types.
+      This directory contains the configuration for a monorepo setup, supporting multiple packages under a single
+      workspace. It allows for organized development and shared components across the entire monorepo.
   - name: simple-project/
     summary: >
-      This directory contains a simple project demonstrating basic functionality with source files for a main function
-      and a utility for adding numbers. It is structured to illustrate module usage and TypeScript configuration. 
+      This directory contains a basic TypeScript project setup, including source files and configuration for building
+      the project. It serves as a template for understanding TypeScript module structure and compilation options.
   - name: with-contextignore/
     summary: >
-      This directory serves as a collection of test fixture source files and temporary test fixtures specifically
-      designed for unit testing. It ensures that test data is organized and isolated from the main application code,
-      promoting clarity in the test suite.
+      This directory contains test fixtures used in the testing process. It includes source files that may be ignored to
+      streamline testing efforts.
 derived_fields:
   - version
   - last_updated

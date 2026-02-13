@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-13T06:15:02.807Z
+last_updated: 2026-02-13T17:38:42.717Z
 fingerprint: b1c2a4a0
 scope: src/generator
 summary: >
-  This directory is responsible for generating contextual YAML documentation for codebases by analyzing source files and
-  extracting relevant metadata such as exports and dependencies. It supports functionalities like detecting external
-  dependencies, collecting evidence from test artifacts, and leveraging AST parsing for code analysis.
+  The `src/generator` directory contains code for generating structured documentation and managing code analysis tasks,
+  including AST parsing for exports and dependency detection. It facilitates the generation of context files based on
+  various programming languages and gathers evidence from existing artifacts for documentation purposes.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,12 +14,12 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Lazy loading of tree-sitter libraries
-    why: To optimize code performance and only load parsing modules when necessary.
-    tradeoff: Increased complexity in error handling if tree-sitter fails to load.
+  - what: Use web-tree-sitter for AST parsing
+    why: To accurately parse and analyze source code across multiple languages using a unified interface.
+    tradeoff: Inherits complexities related to WASM loading and tree-sitter integration.
 constraints:
-  - Must use tree-sitter WASM files that correspond to the languages supported by the configurations.
-  - Detecting exports is contingent on the availability of the respective language grammar files.
+  - "Only supports a defined set of file extensions: .ts, .tsx, .js, .jsx, .py, .go, .rs."
+  - The directory must include language-specific WASM files for tree-sitter to function correctly.
 dependencies:
   internal:
     - ../core/fingerprint.js

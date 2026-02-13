@@ -1,10 +1,10 @@
 version: 1
-last_updated: 2026-02-12T22:23:34.223Z
+last_updated: 2026-02-13T17:38:31.279Z
 fingerprint: 15cbf504
 scope: tests/fixtures/monorepo/packages/shared
 summary: >
-  This directory contains shared TypeScript types used across various packages in a monorepo setup, centralizing type
-  definitions to promote consistency and reduce duplication.
+  This directory hosts shared type definitions for a monorepo, ensuring consistent structure and typing across multiple
+  packages. It standardizes configuration interfaces to facilitate better collaboration and maintainability.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -12,17 +12,13 @@ maintenance: |-
   updated automatically on the next `context status` check.
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
-decisions:
-  - what: Types are organized in a central location.
-    why: To ensure all packages have access to the same type definitions, enhancing interoperability.
-    tradeoff: Potentially leads to tighter coupling between packages, as they rely on shared definitions.
 constraints:
-  - Type definitions must be carefully versioned to avoid breaking changes across dependent packages.
+  - Type definitions must be kept in sync with the interfaces across all consuming packages to prevent type mismatches.
 subdirectories:
   - name: src/
     summary: >
-      This directory contains shared TypeScript types to be used across various packages in a monorepo setup. It
-      centralizes type definitions to promote consistency and reduce duplication.
+      This directory contains shared type definitions used across multiple packages in a monorepo setup. It standardizes
+      configuration interfaces to ensure consistent structure and typing throughout the project.
 derived_fields:
   - version
   - last_updated
