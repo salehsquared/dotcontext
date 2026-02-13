@@ -180,14 +180,14 @@ By default, dotcontext generates **lean** context files — a routing layer that
 - `decisions` — architectural choices that can't be inferred from code
 - `constraints` — hard rules a developer must follow
 - `subdirectories` — routing to child directories with summaries
-- `dependencies.external` — from package manifests (cheap, useful)
+- `dependencies.internal` — cross-directory import relationships (cheap, high signal for navigation)
 - Metadata: `version`, `fingerprint`, `scope`, `maintenance`, `derived_fields`
 - Root only: `project`, `structure`
 
 **Full mode** (`--full` flag or `context config --mode full`) adds:
 - `files[]` — every file with its purpose
 - `interfaces[]` — exported functions, classes, endpoints
-- `dependencies.internal` — cross-directory import relationships
+- `dependencies.external` — from package manifests
 - `current_state` — what's working, broken, in progress
 
 Mode resolution: `--full` CLI flag > `config.mode` > default `lean`.

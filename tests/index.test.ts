@@ -15,6 +15,7 @@ function makeHandlers(): CommandHandlers {
     watchCommand: vi.fn(async () => {}),
     doctorCommand: vi.fn(async () => {}),
     statsCommand: vi.fn(async () => {}),
+    benchCommand: vi.fn(async () => {}),
     startMcpServer: vi.fn(async () => {}),
   };
 }
@@ -227,5 +228,48 @@ describe("CLI wiring", () => {
       path: "/tmp/project",
       json: true,
     });
+  });
+
+  it("bench command calls benchCommand with path", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "bench", "-p", "/tmp/project"], handlers);
+    expect(handlers.benchCommand).toHaveBeenCalledWith(expect.objectContaining({
+      path: "/tmp/project",
+    }));
+  });
+
+  it("bench --json passes json: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "bench", "--json", "-p", "/tmp/project"], handlers);
+    expect(handlers.benchCommand).toHaveBeenCalledWith(expect.objectContaining({
+      path: "/tmp/project",
+      json: true,
+    }));
+  });
+
+  it("bench --repo passes repo URL", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "bench", "--repo", "https://github.com/foo/bar"], handlers);
+    expect(handlers.benchCommand).toHaveBeenCalledWith(expect.objectContaining({
+      repo: "https://github.com/foo/bar",
+    }));
+  });
+
+  it("bench --default-repos passes defaultRepos: true", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "bench", "--default-repos"], handlers);
+    expect(handlers.benchCommand).toHaveBeenCalledWith(expect.objectContaining({
+      defaultRepos: true,
+    }));
+  });
+
+  it("bench --max-tasks 10 --seed 99 --category comprehension passes options", async () => {
+    const handlers = makeHandlers();
+    await parse(["node", "context", "bench", "--max-tasks", "10", "--seed", "99", "--category", "comprehension"], handlers);
+    expect(handlers.benchCommand).toHaveBeenCalledWith(expect.objectContaining({
+      maxTasks: 10,
+      seed: 99,
+      category: "comprehension",
+    }));
   });
 });

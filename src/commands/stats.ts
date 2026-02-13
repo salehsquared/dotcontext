@@ -121,6 +121,7 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
   const entries: DirStats[] = [];
   let tracked = 0;
   let totalSourceTokens = 0;
+  let trackedSourceTokens = 0;
   let totalContextTokens = 0;
   let freshCount = 0;
   let staleCount = 0;
@@ -148,6 +149,7 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
 
     if (context) {
       tracked++;
+      trackedSourceTokens += sourceTokens;
       totalContextTokens += contextTokens;
       const { state } = await checkFreshness(dir.path, context.fingerprint);
       freshness = state;
@@ -200,10 +202,10 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
 
   entries.sort((a, b) => a.scope.localeCompare(b.scope));
 
-  // Aggregate metrics
-  const tokensSaved = totalSourceTokens - totalContextTokens;
-  const reductionPercent = totalSourceTokens > 0 ? round1((1 - totalContextTokens / totalSourceTokens) * 100) : 0;
-  const reductionRatio = totalContextTokens > 0 ? round1(totalSourceTokens / totalContextTokens) : 0;
+  // Aggregate metrics (reduction only counts tracked dirs — missing dirs aren't "savings")
+  const tokensSaved = trackedSourceTokens - totalContextTokens;
+  const reductionPercent = trackedSourceTokens > 0 ? round1((1 - totalContextTokens / trackedSourceTokens) * 100) : 0;
+  const reductionRatio = totalContextTokens > 0 ? round1(trackedSourceTokens / totalContextTokens) : 0;
 
   // Per-directory percentiles (only tracked dirs with source > 0)
   const perDirReductions = entries
@@ -249,6 +251,7 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
       })),
       token_economics: {
         source_tokens: totalSourceTokens,
+        tracked_source_tokens: trackedSourceTokens,
         context_tokens: totalContextTokens,
         tokens_saved: tokensSaved,
         reduction_percent: reductionPercent,
@@ -299,7 +302,7 @@ export async function statsCommand(options: { path?: string; json?: boolean }): 
   if (tracked > 0) {
     console.log("");
     console.log(heading("  Token Reduction"));
-    console.log(`    ~${fmtNum(totalSourceTokens)} source \u2192 ~${fmtNum(totalContextTokens)} context (${reductionPercent}% reduction${reductionRatio > 0 ? `, ${reductionRatio}x smaller` : ""})`);
+    console.log(`    ~${fmtNum(trackedSourceTokens)} source \u2192 ~${fmtNum(totalContextTokens)} context (${reductionPercent}% reduction${reductionRatio > 0 ? `, ${reductionRatio}x smaller` : ""})`);
     console.log(`    ~${fmtNum(tokensSaved)} tokens saved`);
     if (p50 !== null && p95 !== null) {
       console.log(`    per-directory: p50 ${p50}%  p95 ${p95}%`);

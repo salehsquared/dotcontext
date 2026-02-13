@@ -14,6 +14,7 @@ import { ignoreCommand } from "./commands/ignore.js";
 import { watchCommand } from "./commands/watch.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { statsCommand } from "./commands/stats.js";
+import { benchCommand } from "./commands/bench.js";
 import { startMcpServer } from "./mcp/server.js";
 import { loadEnvForCli } from "./utils/env.js";
 import { errorMsg } from "./utils/display.js";
@@ -30,6 +31,7 @@ export interface CommandHandlers {
   watchCommand: typeof watchCommand;
   doctorCommand: typeof doctorCommand;
   statsCommand: typeof statsCommand;
+  benchCommand: typeof benchCommand;
   startMcpServer: typeof startMcpServer;
 }
 
@@ -45,6 +47,7 @@ const defaultHandlers: CommandHandlers = {
   watchCommand,
   doctorCommand,
   statsCommand,
+  benchCommand,
   startMcpServer,
 };
 
@@ -202,6 +205,36 @@ export function createProgram(handlers: CommandHandlers = defaultHandlers): Comm
     .option("-p, --path <path>", "Project root path")
     .action(async (opts) => {
       await handlers.statsCommand({ path: opts.path, json: opts.json });
+    });
+
+  program
+    .command("bench")
+    .description("Benchmark whether .context.yaml files improve LLM accuracy")
+    .option("--json", "Output machine-readable JSON")
+    .option("--iterations <n>", "Repeat each task N times", parseInt)
+    .option("--tasks <path>", "Path to manual tasks YAML file")
+    .option("--max-tasks <n>", "Maximum tasks to generate", parseInt)
+    .option("--seed <n>", "Seed for deterministic sampling", parseInt)
+    .option("--category <cat>", "Only run this task category")
+    .option("--out <file>", "Write JSON report to file")
+    .option("--allow-stale", "Include stale context files")
+    .option("--repo <url>", "Clone and benchmark a GitHub repo")
+    .option("--default-repos", "Benchmark against curated default repos")
+    .option("-p, --path <path>", "Project root path")
+    .action(async (opts) => {
+      await handlers.benchCommand({
+        path: opts.path,
+        json: opts.json,
+        iterations: opts.iterations,
+        tasks: opts.tasks,
+        maxTasks: opts.maxTasks,
+        seed: opts.seed,
+        category: opts.category,
+        out: opts.out,
+        allowStale: opts.allowStale,
+        repo: opts.repo,
+        defaultRepos: opts.defaultRepos,
+      });
     });
 
   program

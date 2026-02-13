@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:54.739Z
-fingerprint: ce48f9ee
+last_updated: 2026-02-13T06:15:23.803Z
+fingerprint: e42d6f94
 scope: tests/commands
 summary: >
-  This directory contains various test files for validating the functionality of command handlers. Each test file
-  verifies specific commands related to configuration, status, initialization, watching, and more within the
-  application.
+  This directory contains unit tests for command functionalities within the application, ensuring that commands execute
+  correctly and handle various scenarios as expected. It promotes code reliability and helps catch regressions early in
+  the development process.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,13 +14,36 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Utilizing Vitest for testing framework
-    why: Vitest provides a fast and efficient testing experience, which complements the development workflow.
-    tradeoff: Some developers may prefer other testing frameworks, potentially leading to a learning curve.
+  - what: Mocking the console.log and process.stdout functions
+    why: To capture output for assertions during the tests without relying on actual console output.
+    tradeoff: Increased complexity in test setup and teardown due to the need to restore original functions.
 constraints:
-  - Tests should cover all commands to ensure proper functionality and regression prevention.
+  - Tests must not rely on external state or side effects; all operations should be performed in a temporary directory.
+dependencies:
+  internal:
+    - ../../src/commands/config.js
+    - ../../src/commands/doctor.js
+    - ../../src/commands/ignore.js
+    - ../../src/commands/init.js
+    - ../../src/commands/regen.js
+    - ../../src/commands/rehash.js
+    - ../../src/commands/show.js
+    - ../../src/commands/stats.js
+    - ../../src/commands/status.js
+    - ../../src/commands/validate.js
+    - ../../src/commands/watch.js
+    - ../../src/core/fingerprint.js
+    - ../../src/core/markdown-writer.js
+    - ../../src/core/schema.js
+    - ../../src/core/writer.js
+    - ../../src/generator/markdown.js
+    - ../../src/utils/config.js
+    - ../helpers.js
+    - ../lib
+    - ../utils
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal

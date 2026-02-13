@@ -1,10 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:51.485Z
-fingerprint: 0d727c99
+last_updated: 2026-02-13T06:14:57.968Z
+fingerprint: e4bf9b11
 scope: src/core
 summary: >
-  This directory contains core functionality for computing directory fingerprints, scanning project structures, and
-  managing .context.yaml files. It ensures organized and efficient tracking of project files and their states.
+  The `src/core` directory provides utilities for managing directory fingerprints, updating markdown files related to
+  agents, and scanning project directories to detect context requirements. It encapsulates functionalities for file
+  management, ignoring patterns, and maintaining state information.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -13,12 +14,17 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The fingerprinting process is non-recursive and only considers files directly in the directory.
-    why: This design choice simplifies fingerprint calculations and prevents excessive computation on nested directories.
-    tradeoff: Potentially misses changes in files deeply nested within subdirectories.
+  - what: Use SHA-256 hashing for computing directory fingerprints
+    why: Provides a secure and unique way to represent the state of the directory contents with a short hash.
+    tradeoff: Hashing could introduce overhead compared to simpler checksum methods but ensures data integrity.
 constraints:
-  - Do not include .context.yaml itself or common non-source directories when computing fingerprints.
-  - Files and directories that match certain ignore patterns will be excluded from scans.
+  - Do NOT modify the .context.yaml file manually; use 'context rehash' or it will be updated automatically on the next
+    'context status' check.
+  - Ignore any files or directories matched by patterns defined in .gitignore or .contextignore.
+dependencies:
+  internal:
+    - ../generator/markdown.js
+    - ./schema.js
 exports:
   - "async function computeFingerprint(dirPath: string, ignorePatterns: string[] = []): Promise<string>"
   - type FreshnessState
@@ -52,4 +58,5 @@ derived_fields:
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal
   - exports

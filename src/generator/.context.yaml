@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:53.422Z
-fingerprint: 8fac80ee
+last_updated: 2026-02-13T06:15:02.807Z
+fingerprint: b1c2a4a0
 scope: src/generator
 summary: >
-  The `src/generator` directory contains code for parsing source files to detect exports and dependencies, generating
-  context documentation, and collecting evidence from existing artifacts. It leverages AST parsing and static analysis
-  to build structured YAML outputs for project documentation.
+  This directory is responsible for generating contextual YAML documentation for codebases by analyzing source files and
+  extracting relevant metadata such as exports and dependencies. It supports functionalities like detecting external
+  dependencies, collecting evidence from test artifacts, and leveraging AST parsing for code analysis.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,13 +14,24 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use of tree-sitter for AST parsing.
-    why: Provides a reliable way to analyze various programming languages and extract specific data patterns.
-    tradeoff: Increases complexity by introducing a dependency on the web-tree-sitter library.
+  - what: Lazy loading of tree-sitter libraries
+    why: To optimize code performance and only load parsing modules when necessary.
+    tradeoff: Increased complexity in error handling if tree-sitter fails to load.
 constraints:
-  - "Only supports specific file extensions: .ts, .tsx, .js, .jsx, .py, .go, .rs."
-  - Tree-sitter must be successfully loaded for AST parsing to function.
-  - Files must not exceed 8000 characters when read for context generation.
+  - Must use tree-sitter WASM files that correspond to the languages supported by the configurations.
+  - Detecting exports is contingent on the availability of the respective language grammar files.
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../providers/index.js
+    - ./...
+    - ./ast.js
+    - ./dependencies.js
+    - ./evidence.js
+    - ./prompts.js
+    - ./static.js
 exports:
   - "async function detectExportsAST( content: string, ext: string, ): Promise<string[] | null>"
   - "async function detectExportSignaturesAST( content: string, ext: string, ): Promise<"
@@ -55,4 +66,5 @@ derived_fields:
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal
   - exports

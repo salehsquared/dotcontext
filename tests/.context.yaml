@@ -1,12 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:24:10.428Z
-fingerprint: 9b7f0d40
+last_updated: 2026-02-13T06:15:29.145Z
+fingerprint: 94f0a7ff
 scope: tests
 summary: >
-  The tests directory contains various unit tests to validate the functionality and behavior of the application,
-  including components such as command handlers, core functionality, dependency detection, environmental variable
-  management, and code generation. It ensures the integrity and reliability of the system through comprehensive testing
-  across different modules.
+  The tests directory contains unit tests for various components of the application, ensuring functionality and
+  reliability through structured tests across modules including command execution, core markdown management, generator
+  validations, MCP protocol behaviors, utility functions, and benchmarking features.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -15,19 +14,44 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Use Vitest as the testing framework
-    why: It provides a fast test runner with built-in support for TypeScript and a simple syntax.
-    tradeoff: May require developers to familiarize themselves with a new framework if they are accustomed to alternatives
-      like Jest.
+  - what: Utilizing Vitest for testing framework
+    why: To enable a modern and efficient testing environment with fast execution and a rich set of features.
+    tradeoff: Requires developers to be familiar with Vitest syntax and behavior.
 constraints:
-  - All test files must adhere to proper naming conventions ending with '.test.ts'.
-  - Tests must not depend on external states or require configuration that is not set up within the test files.
+  - Tests must be isolated and not depend on shared state to ensure reliability and repeatability.
+dependencies:
+  internal:
+    - ../core/scanner.js
+    - ../mod${i}/index.js
+    - ../shared/utils.js
+    - ../src/core/fingerprint.js
+    - ../src/core/scanner.js
+    - ../src/core/schema.js
+    - ../src/core/writer.js
+    - ../src/generator/ast.js
+    - ../src/generator/dependencies.js
+    - ../src/generator/llm.js
+    - ../src/generator/prompts.js
+    - ../src/generator/static.js
+    - ../src/index.js
+    - ../src/providers/index.js
+    - ../src/utils/config.js
+    - ../src/utils/env.js
+    - ../src/utils/scan-options.js
+    - ./config.js
+    - ./helper.js
+    - ./helpers.js
 subdirectories:
+  - name: bench/
+    summary: >
+      This directory contains tests for the benchmarking and evaluation features of the codebase, validating the
+      functionality of various modules such as Git commit extraction, dependency building, task generation, and scoring
+      methods. The tests ensure reliability and correctness of the functions managing code analysis and reporting.
   - name: commands/
     summary: >
-      This directory contains various test files for validating the functionality of command handlers. Each test file
-      verifies specific commands related to configuration, status, initialization, watching, and more within the
-      application.
+      This directory contains unit tests for command functionalities within the application, ensuring that commands
+      execute correctly and handle various scenarios as expected. It promotes code reliability and helps catch
+      regressions early in the development process.
   - name: core/
     summary: >
       The tests/core directory contains unit tests for the markdown-writer functionalities, ensuring that the management
@@ -50,9 +74,9 @@ subdirectories:
       defined in the specifications.
   - name: utils/
     summary: >
-      This directory contains utility tests that validate the behavior of helper functions, such as concurrency
-      management and token estimation from file sizes. These tests ensure correctness and performance of utility methods
-      used throughout the codebase.
+      The tests/utils directory contains utility test cases for functions related to concurrency management and token
+      estimation within files and directories. It aims to ensure that utility functions behave as expected under various
+      conditions.
 exports:
   - "async function createTmpDir(): Promise<string>"
   - "async function cleanupTmpDir(dir: string): Promise<void>"
@@ -66,5 +90,6 @@ derived_fields:
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal
   - exports
   - subdirectories

@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:51.454Z
-fingerprint: 714eff00
+last_updated: 2026-02-13T06:15:26.053Z
+fingerprint: 62e496b4
 scope: tests/utils
 summary: >
-  This directory contains utility tests that validate the behavior of helper functions, such as concurrency management
-  and token estimation from file sizes. These tests ensure correctness and performance of utility methods used
-  throughout the codebase.
+  The tests/utils directory contains utility test cases for functions related to concurrency management and token
+  estimation within files and directories. It aims to ensure that utility functions behave as expected under various
+  conditions.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,14 +14,19 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using concurrency management in poolMap function
-    why: To optimize processing of arrays by controlling the number of simultaneous executions of async functions.
-    tradeoff: Increased complexity in handling concurrency limits and potential error propagation.
+  - what: Using Vitest for testing framework
+    why: Vitest provides a fast and efficient test runner that integrates well with current development practices.
+    tradeoff: Choosing Vitest may limit integration options with other testing tools that prefer different frameworks.
 constraints:
-  - All tests must assert expected outcomes to ensure utility functions behave correctly under various scenarios.
-  - Temporary directories created in tests must be cleaned up after each test run to avoid interference.
+  - The test environment must support asynchronous testing patterns to correctly handle the promise-based functions.
+dependencies:
+  internal:
+    - ../../src/utils/pool.js
+    - ../../src/utils/tokens.js
+    - ../helpers.js
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal

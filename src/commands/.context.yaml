@@ -1,12 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:56.684Z
-fingerprint: 30fd05b4
+last_updated: 2026-02-13T06:14:54.652Z
+fingerprint: 759fc19e
 scope: src/commands
 summary: >
-  The `src/commands` directory houses various command-line interface (CLI) commands that facilitate configuration
-  management, context generation, checks, validation, and monitoring of the project structure. Each command allows users
-  to interact with context files and project configurations, ensuring the integrity and accuracy of the developed
-  system.
+  The src/commands directory contains various command implementations that manage project initialization, configuration,
+  benchmarking, and context file handling in a structured manner. Each command handles specific functionalities related
+  to the project's context management lifecycle.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -15,14 +14,37 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: Using a YAML schema for context validation.
-    why: This choice ensures that the context files maintain a consistent structure and adhere to predefined specifications,
-      which facilitates easier debugging and integrity checks.
-    tradeoff: Complexity in implementation and possible performance implications during validation.
+  - what: The commands can operate in both single-repo and multi-repo modes.
+    why: This flexibility allows users to benchmark contexts for either a specific repository or multiple default
+      repositories without changing the underlying architecture.
+    tradeoff: This increases complexity in command handling and requires careful management of temporary directories.
 constraints:
-  - All context files must be in accordance with the defined schema to avoid runtime errors.
-  - Commands should handle missing or invalid configurations gracefully to avoid disruption in user experience.
+  - Commands must ensure that a valid provider configuration exists before proceeding with operations.
+  - Context files must follow the defined schema, and any deviations will affect the commands' executions.
+dependencies:
+  internal:
+    - ../bench/git.js
+    - ../bench/ground-truth.js
+    - ../bench/repos.js
+    - ../bench/runner.js
+    - ../bench/scorer.js
+    - ../bench/tasks.js
+    - ../bench/types.js
+    - ../core/fingerprint.js
+    - ../core/markdown-writer.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ../generator/dependencies.js
+    - ../generator/llm.js
+    - ../generator/markdown.js
+    - ../generator/static.js
+    - ../providers/index.js
+    - ../utils/config.js
+    - ../utils/display.js
+    - ../utils/ignore.js
 exports:
+  - "async function benchCommand(options: BenchOptions): Promise<void>"
   - "async function configCommand( options:"
   - "async function doctorCommand(options:"
   - "async function ignoreCommand(targetPath: string, options:"
@@ -30,6 +52,7 @@ exports:
   - "async function regenCommand( targetPath: string | undefined, options:"
   - "async function rehashCommand(options:"
   - "async function showCommand(targetPath: string): Promise<void>"
+  - "async function statsCommand(options:"
   - "async function statusCommand(options:"
   - "async function validateCommand(options:"
   - "function findTrackedDirForFile( filePath: string, rootPath: string, trackedDirPaths: Iterable<string>, ): string |
@@ -40,4 +63,5 @@ derived_fields:
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal
   - exports

@@ -274,6 +274,7 @@ describe("statsCommand --json", () => {
     const parsed = JSON.parse(stdoutChunks.join(""));
     const te = parsed.token_economics;
     expect(te.source_tokens).toBeGreaterThan(0);
+    expect(te.tracked_source_tokens).toBeGreaterThan(0);
     expect(te.context_tokens).toBeGreaterThan(0);
     expect(te.tokens_saved).toBeGreaterThan(0);
     expect(te.reduction_percent).toBeGreaterThan(0);

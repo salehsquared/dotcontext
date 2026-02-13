@@ -1,11 +1,11 @@
 version: 1
-last_updated: 2026-02-12T22:23:48.273Z
-fingerprint: 06269d4d
+last_updated: 2026-02-13T06:15:06.842Z
+fingerprint: 2b109cff
 scope: src/utils
 summary: >
-  The src/utils directory provides utility functions to manage configuration settings, environment variables, and
-  display messages. It includes methods for loading and saving configurations, handling environment variables, and
-  processing data in parallel with bounded concurrency.
+  The src/utils directory provides utility functions for managing configurations, environment variables, and displaying
+  messages. It facilitates tasks such as loading configuration files, managing environment settings, processing items in
+  parallel, and estimating tokens in directory structures.
 maintenance: |-
   If you modify files in this directory, update this .context.yaml to reflect
   your changes. Update the summary, and any decisions or constraints that changed.
@@ -14,13 +14,19 @@ maintenance: |-
   If you only read files in this directory, do not modify this file.
   Do not include secrets, API keys, passwords, or PII in this file.
 decisions:
-  - what: The decision to use a work-stealing pattern in the poolMap function.
-    why: To optimize parallel processing and ensure that workers can take on new tasks immediately when they finish their
-      current work, improving efficiency.
-    tradeoff: Increased complexity in the implementation when compared to simpler concurrency models.
+  - what: Using a work-stealing pattern in the poolMap function
+    why: This allows for efficient parallel processing of items without blocking, maximizing resource utilization.
+    tradeoff: The implementation complexity increases due to the need to manage concurrency and state.
 constraints:
-  - "Environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/u."
-  - The .env.local file must be present in the root path for loading environment variables.
+  - "The environment variable keys must follow the naming convention: /^[A-Za-z_][A-Za-z0-9_]*$/u."
+  - The maximum concurrency value in poolMap must be at least 1 and not exceed the number of items being processed.
+dependencies:
+  internal:
+    - ../core/fingerprint.js
+    - ../core/scanner.js
+    - ../core/schema.js
+    - ../core/writer.js
+    - ./config.js
 exports:
   - "async function loadConfig(rootPath: string): Promise<ConfigFile | null>"
   - "async function saveConfig(rootPath: string, config: ConfigFile): Promise<void>"
@@ -42,10 +48,13 @@ exports:
   - "async function loadScanOptions(rootPath: string): Promise<ScanOptions>"
   - DEFAULT_MIN_TOKENS
   - "async function estimateDirectoryTokens(dir: ScanResult): Promise<number>"
+  - "async function estimateContextFileTokens(dirPath: string): Promise<number>"
+  - "function collectExtensions(dirs: ScanResult[]): Record<string, number>"
   - "async function filterByMinTokens( dirs: ScanResult[], minTokens?: number, ): Promise<"
 derived_fields:
   - version
   - last_updated
   - fingerprint
   - scope
+  - dependencies.internal
   - exports
