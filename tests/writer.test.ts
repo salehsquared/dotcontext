@@ -98,6 +98,20 @@ describe("writeContext / readContext", () => {
   });
 });
 
+describe("readContext edge cases", () => {
+  it("returns null for empty file (0 bytes)", async () => {
+    await writeFile(join(tmpDir, CONTEXT_FILENAME), "", "utf-8");
+    const result = await readContext(tmpDir);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for YAML that parses to non-object (scalar string)", async () => {
+    await writeFile(join(tmpDir, CONTEXT_FILENAME), '"just a string"\n', "utf-8");
+    const result = await readContext(tmpDir);
+    expect(result).toBeNull();
+  });
+});
+
 describe("writeConfig / readConfig", () => {
   it("writeConfig creates .context.config.yaml file", async () => {
     await writeConfig(tmpDir, { provider: "anthropic" });

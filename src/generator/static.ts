@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import type { ScanResult } from "../core/scanner.js";
 import type { ContextFile, FileEntry, SubdirectoryEntry } from "../core/schema.js";
@@ -117,9 +117,21 @@ export async function generateStaticContext(
     }));
   }
 
-  // Collect evidence (root only, opt-in)
-  if (isRoot && options?.evidence) {
-    const evidence = await collectBasicEvidence(scanResult.path);
+  // Collect evidence (per-directory, opt-in)
+  if (options?.evidence) {
+    // Compute newest source file mtime for staleness comparison
+    let newestMtimeMs: number | undefined;
+    for (const filename of scanResult.files) {
+      try {
+        const s = await stat(join(scanResult.path, filename));
+        if (newestMtimeMs === undefined || s.mtimeMs > newestMtimeMs) {
+          newestMtimeMs = s.mtimeMs;
+        }
+      } catch {
+        // skip unreadable files
+      }
+    }
+    const evidence = await collectBasicEvidence(scanResult.path, newestMtimeMs);
     if (evidence) context.evidence = evidence;
   }
 

@@ -426,6 +426,39 @@ describe("handleListContexts", () => {
   });
 });
 
+// --- Additional coverage ---
+
+describe("handleListContexts — skipped_directories", () => {
+  it("reports skipped_directories when min_tokens filters subdirectories", async () => {
+    // Use default config (no min_tokens: 0 override) so token filter is active
+    await saveConfig(tmpDir, { provider: "anthropic" });
+
+    // Root with a source file
+    await createFile(tmpDir, "index.ts", "code");
+    const rootFp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: rootFp, scope: "." }));
+
+    // Tiny subdirectory that will be below the default 4096 token threshold
+    const subDir = join(tmpDir, "tiny");
+    await mkdir(subDir, { recursive: true });
+    await createFile(subDir, "small.ts", "x");
+
+    const result = await handleListContexts({}, tmpDir);
+    expect(result.skipped_directories).toBeGreaterThan(0);
+  });
+});
+
+describe("handleQueryContext — file scope", () => {
+  it("returns not found for scope pointing to a file", async () => {
+    await createFile(tmpDir, "index.ts", "code");
+    const fp = await computeFingerprint(tmpDir);
+    await writeContext(tmpDir, makeValidContext({ fingerprint: fp }));
+
+    const result = await handleQueryContext({ scope: "index.ts" }, tmpDir);
+    expect(result.found).toBe(false);
+  });
+});
+
 // --- registerTools ---
 
 describe("registerTools", () => {

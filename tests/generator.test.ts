@@ -473,7 +473,7 @@ current_state:
     expect(result.evidence).toBeUndefined();
   });
 
-  it("omits evidence for non-root even when option is true", async () => {
+  it("includes evidence for non-root when option is true", async () => {
     await createFile(tmpDir, "a.ts", "code");
     await writeFile(
       join(tmpDir, "test-results.json"),
@@ -484,7 +484,10 @@ current_state:
 
     const result = await generateLLMContext(provider, scan, new Map(), { evidence: true });
 
-    expect(result.evidence).toBeUndefined();
+    expect(result.evidence).toBeDefined();
+    expect(result.evidence!.test_status).toBe("passing");
+    expect(result.evidence!.test_count).toBe(10);
+    expect(result.derived_fields).toContain("evidence");
   });
 
   it("fallback at root includes project and structure (full)", async () => {

@@ -1,0 +1,9 @@
+version: 1
+last_updated: "2026-02-13T10:00:00Z"
+fingerprint: "abc12345"
+scope: "."
+summary: "Evidence with invalid coverage_percent"
+maintenance: "Keep updated"
+evidence:
+  collected_at: "2026-02-13T10:00:00Z"
+  coverage_percent: 150

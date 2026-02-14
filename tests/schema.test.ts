@@ -113,6 +113,72 @@ describe("contextSchema", () => {
       }
     });
 
+    it("accepts evidence with all new fields", () => {
+      const data = makeValidContext({
+        evidence: {
+          collected_at: "2026-02-13T10:00:00Z",
+          commit_sha: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+          test_status: "passing",
+          test_count: 100,
+          test_tool: "vitest",
+          typecheck: "clean",
+          typecheck_tool: "tsc",
+          lint_status: "clean",
+          lint_tool: "eslint",
+          coverage_percent: 87.5,
+        },
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.evidence?.commit_sha).toBe("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2");
+        expect(result.data.evidence?.test_tool).toBe("vitest");
+        expect(result.data.evidence?.typecheck_tool).toBe("tsc");
+        expect(result.data.evidence?.lint_status).toBe("clean");
+        expect(result.data.evidence?.lint_tool).toBe("eslint");
+        expect(result.data.evidence?.coverage_percent).toBe(87.5);
+      }
+    });
+
+    it("accepts evidence with only collected_at (minimal)", () => {
+      const data = makeValidContext({
+        evidence: { collected_at: "2026-02-13T10:00:00Z" },
+      });
+      const result = contextSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects evidence with coverage_percent > 100", () => {
+      const data = makeValidContext({
+        evidence: {
+          collected_at: "2026-02-13T10:00:00Z",
+          coverage_percent: 150,
+        },
+      });
+      expect(contextSchema.safeParse(data).success).toBe(false);
+    });
+
+    it("rejects evidence with coverage_percent < 0", () => {
+      const data = makeValidContext({
+        evidence: {
+          collected_at: "2026-02-13T10:00:00Z",
+          coverage_percent: -5,
+        },
+      });
+      expect(contextSchema.safeParse(data).success).toBe(false);
+    });
+
+    it("rejects evidence with unknown field (strict)", () => {
+      const data = {
+        ...makeValidContext(),
+        evidence: {
+          collected_at: "2026-02-13T10:00:00Z",
+          unknown_field: "should fail",
+        },
+      };
+      expect(contextSchema.safeParse(data).success).toBe(false);
+    });
+
     it("accepts files with test_file field", () => {
       const data = makeValidContext({
         files: [
@@ -249,6 +315,36 @@ describe("contextSchema", () => {
   });
 });
 
+describe("evidence boundary validation", () => {
+  it("accepts coverage_percent of 0", () => {
+    const data = makeValidContext({
+      evidence: { collected_at: "2026-02-14T00:00:00Z", coverage_percent: 0 },
+    });
+    expect(contextSchema.safeParse(data).success).toBe(true);
+  });
+
+  it("accepts coverage_percent of 100", () => {
+    const data = makeValidContext({
+      evidence: { collected_at: "2026-02-14T00:00:00Z", coverage_percent: 100 },
+    });
+    expect(contextSchema.safeParse(data).success).toBe(true);
+  });
+
+  it("rejects coverage_percent of 100.1", () => {
+    const data = makeValidContext({
+      evidence: { collected_at: "2026-02-14T00:00:00Z", coverage_percent: 100.1 },
+    });
+    expect(contextSchema.safeParse(data).success).toBe(false);
+  });
+
+  it("rejects non-integer test_count", () => {
+    const data = makeValidContext({
+      evidence: { collected_at: "2026-02-14T00:00:00Z", test_count: 5.5 },
+    });
+    expect(contextSchema.safeParse(data).success).toBe(false);
+  });
+});
+
 describe("configSchema", () => {
   it("accepts valid anthropic config", () => {
     expect(configSchema.safeParse({ provider: "anthropic" }).success).toBe(true);
@@ -303,6 +399,14 @@ describe("configSchema", () => {
 
   it("rejects invalid mode value", () => {
     expect(configSchema.safeParse({ provider: "anthropic", mode: "verbose" }).success).toBe(false);
+  });
+
+  it("accepts min_tokens of 0", () => {
+    expect(configSchema.safeParse({ provider: "anthropic", min_tokens: 0 }).success).toBe(true);
+  });
+
+  it("rejects min_tokens as string", () => {
+    expect(configSchema.safeParse({ provider: "anthropic", min_tokens: "4096" }).success).toBe(false);
   });
 });
 

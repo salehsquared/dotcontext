@@ -317,6 +317,8 @@ context config              # View current settings
 | [Versioning](docs/versioning.md) | Schema version policy and compatibility guarantees |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues with fixes |
 | [Limitations](docs/limitations.md) | What dotcontext does not guarantee |
+| [MCP Contract](docs/mcp.md) | MCP tool request/response shapes and error semantics |
+| [Evidence](docs/evidence.md) | Evidence contract: artifact formats, search paths, freshness |
 
 ## License
 

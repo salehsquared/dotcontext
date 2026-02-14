@@ -160,7 +160,7 @@ Only present in the root `.context.yaml` (where `scope` is `"."`):
 | Field | Type | Description |
 |---|---|---|
 | `derived_fields` | `array of string` | JSON pointer-style paths listing which fields were machine-generated rather than LLM-narrated. See [trust-model.md](trust-model.md) for what this means. |
-| `evidence` | `object` | Machine-collected code health data. Never from LLM generation — always from reading test artifacts. Fields: `collected_at` (ISO 8601), `test_status` (`"passing"` / `"failing"` / `"unknown"`), `test_count` (integer), `failing_tests` (string array), `typecheck` (`"clean"` / `"errors"` / `"unknown"`). |
+| `evidence` | `object` | Machine-collected code health data. Never from LLM generation — always from reading existing artifacts. Fields: `collected_at` (ISO 8601, required), `commit_sha` (git SHA), `test_status` / `test_count` / `failing_tests` / `test_tool` (test results), `typecheck` / `typecheck_tool` (type checking), `lint_status` / `lint_tool` (linting), `coverage_percent` (line coverage 0-100). Uses `.strict()` validation. See [evidence.md](evidence.md) for the full contract. |
 
 ## Config File Schema
 

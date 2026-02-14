@@ -59,19 +59,27 @@ This is intentional: static-generated context files often don't populate interna
 
 ## Evidence Collection
 
-Evidence is **read-only** — dotcontext never runs test commands or linters. It only reads existing artifact files.
+Evidence is **read-only** — dotcontext never runs test commands, linters, or compilers. It only reads existing artifact files. The `commit_sha` field is resolved by reading `.git/HEAD` (file I/O only, no process execution).
 
 | What it reads | Format |
 |---|---|
 | `test-results.json` | Jest/Vitest JSON format |
 | `.vitest-results.json` | Vitest JSON format |
-| `junit.xml` | JUnit XML format |
+| `junit.xml`, `test-results.xml` | JUnit XML format |
+| `tsconfig.tsbuildinfo` | TypeScript build info (existence + mtime check) |
+| `.eslintcache` | ESLint cache (existence + mtime check) |
+| `coverage/coverage-summary.json` | Istanbul/c8 coverage summary |
+| `coverage.json` | pytest-cov coverage |
 
 **Limitations:**
 - If test artifacts are from a previous run, evidence reflects that old run
-- Root-level only — evidence does not appear in subdirectory contexts
+- Per-directory with no fallback — each directory reports only its own local artifacts; no inheritance from root or parent directories
 - Opt-in via `--evidence` flag — not collected by default
 - JUnit XML parsing uses regex, not a full XML parser — complex JUnit files may not parse correctly
+- Typecheck and lint detection uses mtime comparison: if the artifact is older than the newest source file, status is reported as `"unknown"` rather than `"clean"`
+- Git SHA resolution handles regular repos, worktrees, and packed-refs, but may fail in unusual git configurations
+
+See [evidence.md](evidence.md) for the full evidence contract.
 
 ## Watch Mode
 

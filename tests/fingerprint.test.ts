@@ -91,6 +91,30 @@ describe("computeFingerprint", () => {
   });
 });
 
+describe("computeFingerprint — add/delete file staleness", () => {
+  it("adding a new file changes fingerprint", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    const hash1 = await computeFingerprint(tmpDir);
+
+    await createFile(tmpDir, "b.ts", "more code");
+    const hash2 = await computeFingerprint(tmpDir);
+
+    expect(hash1).not.toBe(hash2);
+  });
+
+  it("deleting a file changes fingerprint", async () => {
+    await createFile(tmpDir, "a.ts", "code");
+    await createFile(tmpDir, "b.ts", "more code");
+    const hash1 = await computeFingerprint(tmpDir);
+
+    const { rm } = await import("node:fs/promises");
+    await rm(join(tmpDir, "b.ts"));
+    const hash2 = await computeFingerprint(tmpDir);
+
+    expect(hash1).not.toBe(hash2);
+  });
+});
+
 describe("checkFreshness", () => {
   it("returns 'fresh' when fingerprints match", async () => {
     await createFile(tmpDir, "a.ts", "code");

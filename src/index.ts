@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { statusCommand } from "./commands/status.js";
@@ -50,6 +51,26 @@ const defaultHandlers: CommandHandlers = {
   benchCommand,
   startMcpServer,
 };
+
+function isInvokedDirectly(argv1: string | undefined): boolean {
+  if (typeof argv1 !== "string") return false;
+
+  // npm/yarn often invoke package bins through symlinks in node_modules/.bin.
+  // Compare real paths so symlinked execution still triggers the CLI entrypoint.
+  try {
+    const invokedPath = realpathSync(argv1);
+    const thisModulePath = realpathSync(fileURLToPath(import.meta.url));
+    if (invokedPath === thisModulePath) return true;
+  } catch {
+    // Fall through to URL equality check below.
+  }
+
+  try {
+    return import.meta.url === pathToFileURL(argv1).href;
+  } catch {
+    return false;
+  }
+}
 
 export function createProgram(handlers: CommandHandlers = defaultHandlers): Command {
   const program = new Command();
@@ -258,9 +279,7 @@ export async function runCli(
   await program.parseAsync(argv);
 }
 
-const invokedDirectly =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+const invokedDirectly = isInvokedDirectly(process.argv[1]);
 
 if (invokedDirectly) {
   runCli().catch((err) => {

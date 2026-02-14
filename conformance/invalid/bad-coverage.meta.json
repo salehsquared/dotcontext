@@ -1,0 +1,6 @@
+{
+  "description": "Evidence with coverage_percent > 100 (out of range)",
+  "expected": "invalid",
+  "category": "type-validation",
+  "error_field": "coverage_percent"
+}

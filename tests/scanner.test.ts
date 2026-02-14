@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { scanProject, flattenBottomUp, groupByDepth } from "../src/core/scanner.js";
 import { createTmpDir, cleanupTmpDir, createFile, createNestedFile } from "./helpers.js";
 
+
 let tmpDir: string;
 
 beforeEach(async () => {
@@ -201,6 +202,111 @@ describe("scanProject", () => {
 
     const core = src!.children.find((c) => c.relativePath === "src/core");
     expect(core).toBeDefined();
+  });
+});
+
+describe("scanProject — negation patterns", () => {
+  it("negation re-includes a previously ignored directory", async () => {
+    await createFile(tmpDir, ".contextignore", "generated\n!generated\n");
+    await createNestedFile(tmpDir, "generated/types.ts", "export type Foo = {}");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+    expect(allPaths.some((p) => p.includes("generated"))).toBe(true);
+  });
+
+  it("negation after glob re-includes specific match", async () => {
+    await createFile(tmpDir, ".contextignore", "*.log\n!keep.log\n");
+    await createNestedFile(tmpDir, "debug.log/trace.ts", "code");
+    await createNestedFile(tmpDir, "keep.log/main.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+    expect(allPaths.some((p) => p.includes("debug.log"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("keep.log"))).toBe(true);
+  });
+
+  it("double-star negation re-includes specific nested path", async () => {
+    await createFile(tmpDir, ".contextignore", "packages/**/reports\n!packages/core/reports\n");
+    await createNestedFile(tmpDir, "packages/core/reports/summary.ts", "code");
+    await createNestedFile(tmpDir, "packages/other/reports/summary.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+    expect(allPaths.some((p) => p.includes("packages/core/reports"))).toBe(true);
+    expect(allPaths.some((p) => p.includes("packages/other/reports"))).toBe(false);
+  });
+});
+
+describe("scanProject — source extension & meaningful file coverage", () => {
+  it("recognizes additional source extensions (.rs, .go, .vue, .svelte, .proto)", async () => {
+    await createFile(tmpDir, "main.rs", "fn main() {}");
+    await createFile(tmpDir, "main.go", "package main");
+    await createFile(tmpDir, "App.vue", "<template></template>");
+    await createFile(tmpDir, "App.svelte", "<script>let x = 1;</script>");
+    await createFile(tmpDir, "service.proto", "syntax = \"proto3\";");
+
+    const result = await scanProject(tmpDir);
+    expect(result.files).toContain("main.rs");
+    expect(result.files).toContain("main.go");
+    expect(result.files).toContain("App.vue");
+    expect(result.files).toContain("App.svelte");
+    expect(result.files).toContain("service.proto");
+  });
+
+  it("recognizes additional meaningful files (Cargo.toml, go.mod, pyproject.toml)", async () => {
+    await mkdir(join(tmpDir, "project"));
+    await createFile(join(tmpDir, "project"), "Cargo.toml", "[package]");
+    await createFile(join(tmpDir, "project"), "go.mod", "module example");
+    await createFile(join(tmpDir, "project"), "pyproject.toml", "[tool.poetry]");
+
+    const result = await scanProject(tmpDir);
+    const projectDir = flattenBottomUp(result).find((r) => r.relativePath === "project");
+    expect(projectDir).toBeDefined();
+    expect(projectDir!.files).toContain("Cargo.toml");
+    expect(projectDir!.files).toContain("go.mod");
+    expect(projectDir!.files).toContain("pyproject.toml");
+  });
+
+  it("ignores files with no recognized extension", async () => {
+    await createFile(tmpDir, "LICENSE", "MIT");
+    await createFile(tmpDir, "CODEOWNERS", "* @owner");
+    await createFile(tmpDir, ".env", "SECRET=abc");
+
+    const result = await scanProject(tmpDir);
+    expect(result.files).not.toContain("LICENSE");
+    expect(result.files).not.toContain("CODEOWNERS");
+    expect(result.files).not.toContain(".env");
+  });
+});
+
+describe("scanProject — glob pattern matching", () => {
+  it("? wildcard matches single character in ignore pattern", async () => {
+    await createFile(tmpDir, ".contextignore", "log?\n");
+    await createNestedFile(tmpDir, "log1/file.ts", "code");
+    await createNestedFile(tmpDir, "logdir/file.ts", "code");
+    await createNestedFile(tmpDir, "log/file.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+
+    expect(allPaths.some((p) => p.includes("log1"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("logdir"))).toBe(true);
+    expect(allPaths.some((p) => p === "log")).toBe(true);
+  });
+
+  it("double-star in middle of path matches nested directories", async () => {
+    await createFile(tmpDir, ".contextignore", "src/**/generated\n");
+    await createNestedFile(tmpDir, "src/a/generated/out.ts", "code");
+    await createNestedFile(tmpDir, "src/a/b/generated/out.ts", "code");
+    await createNestedFile(tmpDir, "src/a/kept/out.ts", "code");
+
+    const result = await scanProject(tmpDir);
+    const allPaths = flattenBottomUp(result).map((r) => r.relativePath);
+
+    expect(allPaths.some((p) => p.includes("src/a/generated"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("src/a/b/generated"))).toBe(false);
+    expect(allPaths.some((p) => p.includes("src/a/kept"))).toBe(true);
   });
 });
 

@@ -1,0 +1,5 @@
+{
+  "description": "Context with full evidence contract: all evidence fields populated",
+  "expected": "valid",
+  "category": "provenance"
+}

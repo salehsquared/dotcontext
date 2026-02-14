@@ -1,6 +1,6 @@
 version: 1
-last_updated: 2026-02-13T18:47:48.262Z
-fingerprint: 2deb7438
+last_updated: 2026-02-14T15:56:34.292Z
+fingerprint: fbfa5501
 scope: .
 summary: Folder-level documentation for LLMs — .context.yaml files for every directory
 maintenance: |-
@@ -18,10 +18,7 @@ subdirectories:
   - name: scripts/
     summary: Build and utility scripts.
   - name: src/
-    summary: >
-      The `src` directory is responsible for implementing the core functionalities and command-line interface for
-      managing context generation and diagnostics in a project. It provides various commands for initializing
-      configurations, validating context files, and monitoring their freshness.
+    summary: Source code.
   - name: tests/
     summary: Test suite.
 project:
@@ -37,10 +34,7 @@ structure:
   - path: scripts
     summary: Build and utility scripts.
   - path: src
-    summary: >
-      The `src` directory is responsible for implementing the core functionalities and command-line interface for
-      managing context generation and diagnostics in a project. It provides various commands for initializing
-      configurations, validating context files, and monitoring their freshness.
+    summary: Source code.
   - path: tests
     summary: Test suite.
 derived_fields:

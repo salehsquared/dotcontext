@@ -54,11 +54,17 @@ const structureEntrySchema = z.object({
 
 const evidenceSchema = z.object({
   collected_at: z.string().describe("ISO 8601 timestamp of evidence collection"),
+  commit_sha: z.string().optional().describe("Git commit SHA at time of evidence collection"),
   test_status: z.enum(["passing", "failing", "unknown"]).optional(),
   test_count: z.number().int().optional(),
   failing_tests: z.array(z.string()).optional(),
+  test_tool: z.string().optional().describe("Test runner that produced the artifact (e.g. vitest, jest, pytest)"),
   typecheck: z.enum(["clean", "errors", "unknown"]).optional(),
-});
+  typecheck_tool: z.string().optional().describe("Type checker that produced the artifact (e.g. tsc, mypy)"),
+  lint_status: z.enum(["clean", "errors", "unknown"]).optional(),
+  lint_tool: z.string().optional().describe("Linter that produced the artifact (e.g. eslint, ruff)"),
+  coverage_percent: z.number().min(0).max(100).optional().describe("Line coverage percentage"),
+}).strict();
 
 // --- Constants (must precede schema definitions that reference them) ---
 

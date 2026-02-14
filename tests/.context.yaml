@@ -1,6 +1,6 @@
 version: 1
-last_updated: 2026-02-13T18:47:48.238Z
-fingerprint: 2632ff16
+last_updated: 2026-02-14T15:56:34.266Z
+fingerprint: bf7f66ef
 scope: tests
 summary: Test suite.
 maintenance: |-
@@ -23,16 +23,15 @@ subdirectories:
       This directory contains unit tests for the core functionality of the markdown writer. It focuses on reading,
       writing, and updating agent-related markdown files, ensuring proper handling of file operations and content
       management.
+  - name: e2e/
+    summary: Source directory.
   - name: fixtures/
     summary: >
       The tests/fixtures directory provides test fixtures for various scenarios, including a monorepo setup, a simple
       TypeScript project, and files designated to be ignored during testing. It serves to facilitate organized testing
       across different project configurations.
   - name: generator/
-    summary: >
-      This directory contains unit tests for the markdown generation functionality used in the project. It validates the
-      correctness of various methods that handle the creation and manipulation of markdown content related to agents and
-      their actions.
+    summary: Code generation.
   - name: mcp/
     summary: MCP server integration.
   - name: utils/

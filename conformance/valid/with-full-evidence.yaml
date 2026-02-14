@@ -1,0 +1,21 @@
+version: 1
+last_updated: "2026-02-13T10:00:00Z"
+fingerprint: "f1a2b3c4"
+scope: "src/core"
+summary: "Core module with full evidence contract"
+maintenance: "Keep updated"
+derived_fields:
+  - "version"
+  - "fingerprint"
+  - "evidence"
+evidence:
+  collected_at: "2026-02-13T10:00:00Z"
+  commit_sha: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+  test_status: "passing"
+  test_count: 142
+  test_tool: "vitest"
+  typecheck: "clean"
+  typecheck_tool: "tsc"
+  lint_status: "clean"
+  lint_tool: "eslint"
+  coverage_percent: 87.5

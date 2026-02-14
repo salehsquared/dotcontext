@@ -30,7 +30,7 @@ const ajvValidate = ajv.compile(jsonSchema);
 // Collect test cases from a directory
 function collectCases(dir) {
   const fullDir = join(__dirname, dir);
-  const files = readdirSync(fullDir).filter((f) => f.endsWith(".yaml"));
+  const files = readdirSync(fullDir).filter((f) => f.endsWith(".yaml") && f !== ".context.yaml");
   return files.map((f) => {
     const metaPath = join(fullDir, f.replace(".yaml", ".meta.json"));
     const meta = JSON.parse(readFileSync(metaPath, "utf-8"));
